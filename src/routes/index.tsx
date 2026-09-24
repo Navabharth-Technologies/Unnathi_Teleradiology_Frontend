@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createHashRouter, Navigate } from 'react-router-dom';
 import AppLayout from '../layouts/AppLayout';
 import AuthLayout from '../layouts/AuthLayout';
 import Login from '../pages/Login';
@@ -41,7 +41,7 @@ import SitesList from '../pages/unnathi/SitesList';
 import HospitalsList from '../pages/unnathi/HospitalsList';
 import GlobalBilling from '../pages/unnathi/GlobalBilling';
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: '/',
     element: <AuthLayout />,
