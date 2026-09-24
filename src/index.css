@@ -1,0 +1,252 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Unnathi Brand Tokens ─────────────────────────────────────────────────── */
+:root {
+  /* Brand colors */
+  --unnathi-navy:       #0D2461;
+  --unnathi-navy-deep:  #081840;
+  --unnathi-navy-mid:   #14307a;
+  --unnathi-cyan:       #00A8CC;
+  --unnathi-cyan-light: #00C8E8;
+  --unnathi-cyan-pale:  #e0f7fd;
+  --unnathi-white:      #ffffff;
+
+  /* shadcn tokens (converted to HSL for tailwind) */
+  --background: 210 40% 98%;
+  --foreground: 224 76% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 224 76% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 224 76% 12%;
+  
+  /* Primary = Cyan (#00A8CC) */
+  --primary: 191 100% 40%;
+  --primary-foreground: 0 0% 100%;
+  
+  /* Secondary = Navy (#0D2461) */
+  --secondary: 224 76% 22%;
+  --secondary-foreground: 0 0% 100%;
+  
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 191 100% 95%;
+  --accent-foreground: 191 100% 30%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 191 100% 40%;
+  --radius: 0.75rem;
+  --chart-1: 191 100% 40%;
+  --chart-2: 224 76% 22%;
+  --chart-3: 191 50% 60%;
+  --chart-4: 224 50% 40%;
+  --chart-5: 191 80% 50%;
+  --sidebar: 224 76% 22%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 191 100% 40%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 224 76% 15%;
+  --sidebar-accent-foreground: 191 100% 80%;
+  --sidebar-border: 224 76% 18%;
+  --sidebar-ring: 191 100% 40%;
+}
+
+.dark {
+  --background: 224 76% 5%;
+  --foreground: 210 40% 98%;
+  --card: 224 76% 8%;
+  --card-foreground: 210 40% 98%;
+  --popover: 224 76% 8%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 191 100% 40%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 224 76% 15%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 224 76% 15%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 191 100% 15%;
+  --accent-foreground: 191 100% 80%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 224 76% 15%;
+  --input: 224 76% 15%;
+  --ring: 191 100% 40%;
+  --sidebar: 224 76% 8%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 191 100% 40%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 224 76% 15%;
+  --sidebar-accent-foreground: 191 100% 80%;
+  --sidebar-border: 224 76% 15%;
+  --sidebar-ring: 191 100% 40%;
+}
+
+.theme {
+  --font-heading: var(--font-sans);
+  --font-sans: 'Geist Variable', 'Inter', sans-serif;
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; font-family: 'Inter', 'Geist Variable', sans-serif; }
+  html { @apply font-sans; }
+  * { border-color: hsl(var(--border)); }
+}
+
+/* ── Keyframe Animations ──────────────────────────────────────────────────── */
+
+@keyframes unnathi-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes unnathi-slide-right {
+  from { opacity: 0; transform: translateX(-18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes unnathi-slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes unnathi-glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 168, 204, 0); }
+  50%       { box-shadow: 0 0 16px 4px rgba(0, 168, 204, 0.35); }
+}
+
+@keyframes unnathi-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes unnathi-arc-draw {
+  from { stroke-dashoffset: 400; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes unnathi-dot-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Animation Utilities ──────────────────────────────────────────────────── */
+
+.animate-unnathi-fade-in  { animation: unnathi-fade-in   0.4s ease both; }
+.animate-unnathi-slide    { animation: unnathi-slide-right 0.35s ease both; }
+.animate-unnathi-slide-up { animation: unnathi-slide-up  0.4s ease both; }
+.animate-glow-pulse       { animation: unnathi-glow-pulse 2.5s ease-in-out infinite; }
+.animate-float            { animation: float 3s ease-in-out infinite; }
+.animate-spin-slow        { animation: spin-slow 8s linear infinite; }
+
+/* Staggered children */
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 360ms; }
+
+/* ── Brand Component Styles ───────────────────────────────────────────────── */
+
+/* Sidebar nav item hover glow */
+.nav-item-hover {
+  position: relative;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.nav-item-hover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: rgba(0, 168, 204, 0.1);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.nav-item-hover:hover::before { opacity: 1; }
+.nav-item-hover:hover {
+  transform: translateX(4px);
+  color: #00A8CC;
+}
+
+/* Active nav item cyan left bar */
+.nav-item-active {
+  background: linear-gradient(90deg, rgba(0,168,204,0.18) 0%, rgba(0,168,204,0.05) 100%);
+  border-left: 3px solid #00A8CC;
+  color: #00C8E8 !important;
+}
+
+/* Cyan shimmer button */
+.btn-brand {
+  background: linear-gradient(135deg, #00A8CC 0%, #0080aa 100%);
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+.btn-brand::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -75%;
+  width: 50%;
+  height: 200%;
+  background: rgba(255,255,255,0.15);
+  transform: skewX(-20deg);
+  transition: left 0.4s ease;
+}
+.btn-brand:hover::after { left: 125%; }
+.btn-brand:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 168, 204, 0.4);
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(13, 36, 97, 0.12);
+}
+
+/* Brand gradient text */
+.brand-text {
+  background: linear-gradient(135deg, #0D2461 0%, #00A8CC 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Cyan glow ring on focus */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(0, 168, 204, 0.4) !important;
+  border-color: #00A8CC !important;
+}
+
+/* Scrollbar brand */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #f0f4f8; }
+::-webkit-scrollbar-thumb { background: #00A8CC; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #0D2461; }
