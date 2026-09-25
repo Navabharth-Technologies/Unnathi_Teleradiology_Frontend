@@ -48,10 +48,9 @@ export default function AdvancedReporting() {
   // Derive access list
   const accessibleStudies = useMemo(() => {
     return studies.filter(s => {
-      // Super Admin sees all EXCEPT independent hospitals
+      // Super Admin sees all studies (including independent hospitals)
       if (user?.role === 'SUPER_ADMIN') {
-        const hospital = hospitals.find(h => h.id === s.hospitalId);
-        return hospital?.organizationType !== 'UNNATHI_MANAGED';
+        return true;
       }
       
       // Site Admin sees all studies from hospitals that belong to their site

@@ -25,9 +25,10 @@ export default function StudiesList() {
     
     const hospital = hospitals.find(h => h.id === s.hospitalId);
 
-    // Hide independent hospital studies from Super Admin
-    if (user?.role === 'SUPER_ADMIN' && hospital?.organizationType === 'UNNATHI_MANAGED') return false;
-    
+    // Allow Super Admin to see all studies
+    if (user?.role === 'SUPER_ADMIN') {
+      // no-op, sees everything
+    }
     // Isolate independent hospitals from Site Admins
     if (user?.role === 'SITE_ADMIN') {
       const hospital = hospitals.find(h => h.id === s.hospitalId);

@@ -21,9 +21,8 @@ export default function VerificationWorklist() {
     .filter(s => {
       // Scoping logic: Ensure the verifier only sees studies for their hospital/site
       if (user?.role === 'SUPER_ADMIN') {
-        const hospital = hospitals.find(h => h.id === s.hospitalId);
-        // Hide independent hospital studies from Super Admin operational views
-        return hospital?.organizationType !== 'UNNATHI_MANAGED';
+        // Super Admin sees all studies for operational views now
+        return true;
       }
       
       if (user?.role === 'SITE_ADMIN') {

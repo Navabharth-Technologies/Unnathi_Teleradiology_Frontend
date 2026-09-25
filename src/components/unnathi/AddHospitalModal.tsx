@@ -446,18 +446,9 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }: AddHo
                 
                 {formData.accountType === 'Prepaid' && (
                   <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
-                    <label className="text-[12px] font-bold text-slate-700">Initial Wallet Balance (₹)</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-slate-500 text-sm">₹</span>
-                      </div>
-                      <Input 
-                        type="number" 
-                        name="walletBalance"
-                        value={formData.walletBalance} 
-                        onChange={handleChange}
-                        className="pl-8 h-9 text-[13px]" 
-                      />
+                    <label className="text-[12px] font-bold text-slate-700">Prepaid Wallet Active</label>
+                    <div className="text-[13px] font-medium text-slate-500 bg-slate-50 p-2.5 rounded-md border border-slate-200">
+                      Funds can be added from the Site Ledger after creation.
                     </div>
                   </div>
                 )}

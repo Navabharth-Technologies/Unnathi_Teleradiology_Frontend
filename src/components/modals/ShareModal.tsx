@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { X, MessageCircle, Copy, Link as LinkIcon, Share2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -13,12 +14,15 @@ interface ShareModalProps {
 
 export function ShareModal({ isOpen, onClose, study, patient, hospital }: ShareModalProps) {
   const [copied, setCopied] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   if (!isOpen) return null;
 
   const demoLink = `${window.location.origin}/viewer/${study?.id}`;
   
-  const patientDetailsString = `*Report Ready*\nPatient: ${patient?.name}\nID: ${patient?.uhid}\nModality: ${study?.modality}\nHospital: ${hospital?.name}\nLink: ${demoLink}`;
+  const patientName = patient?.name || 'Patient';
+  const hospitalName = hospital?.name || 'our center';
+  const patientDetailsString = `Dear ${patientName},\nHere is the report for your scanning at ${hospitalName}.\nLink: ${demoLink}`;
 
   const handleCopy = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -28,7 +32,13 @@ export function ShareModal({ isOpen, onClose, study, patient, hospital }: ShareM
 
   const handleWhatsApp = () => {
     const encodedText = encodeURIComponent(patientDetailsString);
-    window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+    if (phoneNumber.trim()) {
+      const cleanNumber = phoneNumber.replace(/\D/g, '');
+      const finalNumber = cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
+      window.open(`https://wa.me/${finalNumber}?text=${encodedText}`, '_blank');
+    } else {
+      window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+    }
   };
 
   const modalContent = (
@@ -56,16 +66,33 @@ export function ShareModal({ isOpen, onClose, study, patient, hospital }: ShareM
 
         <div className="p-6 space-y-6">
           
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">Share Report Link</h3>
-            <div className="flex flex-wrap gap-3">
-              <Button 
-                onClick={handleWhatsApp}
-                className="bg-[#25D366] hover:bg-[#1ebd5a] text-white font-bold flex-1 h-11"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
-              </Button>
-              
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">Share via WhatsApp</h3>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-slate-500 font-semibold">+91</span>
+                  </div>
+                  <Input 
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="Enter mobile number (Optional)"
+                    className="pl-10 h-11 bg-slate-50 border-slate-200"
+                  />
+                </div>
+                <Button 
+                  onClick={handleWhatsApp}
+                  className="bg-[#25D366] hover:bg-[#1ebd5a] text-white font-bold h-11 px-6 whitespace-nowrap"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">Copy Links</h3>
+              <div className="flex flex-wrap gap-3">
               <Button 
                 variant="outline"
                 onClick={() => handleCopy(patientDetailsString, 'details')}

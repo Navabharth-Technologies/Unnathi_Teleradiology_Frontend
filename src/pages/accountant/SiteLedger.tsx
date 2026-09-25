@@ -5,7 +5,7 @@ import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { 
   Eye, FileText, RefreshCw, LayoutGrid, Calendar as CalendarIcon, 
-  Search, X, CheckCircle, ShieldAlert, Loader2, Download
+  Search, X, CheckCircle, ShieldAlert, Loader2, Download, Plus, Wallet
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -21,6 +21,8 @@ export default function SiteLedger() {
   
   // Specific Action Modals
   const [billingModal, setBillingModal] = useState<any | null>(null);
+  const [addFundsModal, setAddFundsModal] = useState<any | null>(null);
+  const [addFundsData, setAddFundsData] = useState({ amount: '', method: 'UPI', reference: '', remarks: '' });
   const [syncState, setSyncState] = useState<{ [key: string]: 'syncing' | 'success' }>({});
   const [gridModal, setGridModal] = useState<any | null>(null);
   const [scheduleModal, setScheduleModal] = useState<any | null>(null);
@@ -120,6 +122,19 @@ export default function SiteLedger() {
     });
     
     setBillingModal(null);
+  };
+
+  const handleAddFunds = () => {
+    if (!addFundsModal || !addFundsData.amount) return;
+    const amount = Number(addFundsData.amount);
+    if (isNaN(amount) || amount <= 0) return;
+    
+    // Update the hospital's wallet balance
+    const newBalance = (addFundsModal.walletBalance || 0) + amount;
+    updateHospital(addFundsModal.id, { walletBalance: newBalance });
+    
+    setAddFundsModal(null);
+    setAddFundsData({ amount: '', method: 'UPI', reference: '', remarks: '' });
   };
 
   return (
@@ -272,6 +287,17 @@ export default function SiteLedger() {
                     >
                       <CalendarIcon className="w-4 h-4" />
                     </button>
+
+                    {/* Add Funds Button */}
+                    {centre.accountType === 'Prepaid' && user?.role === 'SUPER_ADMIN' && (
+                      <button 
+                        onClick={() => setAddFundsModal(centre)}
+                        className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-100 transition-colors"
+                        title="Add Funds to Wallet"
+                      >
+                        <Wallet className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="py-4 px-4 text-center">
@@ -471,7 +497,13 @@ export default function SiteLedger() {
                 Close
               </Button>
               {billingModal.accountType === 'Prepaid' ? (
-                <Button onClick={handleConfirmPayment} disabled={((billingModal.walletBalance || 0) - getBillingBreakdown(billingModal).totalUnbilledAmount) > 0} className="h-11 px-8 rounded-xl font-black bg-[#00A8CC] hover:bg-[#0090B0] text-white shadow-md shadow-[#00A8CC]/20">
+                <Button 
+                  onClick={() => {
+                    setAddFundsModal(billingModal);
+                    setBillingModal(null);
+                  }} 
+                  className="h-11 px-8 rounded-xl font-black bg-[#00A8CC] hover:bg-[#0090B0] text-white shadow-md shadow-[#00A8CC]/20"
+                >
                   Recharge Wallet
                 </Button>
               ) : (
@@ -533,6 +565,100 @@ export default function SiteLedger() {
             <div className="flex justify-end p-6 bg-slate-50/50 border-t border-slate-100 shrink-0">
               <Button onClick={() => setGridModal(null)} className="h-10 px-6 rounded-xl font-bold bg-[#0D2461] hover:bg-[#081840] text-white">
                 Close Grid
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Funds Modal */}
+      {addFundsModal && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="p-6 bg-emerald-50/50 flex justify-between items-center border-b border-emerald-100/50">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-emerald-100 rounded-xl">
+                  <Wallet className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-emerald-900 tracking-tight">Add Wallet Funds</h2>
+                  <p className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-widest mt-1">For {addFundsModal.name}</p>
+                </div>
+              </div>
+              <button onClick={() => setAddFundsModal(null)} className="p-2 hover:bg-emerald-100 rounded-full transition-colors text-emerald-600/50">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Amount (₹) *</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-slate-500 font-semibold">₹</span>
+                  </div>
+                  <Input 
+                    type="number"
+                    value={addFundsData.amount}
+                    onChange={e => setAddFundsData(prev => ({ ...prev, amount: e.target.value }))}
+                    className="pl-8 h-11 rounded-xl bg-slate-50 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 text-sm font-black"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Payment Method *</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['UPI', 'NEFT', 'Cash'].map(method => (
+                    <button
+                      key={method}
+                      onClick={() => setAddFundsData(prev => ({ ...prev, method }))}
+                      className={`h-10 rounded-lg text-sm font-bold border transition-all ${
+                        addFundsData.method === method 
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm' 
+                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                      }`}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {addFundsData.method !== 'Cash' && (
+                <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Transaction / Reference ID</label>
+                  <Input 
+                    value={addFundsData.reference}
+                    onChange={e => setAddFundsData(prev => ({ ...prev, reference: e.target.value }))}
+                    className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 text-sm font-semibold"
+                    placeholder="e.g. UTR or UPI Transaction ID"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Remarks (Optional)</label>
+                <textarea 
+                  value={addFundsData.remarks}
+                  onChange={e => setAddFundsData(prev => ({ ...prev, remarks: e.target.value }))}
+                  className="w-full h-20 p-3 rounded-xl bg-slate-50 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 text-sm font-semibold resize-none"
+                  placeholder="Additional notes..."
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end p-6 border-t border-slate-100 bg-slate-50/50 gap-3">
+              <Button variant="outline" onClick={() => setAddFundsModal(null)} className="h-11 px-6 rounded-xl font-bold border-slate-200 text-slate-600">
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAddFunds}
+                disabled={!addFundsData.amount || Number(addFundsData.amount) <= 0}
+                className="h-11 px-8 rounded-xl font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20"
+              >
+                Add Funds
               </Button>
             </div>
           </div>
