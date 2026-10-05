@@ -1,10 +1,11 @@
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { type Role } from '../types';
 import {
   LogOut, User as UserIcon, LayoutDashboard, Building2, Activity,
   Users, FileText, FileSearch, ShieldCheck, IndianRupee, FileCheck2,
-  FileImage, ChevronRight, Bell, HeartPulse, Wrench
+  FileImage, ChevronRight, Bell, HeartPulse, Wrench, MonitorDot, Settings
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -34,22 +35,85 @@ const ROLE_BADGE: Partial<Record<Role, { bg: string; text: string }>> = {
 export default function AppLayout() {
   const { isAuthenticated, currentRole, user, setRole, logout } = useAuthStore();
   const location = useLocation();
+  const { sites, hospitals } = useMockDb();
+
+  let currentLogo = logoImg;
+  let siteName = 'Unnathi Teleradiology';
+  
+  if (user?.hospitalId) {
+    const hospital = hospitals.find(h => h.id === user.hospitalId);
+    if (hospital?.branding?.logo) {
+      currentLogo = hospital.branding.logo;
+    } else if (hospital?.parentSiteId) {
+      const parentSite = sites.find(s => s.id === hospital.parentSiteId);
+      if (parentSite?.branding?.logo) currentLogo = parentSite.branding.logo;
+    }
+
+    if (hospital?.branding?.displayName) {
+      siteName = hospital.branding.displayName;
+    } else if (hospital?.parentSiteId) {
+      const parentSite = sites.find(s => s.id === hospital.parentSiteId);
+      if (parentSite?.branding?.displayName) siteName = parentSite.branding.displayName;
+    }
+  } else if (user?.siteId) {
+    const site = sites.find(s => s.id === user.siteId);
+    if (site?.branding?.logo) currentLogo = site.branding.logo;
+    if (site?.branding?.displayName) siteName = site.branding.displayName;
+  }
+
+  useEffect(() => {
+    let faviconUrl = '/favicon.ico';
+
+    if (user?.hospitalId) {
+      const hospital = hospitals.find(h => h.id === user.hospitalId);
+      if (hospital?.branding?.favicon) {
+        faviconUrl = hospital.branding.favicon;
+      } else if (hospital?.parentSiteId) {
+        const parentSite = sites.find(s => s.id === hospital.parentSiteId);
+        if (parentSite?.branding?.favicon) faviconUrl = parentSite.branding.favicon;
+      }
+    } else if (user?.siteId) {
+      const site = sites.find(s => s.id === user.siteId);
+      if (site?.branding?.favicon) faviconUrl = site.branding.favicon;
+    }
+
+    document.title = siteName;
+    const link: HTMLLinkElement = document.querySelector("link[rel~='icon']") || document.createElement('link');
+    link.type = 'image/x-icon';
+    link.rel = 'icon';
+    link.href = faviconUrl;
+    document.getElementsByTagName('head')[0].appendChild(link);
+  }, [user, sites, hospitals, siteName]);
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   const getNavLinks = () => {
     switch (currentRole) {
       case 'SUPER_ADMIN': return [
-        { label: 'Unnathi Dashboard', path: '/unnathi/dashboard', icon: LayoutDashboard },
-        { label: 'Sites', path: '/unnathi/sites', icon: Building2 },
-        { label: 'Hospitals',         path: '/unnathi/hospitals', icon: HeartPulse },
-        { label: 'Global Reporting',  path: '/reporting',         icon: FileSearch },
-        { label: 'Global Billing',    path: '/unnathi/billing', icon: IndianRupee },
-        { label: 'Site Ledger',       path: '/finance/ledger', icon: FileText },
-        { label: 'Finance Billing',   path: '/finance/billing', icon: IndianRupee },
-        { label: 'Global Users',      path: '/admin/users',       icon: Users },
-        { label: 'Radiologists',      path: '/admin/radiologists',icon: Users },
-        { label: 'Utilities',         path: '/utilities/templates', icon: Wrench },
+        { type: 'header', label: 'Platform' },
+        { label: 'Dashboard', path: '/unnathi/dashboard', icon: LayoutDashboard },
+        { label: 'Organizations', path: '/unnathi/sites', icon: Building2 },
+        { label: 'Centres / Facilities', path: '/unnathi/hospitals', icon: HeartPulse },
+
+        { type: 'header', label: 'Reporting Operations' },
+        { label: 'Global Worklist', path: '/reporting', icon: FileSearch },
+        { label: 'Radiologists', path: '/admin/radiologists', icon: Users },
+        { label: 'Reporting Analytics', path: '/admin/analytics', icon: Activity },
+
+        { type: 'header', label: 'Users & Access' },
+        { label: 'Users', path: '/admin/users', icon: Users },
+        { label: 'Roles & Permissions', path: '/admin/roles', icon: ShieldCheck },
+
+        { type: 'header', label: 'Commercial' },
+        { label: 'Subscriptions & Plans', path: '/commercial/subscriptions', icon: FileCheck2 },
+        { label: 'Billing & Invoices', path: '/finance/billing', icon: IndianRupee },
+        { label: 'Organization Ledger', path: '/finance/ledger', icon: FileText },
+
+        { type: 'header', label: 'Platform Management' },
+        { label: 'Storage & Usage', path: '/platform/storage', icon: MonitorDot },
+        { label: 'Audit Logs', path: '/platform/audit', icon: FileSearch },
+        { label: 'System Settings', path: '/platform/settings', icon: Settings },
+        { label: 'Utilities', path: '/utilities/templates', icon: Wrench },
       ];
       case 'SITE_ADMIN': return [
         { label: 'Company Dashboard', path: '/unnathi/dashboard', icon: LayoutDashboard },
@@ -133,9 +197,14 @@ export default function AppLayout() {
           style={{ borderBottom: '1px solid rgba(0,168,204,0.2)' }}
         >
           <img
-            src={logoImg}
-            alt="Unnathi Teleradiology"
-            className="w-44 object-contain animate-float"
+            src={currentLogo}
+            alt={siteName}
+            className={`w-44 object-contain animate-float ${
+              currentLogo === logoImg 
+                ? 'filter brightness-0 invert drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]' 
+                : 'bg-white/95 rounded-lg p-2 shadow-sm'
+            }`}
+            style={{ maxHeight: '60px' }}
           />
         </div>
 
@@ -149,13 +218,22 @@ export default function AppLayout() {
 
         {/* Nav Links */}
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto pb-4 stagger-children">
-          {navLinks.map((link) => {
-            const Icon = link.icon;
+          {navLinks.map((link, idx) => {
+            if (link.type === 'header') {
+              return (
+                <div key={`header-${idx}`} className="px-3 pt-4 pb-1 mt-2">
+                  <div className="text-[11px] font-bold uppercase tracking-widest text-cyan-500/80">
+                    {link.label}
+                  </div>
+                </div>
+              );
+            }
+            const Icon = link.icon!;
             const isActive = location.pathname === link.path || location.pathname.startsWith(link.path + '/');
             return (
               <Link
                 key={link.path}
-                to={link.path}
+                to={link.path!}
                 className={cn(
                   'nav-item-hover group flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 animate-unnathi-fade-in',
                   isActive ? 'nav-item-active' : 'text-slate-300/80'

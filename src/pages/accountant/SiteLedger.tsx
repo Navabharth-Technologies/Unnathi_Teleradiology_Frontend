@@ -12,7 +12,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 
 export default function SiteLedger() {
   const { user } = useAuthStore();
-  const { hospitals, studies, invoices, addInvoice, updateStudy } = useMockDb();
+  const { hospitals, studies, invoices, addInvoice, updateStudy, updateHospital } = useMockDb();
   const [activeTab, setActiveTab] = useState<'All' | 'Prepaid' | 'Postpaid'>('All');
   const [searchTerm, setSearchTerm] = useState('');
 

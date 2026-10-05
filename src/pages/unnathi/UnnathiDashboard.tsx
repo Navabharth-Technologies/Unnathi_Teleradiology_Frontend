@@ -1,11 +1,11 @@
 import React from 'react';
 import { useMockDb } from '../../store/useMockDb';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Building2, HeartPulse, Users, UserRound, LayoutDashboard, ChevronRight } from 'lucide-react';
+import { Building2, HeartPulse, Users, UserRound, LayoutDashboard, ChevronRight, Activity, Clock, FileText, AlertTriangle, Database, Cloud, ShieldCheck, Network, BarChart3, PieChart, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const UnnathiDashboard = () => {
-  const { sites, hospitals, users, radiologists } = useMockDb();
+  const { sites, hospitals, users, radiologists, studies } = useMockDb();
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -37,6 +37,203 @@ const UnnathiDashboard = () => {
     { label: 'Radiologists', value: radiologists.length, icon: UserRound, color: 'amber', link: '/admin/radiologists' },
   ];
 
+  if (user?.role === 'SUPER_ADMIN') {
+    return (
+      <div className="p-8 max-w-[1600px] mx-auto space-y-8 animate-unnathi-fade-in pb-16">
+        <div className="flex flex-col mb-2">
+          <h1 className="text-3xl font-black text-[#0D2461] flex items-center gap-3">
+            <div className="p-2.5 bg-blue-50 text-[#00A8CC] rounded-xl">
+              <LayoutDashboard className="w-7 h-7" />
+            </div>
+            Super Admin Platform Dashboard
+          </h1>
+          <p className="text-sm font-semibold text-slate-400 mt-2 uppercase tracking-widest pl-14">
+            Comprehensive platform telemetry and operations overview
+          </p>
+        </div>
+
+        {/* Row 1: Primary */}
+        <div>
+          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Primary</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-bold mb-1">Organizations</p>
+                <h3 className="text-2xl font-black text-[#0D2461]">{scopedSites.length}</h3>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-lg text-blue-600"><Building2 className="w-5 h-5" /></div>
+            </div>
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-bold mb-1">Active Centres</p>
+                <h3 className="text-2xl font-black text-[#0D2461]">{scopedHospitals.length}</h3>
+              </div>
+              <div className="p-3 bg-teal-50 rounded-lg text-teal-600"><HeartPulse className="w-5 h-5" /></div>
+            </div>
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-bold mb-1">Radiologists</p>
+                <h3 className="text-2xl font-black text-[#0D2461]">{radiologists.length}</h3>
+              </div>
+              <div className="p-3 bg-purple-50 rounded-lg text-purple-600"><UserRound className="w-5 h-5" /></div>
+            </div>
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-bold mb-1">Studies Today</p>
+                <h3 className="text-2xl font-black text-[#0D2461]">{studies.length}</h3>
+              </div>
+              <div className="p-3 bg-indigo-50 rounded-lg text-indigo-600"><Activity className="w-5 h-5" /></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: Operations */}
+        <div>
+          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Operations</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-bold mb-1">Pending Studies</p>
+                <h3 className="text-2xl font-black text-[#0D2461]">{studies.filter(s => s.status === 'Pending').length}</h3>
+              </div>
+              <div className="p-3 bg-amber-50 rounded-lg text-amber-600"><Clock className="w-5 h-5" /></div>
+            </div>
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-bold mb-1">STAT/Emergency</p>
+                <h3 className="text-2xl font-black text-rose-600">{studies.filter(s => s.priority === 'STAT').length}</h3>
+              </div>
+              <div className="p-3 bg-rose-50 rounded-lg text-rose-600"><AlertTriangle className="w-5 h-5" /></div>
+            </div>
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-bold mb-1">TAT Breached</p>
+                <h3 className="text-2xl font-black text-orange-600">0</h3>
+              </div>
+              <div className="p-3 bg-orange-50 rounded-lg text-orange-600"><Clock className="w-5 h-5" /></div>
+            </div>
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-bold mb-1">Reports Completed Today</p>
+                <h3 className="text-2xl font-black text-emerald-600">{studies.filter(s => s.status === 'Completed').length}</h3>
+              </div>
+              <div className="p-3 bg-emerald-50 rounded-lg text-emerald-600"><FileText className="w-5 h-5" /></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 3: Analytics */}
+        <div>
+          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Analytics</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-48 flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
+              <TrendingUp className="w-8 h-8 mb-2 text-slate-300" />
+              <p className="text-sm font-bold">7-day Studies Trend (Chart)</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-48 flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
+              <PieChart className="w-8 h-8 mb-2 text-slate-300" />
+              <p className="text-sm font-bold">Modality Distribution (Chart)</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-48 flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
+              <BarChart3 className="w-8 h-8 mb-2 text-slate-300" />
+              <p className="text-sm font-bold">TAT Performance (Chart)</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 4: Organization table */}
+        <div>
+          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Organization Table</h2>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Centres</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Radiologists</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Studies Today</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Monthly Studies</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Plan</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Validity</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Storage</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200 text-sm">
+                {scopedSites.slice(0, 5).map(site => (
+                  <tr key={site.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => navigate('/unnathi/sites')}>
+                    <td className="px-6 py-4 whitespace-nowrap font-bold text-[#0D2461]">{site.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-500">{site.organizationType === 'COMPANY_MANAGED' ? 'Teleradiology' : 'Hospital'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-900 font-medium">{scopedHospitals.filter(h => h.parentSiteId === site.id).length}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-900 font-medium">0</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-900 font-medium">0</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-900 font-medium">0</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-500">{site.settings?.accountType || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-500">Unlimited</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-500">0 TB</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Row 5: Platform health */}
+        <div>
+          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Platform Health</h2>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="bg-slate-900 text-white p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+              <Database className="w-5 h-5 text-cyan-400 mb-2" />
+              <div>
+                <p className="text-xs text-slate-400 font-medium">Total Storage</p>
+                <p className="text-lg font-bold">0 TB</p>
+              </div>
+            </div>
+            <div className="bg-slate-900 text-white p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+              <Activity className="w-5 h-5 text-emerald-400 mb-2" />
+              <div>
+                <p className="text-xs text-slate-400 font-medium">Monthly Studies</p>
+                <p className="text-lg font-bold">0</p>
+              </div>
+            </div>
+            <div className="bg-slate-900 text-white p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+              <Cloud className="w-5 h-5 text-blue-400 mb-2" />
+              <div>
+                <p className="text-xs text-slate-400 font-medium">DICOM Uploads</p>
+                <p className="text-lg font-bold">0/hr</p>
+              </div>
+            </div>
+            <div className="bg-slate-900 text-white p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+              <FileText className="w-5 h-5 text-purple-400 mb-2" />
+              <div>
+                <p className="text-xs text-slate-400 font-medium">Avg Study Size</p>
+                <p className="text-lg font-bold">0 MB</p>
+              </div>
+            </div>
+            <div className="bg-slate-900 text-white p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+              <Users className="w-5 h-5 text-rose-400 mb-2" />
+              <div>
+                <p className="text-xs text-slate-400 font-medium">Radiologists</p>
+                <p className="text-lg font-bold">0 Online</p>
+              </div>
+            </div>
+            <div className="bg-slate-900 text-white p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+              <Network className="w-5 h-5 text-green-400 mb-2" />
+              <div>
+                <p className="text-xs text-slate-400 font-medium">System Health</p>
+                <p className="text-lg font-bold text-green-400">All Systems Go</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-unnathi-fade-in">
       {/* Header */}
@@ -45,13 +242,11 @@ const UnnathiDashboard = () => {
           <div className="p-2.5 bg-blue-50 text-[#00A8CC] rounded-xl">
             <LayoutDashboard className="w-7 h-7" />
           </div>
-          {user?.role === 'SUPER_ADMIN' ? 'Unnathi Platform Dashboard' : 
-           user?.role === 'SITE_ADMIN' ? 'Company Dashboard' : 
+          {user?.role === 'SITE_ADMIN' ? 'Company Dashboard' : 
            'Dashboard'}
         </h1>
         <p className="text-sm font-semibold text-slate-400 mt-2 uppercase tracking-widest pl-14">
-          {user?.role === 'SUPER_ADMIN' ? 'Overview of the entire healthcare hierarchy' : 
-           'Overview of your organization'}
+          Overview of your organization
         </p>
       </div>
 
@@ -142,40 +337,6 @@ const UnnathiDashboard = () => {
               )}
             </div>
           ))}
-
-          {/* Independent Hospitals - ONLY for SUPER_ADMIN */}
-          {user?.role === 'SUPER_ADMIN' && scopedHospitals.filter(h => h.organizationType === 'UNNATHI_MANAGED').length > 0 && (
-            <div className="border border-rose-100 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow mt-8">
-              <div className="bg-gradient-to-r from-rose-50/50 to-white p-5 border-b border-rose-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-rose-100 text-rose-700 rounded-lg">
-                    <HeartPulse className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-[#0D2461] text-base">Independent Hospitals</h4>
-                    <p className="text-xs font-bold text-rose-400 uppercase tracking-wider">Unnathi Managed</p>
-                  </div>
-                </div>
-                <button onClick={() => navigate('/unnathi/hospitals')} className="text-xs font-bold text-rose-600 flex items-center hover:text-rose-800 transition-colors">
-                  Manage Hospitals <ChevronRight className="w-4 h-4 ml-1" />
-                </button>
-              </div>
-              
-              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {scopedHospitals.filter(h => h.organizationType === 'UNNATHI_MANAGED').map(hospital => (
-                  <div key={hospital.id} className="group flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 hover:border-rose-200 hover:bg-rose-50/50 transition-colors cursor-pointer" onClick={() => handleOpenDashboard(hospital.id)}>
-                    <div className="p-2 bg-slate-50 text-slate-400 group-hover:bg-white group-hover:text-rose-500 rounded-lg transition-colors">
-                      <HeartPulse className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-700 group-hover:text-[#0D2461] transition-colors">{hospital.name}</div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{hospital.code}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

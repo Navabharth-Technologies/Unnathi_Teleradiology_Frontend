@@ -11,7 +11,7 @@ import { PlusCircle, Search, Eye, Settings, Stethoscope, MapPin, Activity, X, Tr
 import { ConfirmDeleteModal } from '../../components/modals/ConfirmDeleteModal';
 
 type RadForm = Omit<Radiologist, 'id' | 'userId'> & { email?: string; password?: string };
-const EMPTY: RadForm = { name: '', email: '', password: '', registrationId: '', qualification: '', specialization: '', availability: 'Available', assignedHospitals: [], status: 'Active' };
+const EMPTY: RadForm = { name: '', email: '', phone: '', password: '', registrationId: '', qualification: '', subspecialties: [], modalities: [], allowedOrganizations: [], allowedCentres: [], signatureUrl: '', stampText: '', availability: 'Online', maxConcurrentCases: 10, tatEligibility: 'Routine', reportingRate: 0, assignedHospitals: [], status: 'Active' };
 
 export default function RadiologistsList() {
   const { user } = useAuthStore();
@@ -42,6 +42,18 @@ export default function RadiologistsList() {
   const getCentreNames = (ids?: string[]) =>
     (ids || []).map(id => hospitals.find(h => h.id === id)?.name).filter(Boolean);
 
+  const filteredHospitalsForAssignment = hospitals.filter(h => {
+    // Independent hospitals manage their own radiologists privately
+    if (h.organizationType === 'UNNATHI_MANAGED') return false;
+    
+    // Site admins can only assign to hospitals within their own site
+    if (user?.role === 'SITE_ADMIN') {
+      return h.parentSiteId === user.siteId;
+    }
+    
+    return true;
+  });
+
   const openAdd = () => { setForm(EMPTY); setAdding(true); };
   const openEdit = (r: Radiologist) => {
     const relatedUser = users.find(u => u.id === r.userId);
@@ -49,11 +61,20 @@ export default function RadiologistsList() {
       name: r.name, 
       registrationId: r.registrationId, 
       qualification: r.qualification || '', 
-      specialization: r.specialization, 
-      availability: r.availability, 
+      subspecialties: r.subspecialties || [],
+      modalities: r.modalities || [],
+      allowedOrganizations: r.allowedOrganizations || [],
+      allowedCentres: r.allowedCentres || [],
+      signatureUrl: r.signatureUrl || '',
+      stampText: r.stampText || '',
+      availability: r.availability || 'Online', 
+      maxConcurrentCases: r.maxConcurrentCases || 10,
+      tatEligibility: r.tatEligibility || 'Routine',
+      reportingRate: r.reportingRate || 0,
       assignedHospitals: r.assignedHospitals || [], 
       status: r.status,
-      email: relatedUser?.email || '',
+      email: relatedUser?.email || r.email || '',
+      phone: relatedUser?.phone || r.phone || '',
       password: '' // Don't pre-fill password for security/mock db reasons, let them type to update
     });
     setEditItem(r);
@@ -77,10 +98,20 @@ export default function RadiologistsList() {
       }
       addRadiologist({ 
         name: form.name,
+        email: form.email,
+        phone: form.phone,
         registrationId: form.registrationId,
         qualification: form.qualification,
-        specialization: form.specialization,
+        subspecialties: form.subspecialties,
+        modalities: form.modalities,
+        allowedOrganizations: form.allowedOrganizations,
+        allowedCentres: form.allowedCentres,
+        signatureUrl: form.signatureUrl,
+        stampText: form.stampText,
         availability: form.availability,
+        maxConcurrentCases: form.maxConcurrentCases,
+        tatEligibility: form.tatEligibility,
+        reportingRate: form.reportingRate,
         assignedHospitals: form.assignedHospitals,
         status: form.status,
         id: 'r' + Date.now(), 
@@ -96,15 +127,26 @@ export default function RadiologistsList() {
         updateUser(relatedUser.id, {
           name: form.name,
           email: form.email || relatedUser.email,
+          phone: form.phone || relatedUser.phone,
         });
       }
       
       updateRadiologist(editItem.id, {
         name: form.name,
+        email: form.email,
+        phone: form.phone,
         registrationId: form.registrationId,
         qualification: form.qualification,
-        specialization: form.specialization,
+        subspecialties: form.subspecialties,
+        modalities: form.modalities,
+        allowedOrganizations: form.allowedOrganizations,
+        allowedCentres: form.allowedCentres,
+        signatureUrl: form.signatureUrl,
+        stampText: form.stampText,
         availability: form.availability,
+        maxConcurrentCases: form.maxConcurrentCases,
+        tatEligibility: form.tatEligibility,
+        reportingRate: form.reportingRate,
         assignedHospitals: form.assignedHospitals,
         status: form.status,
       }); 
@@ -273,29 +315,46 @@ export default function RadiologistsList() {
             
             <div className="p-4 bg-slate-50 space-y-4">
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-2 gap-4">
-                {(['name', 'registrationId', 'qualification', 'specialization'] as const).map(key => (
+                {(['name', 'email', 'phone', 'registrationId', 'qualification', 'signatureUrl', 'stampText'] as const).map(key => (
                   <div key={key} className="space-y-2">
                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1')}</label>
-                    <Input value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} className="h-8 text-xs border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 bg-slate-50" />
+                    <Input required value={form[key] as string} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} className="h-8 text-xs border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 bg-slate-50" />
                   </div>
                 ))}
                 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Email (Login ID)</label>
-                  <Input type="email" value={form.email || ''} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="doctor@example.com" className="h-8 text-xs border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 bg-slate-50" />
-                </div>
-                <div className="space-y-2">
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{adding ? 'Password' : 'New Password (Optional)'}</label>
                   <Input type="password" value={form.password || ''} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••" className="h-8 text-xs border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 bg-slate-50" />
                 </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Subspecialties</label>
+                  <Input value={(form.subspecialties || []).join(', ')} onChange={e => setForm(f => ({ ...f, subspecialties: e.target.value.split(',').map(s => s.trim()) }))} placeholder="Neuro, MSK..." className="h-8 text-xs border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 bg-slate-50" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Modalities</label>
+                  <Input value={(form.modalities || []).join(', ')} onChange={e => setForm(f => ({ ...f, modalities: e.target.value.split(',').map(s => s.trim()) }))} placeholder="CT, MRI, X-Ray..." className="h-8 text-xs border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 bg-slate-50" />
+                </div>
+
 
                 
                 <div className="space-y-2">
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Availability</label>
-                  <select className="w-full h-8 px-3 border border-slate-200 rounded-md text-xs bg-slate-50 text-slate-800 outline-none focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC]" value={form.availability} onChange={e => setForm(f => ({ ...f, availability: e.target.value as any }))}>
-                    <option>Available</option>
-                    <option>On Leave</option>
-                    <option>Busy</option>
+                  <select required className="w-full h-8 px-3 border border-slate-200 rounded-md text-xs bg-slate-50 text-slate-800 outline-none focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC]" value={form.availability} onChange={e => setForm(f => ({ ...f, availability: e.target.value as any }))}>
+                    <option value="Online">Online</option>
+                    <option value="Offline">Offline</option>
+                    <option value="On Leave">On Leave</option>
+                    <option value="Scheduled">Scheduled</option>
+                  </select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Status</label>
+                  <select required className="w-full h-8 px-3 border border-slate-200 rounded-md text-xs bg-slate-50 text-slate-800 outline-none focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC]" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as any }))}>
+                    <option value="Active">Active</option>
+                    <option value="Suspended">Suspended</option>
+                    <option value="Inactive">Inactive</option>
                   </select>
                 </div>
               </div>
@@ -305,7 +364,7 @@ export default function RadiologistsList() {
                   <MapPin className="w-4 h-4 text-[#00A8CC]" /> Site Assignments
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {hospitals.map(c => {
+                  {filteredHospitalsForAssignment.map(c => {
                     const isSelected = form.assignedHospitals.includes(c.id);
                     return (
                       <button 
@@ -322,7 +381,7 @@ export default function RadiologistsList() {
                       </button>
                     )
                   })}
-                  {hospitals.length === 0 && <span className="text-sm text-slate-400">No hospitals available to assign.</span>}
+                  {filteredHospitalsForAssignment.length === 0 && <span className="text-sm text-slate-400">No hospitals available to assign.</span>}
                 </div>
               </div>
             </div>

@@ -40,6 +40,11 @@ import SitesList from '../pages/unnathi/SitesList';
 
 import HospitalsList from '../pages/unnathi/HospitalsList';
 import GlobalBilling from '../pages/unnathi/GlobalBilling';
+import RolesPermissions from '../pages/unnathi/RolesPermissions';
+import SubscriptionsPlans from '../pages/unnathi/SubscriptionsPlans';
+import StorageUsage from '../pages/unnathi/StorageUsage';
+import AuditLogs from '../pages/unnathi/AuditLogs';
+import SystemSettings from '../pages/unnathi/SystemSettings';
 
 export const router = createHashRouter([
   {
@@ -72,6 +77,11 @@ export const router = createHashRouter([
 
           { path: 'unnathi/hospitals', element: <HospitalsList /> },
           { path: 'unnathi/billing', element: <GlobalBilling /> },
+          { path: 'admin/roles', element: <RolesPermissions /> },
+          { path: 'commercial/subscriptions', element: <SubscriptionsPlans /> },
+          { path: 'platform/storage', element: <StorageUsage /> },
+          { path: 'platform/audit', element: <AuditLogs /> },
+          { path: 'platform/settings', element: <SystemSettings /> },
         ]
       },
       {

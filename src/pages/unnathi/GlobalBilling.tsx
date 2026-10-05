@@ -5,9 +5,38 @@ import { IndianRupee, Download, Building2, HeartPulse, ChevronDown, ChevronRight
 import type { Invoice, Hospital, Center, Site } from '../../types';
 
 export default function GlobalBilling() {
-  const { invoices, hospitals, sites, studies, templates } = useMockDb();
+  const { invoices, hospitals, sites, studies, templates, updateHospital, updateSite } = useMockDb();
   const { user } = useAuthStore();
   
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentData, setPaymentData] = useState({
+    targetId: '',
+    targetType: 'hospital',
+    amount: '',
+    paymentMethod: 'NEFT',
+    reference: ''
+  });
+
+  const handleReceivePayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = Number(paymentData.amount);
+    if (!amount || amount <= 0 || !paymentData.targetId) return;
+
+    if (paymentData.targetType === 'hospital') {
+      const hospital = hospitals.find(h => h.id === paymentData.targetId);
+      if (hospital) {
+        updateHospital(hospital.id, { walletBalance: (hospital.walletBalance || 0) + amount });
+      }
+    } else {
+      const site = sites.find(s => s.id === paymentData.targetId);
+      if (site) {
+        updateSite(site.id, { walletBalance: (site.walletBalance || 0) + amount });
+      }
+    }
+    
+    setShowPaymentModal(false);
+    setPaymentData({ targetId: '', targetType: 'hospital', amount: '', paymentMethod: 'NEFT', reference: '' });
+  };
 
   // Scope data based on role
   const scopedSites = useMemo(() => {
@@ -215,10 +244,20 @@ export default function GlobalBilling() {
              'Financial overview for your organization'}
           </p>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-[#0D2461] hover:bg-[#081840] text-white rounded-xl transition-all shadow-md font-bold text-sm">
-          <Download className="w-4 h-4" />
-          Export Report
-        </button>
+        <div className="flex gap-3">
+          {user?.role === 'SUPER_ADMIN' && (
+            <button 
+              onClick={() => setShowPaymentModal(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-md font-bold text-sm">
+              <IndianRupee className="w-4 h-4" />
+              Receive Payment
+            </button>
+          )}
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-[#0D2461] hover:bg-[#081840] text-white rounded-xl transition-all shadow-md font-bold text-sm">
+            <Download className="w-4 h-4" />
+            Export Report
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -290,6 +329,119 @@ export default function GlobalBilling() {
           </table>
         </div>
       </div>
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-unnathi-slide">
+            <div className="bg-[#0D2461] p-5">
+              <h2 className="text-lg font-bold text-white">Receive Payment</h2>
+              <p className="text-slate-300 text-xs mt-1">Add wallet balance to a site or hospital</p>
+            </div>
+            
+            <form onSubmit={handleReceivePayment} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700">Organization Type</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="targetType" 
+                      value="hospital" 
+                      checked={paymentData.targetType === 'hospital'}
+                      onChange={e => setPaymentData({...paymentData, targetType: e.target.value, targetId: ''})}
+                      className="text-[#00A8CC] focus:ring-[#00A8CC]"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Hospital</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="targetType" 
+                      value="site" 
+                      checked={paymentData.targetType === 'site'}
+                      onChange={e => setPaymentData({...paymentData, targetType: e.target.value, targetId: ''})}
+                      className="text-[#00A8CC] focus:ring-[#00A8CC]"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Site (Company)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700">Select {paymentData.targetType === 'hospital' ? 'Hospital' : 'Site'} <span className="text-rose-500">*</span></label>
+                <select 
+                  required
+                  value={paymentData.targetId}
+                  onChange={e => setPaymentData({...paymentData, targetId: e.target.value})}
+                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B] outline-none"
+                >
+                  <option value="">-- Select --</option>
+                  {paymentData.targetType === 'hospital' 
+                    ? hospitals.filter(h => h.accountType === 'Prepaid').map(h => <option key={h.id} value={h.id}>{h.name}</option>)
+                    : sites.filter(s => s.accountType === 'Prepaid').map(s => <option key={s.id} value={s.id}>{s.name}</option>)
+                  }
+                </select>
+                <p className="text-[10px] text-slate-500">Only prepaid accounts are listed here.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700">Amount Received (₹) <span className="text-rose-500">*</span></label>
+                <input 
+                  type="number"
+                  required
+                  min="1"
+                  value={paymentData.amount}
+                  onChange={e => setPaymentData({...paymentData, amount: e.target.value})}
+                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B] outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700">Payment Method <span className="text-rose-500">*</span></label>
+                <select 
+                  required
+                  value={paymentData.paymentMethod}
+                  onChange={e => setPaymentData({...paymentData, paymentMethod: e.target.value})}
+                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B] outline-none"
+                >
+                  <option value="NEFT">NEFT / RTGS / IMPS</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Cash">Cash</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700">Transaction Reference / Notes</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. UTR Number or Cash Receipt No"
+                  value={paymentData.reference}
+                  onChange={e => setPaymentData({...paymentData, reference: e.target.value})}
+                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B] outline-none"
+                />
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setShowPaymentModal(false)}
+                  className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-colors flex items-center gap-2"
+                >
+                  <IndianRupee className="w-4 h-4" />
+                  Confirm Payment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

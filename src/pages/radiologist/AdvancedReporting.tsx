@@ -171,6 +171,16 @@ export default function AdvancedReporting() {
   const generateAndDownloadReport = (format: 'pdf' | 'word', study: any) => {
     showToast(`Generating ${format.toUpperCase()} report...`);
     
+    // Determine the correct branding logo for this study
+    const hospital = hospitals.find(h => h.id === study.hospitalId);
+    let currentLogo = null;
+    if (hospital?.branding?.logo) {
+      currentLogo = hospital.branding.logo;
+    } else if (hospital?.parentSiteId) {
+      const parentSite = sites.find(s => s.id === hospital.parentSiteId);
+      if (parentSite?.branding?.logo) currentLogo = parentSite.branding.logo;
+    }
+    
     setTimeout(async () => {
       const reportTitle = `Radiology Report - ${study.caseNumber}`;
       const patientInfo = `Patient Name: ${patients.find(p => p.id === study.patientId)?.name || 'N/A'}
@@ -182,6 +192,16 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
       if (format === 'pdf') {
         const { jsPDF } = await import('jspdf');
         const doc = new jsPDF();
+        
+        // Add logo if available
+        if (currentLogo && currentLogo.startsWith('data:image')) {
+          try {
+            // Calculate dimensions to maintain aspect ratio, assuming max height of 20
+            doc.addImage(currentLogo, 'PNG', 150, 10, 40, 20, '', 'FAST');
+          } catch (e) {
+            console.error('Failed to add logo to PDF', e);
+          }
+        }
         
         doc.setFontSize(20);
         doc.text(reportTitle, 20, 20);
@@ -200,6 +220,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
           <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
           <head><title>${reportTitle}</title></head>
           <body>
+            ${currentLogo ? `<div style="text-align: right; margin-bottom: 20px;"><img src="${currentLogo}" style="max-height: 60px;" /></div>` : ''}
             <h2>${reportTitle}</h2>
             <pre>${patientInfo}</pre>
             <br/><br/>

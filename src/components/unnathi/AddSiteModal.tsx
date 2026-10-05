@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload } from 'lucide-react';
 import { useMockDb } from '../../store/useMockDb';
+import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import type { SiteSettings, Site } from '../../types';
+import type { SiteSettings, Site, Status } from '../../types';
 
 interface AddSiteModalProps {
   isOpen: boolean;
@@ -13,14 +14,43 @@ interface AddSiteModalProps {
 
 export default function AddSiteModal({ isOpen, onClose, initialData }: AddSiteModalProps) {
   const { addSite, updateSite, addUser } = useMockDb();
+  const { user } = useAuthStore();
+
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
-    city: '',
-    email: '',
+    code: '',
+    organizationType: 'Teleradiology Company',
+    legalName: '',
+    gstin: '',
+    pan: '',
+    contactPerson: '',
     phone: '',
-    username: '',
-    password: '',
+    email: '',
+    address: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    country: 'India',
+    pinCode: '',
+    timeZone: 'Asia/Kolkata',
+    dateFormat: 'DD-MM-YYYY',
+    status: 'Trial' as Status,
+    goLiveDate: '',
+    notes: '',
+
+    adminFullName: '',
+    adminEmail: '',
+    adminMobile: '',
+    adminRole: 'SITE_ADMIN' as Role,
+    loginMode: 'Password' as 'Password' | 'OTP' | 'SSO',
+    temporaryPassword: '',
+    mfaEnabled: true,
+    allowedCentres: 'All Centres',
+    accountStatus: 'Invite Pending' as UserStatus,
     supportedModalities: [] as string[],
     headerSpace: 4,
     // Permissions & Settings
@@ -46,7 +76,41 @@ export default function AddSiteModal({ isOpen, onClose, initialData }: AddSiteMo
     // File Uploads
     headerUrl: '',
     footerUrl: '',
-    brochureForNewStudy: false
+    brochureForNewStudy: false,
+    
+    // Subscription Settings
+    plan: 'Trial' as 'Trial' | 'Basic' | 'Standard' | 'Professional' | 'Enterprise',
+    billingCycle: 'Monthly' as 'Monthly' | 'Quarterly' | 'Annual' | 'Custom',
+    startDate: new Date().toISOString().split('T')[0],
+    expiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+    maxCentres: 1,
+    maxUsers: 10,
+    maxRadiologists: 5,
+    storageLimit: '1 TB',
+    monthlyStudyLimit: null as number | null,
+    dicomRetention: '12 months' as '12 months' | '24 months' | '60 months' | 'Custom',
+    reportRetention: 'As per contract',
+    priceModel: 'Flat subscription' as 'Flat subscription' | 'Per study' | 'Hybrid',
+    perStudyRate: 0,
+    taxPercent: 18,
+    creditLimit: 0,
+    gracePeriod: 7,
+    autoSuspend: false,
+    
+    // Branding Settings
+    brandDisplayName: '',
+    brandPrimaryColor: '#0B2A5B',
+    brandAccentColor: '#00A7C4',
+    brandReportHeaderText: '',
+    brandReportFooterText: '',
+    brandSupportEmail: '',
+    brandSupportPhone: '',
+    brandPortalSubdomain: '',
+    brandCustomDomain: '',
+    brandEmailSenderName: '',
+    brandLogo: '',
+    brandFavicon: '',
+    brandHeaderLogo: ''
   });
 
   useEffect(() => {
@@ -54,11 +118,35 @@ export default function AddSiteModal({ isOpen, onClose, initialData }: AddSiteMo
       const s = initialData.settings || {};
       setFormData({
         name: initialData.name || '',
-        city: initialData.city || '',
-        email: initialData.email || '',
+        code: initialData.code || '',
+        organizationType: initialData.organizationType || 'Teleradiology Company',
+        legalName: initialData.legalName || '',
+        gstin: initialData.gstin || '',
+        pan: initialData.pan || '',
+        contactPerson: initialData.contactPerson || '',
         phone: initialData.phone || '',
-        username: s.username || '',
-        password: s.password || '',
+        email: initialData.email || '',
+        address: initialData.address || '',
+        addressLine2: initialData.addressLine2 || '',
+        city: initialData.city || '',
+        state: initialData.state || '',
+        country: initialData.country || 'India',
+        pinCode: initialData.pinCode || '',
+        timeZone: initialData.timeZone || 'Asia/Kolkata',
+        dateFormat: initialData.dateFormat || 'DD-MM-YYYY',
+        status: initialData.status || 'Trial',
+        goLiveDate: initialData.goLiveDate || '',
+        notes: initialData.notes || '',
+
+        adminFullName: s.adminFullName || '',
+        adminEmail: s.adminEmail || '',
+        adminMobile: s.adminMobile || '',
+        adminRole: s.adminRole || 'SITE_ADMIN',
+        loginMode: s.loginMode || 'Password',
+        temporaryPassword: s.temporaryPassword || '',
+        mfaEnabled: s.mfaEnabled ?? true,
+        allowedCentres: s.allowedCentres || 'All Centres',
+        accountStatus: s.accountStatus || 'Invite Pending',
         supportedModalities: initialData.supportedModalities || [],
         headerSpace: s.headerSpace ?? 4,
 
@@ -84,27 +172,101 @@ export default function AddSiteModal({ isOpen, onClose, initialData }: AddSiteMo
 
         headerUrl: s.headerUrl ?? '',
         footerUrl: s.footerUrl ?? '',
-        brochureForNewStudy: s.brochureForNewStudy ?? false
+        brochureForNewStudy: s.brochureForNewStudy ?? false,
+        accountType: initialData.accountType || 'Prepaid',
+        
+        plan: initialData.subscription?.plan || 'Trial',
+        billingCycle: initialData.subscription?.billingCycle || 'Monthly',
+        startDate: initialData.subscription?.startDate || new Date().toISOString().split('T')[0],
+        expiryDate: initialData.subscription?.expiryDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+        maxCentres: initialData.subscription?.maxCentres || 1,
+        maxUsers: initialData.subscription?.maxUsers || 10,
+        maxRadiologists: initialData.subscription?.maxRadiologists || 5,
+        storageLimit: initialData.subscription?.storageLimit || '1 TB',
+        monthlyStudyLimit: initialData.subscription?.monthlyStudyLimit || null,
+        dicomRetention: initialData.subscription?.dicomRetention || '12 months',
+        reportRetention: initialData.subscription?.reportRetention || 'As per contract',
+        priceModel: initialData.subscription?.priceModel || 'Flat subscription',
+        perStudyRate: initialData.subscription?.perStudyRate || 0,
+        taxPercent: initialData.subscription?.taxPercent || 18,
+        creditLimit: initialData.subscription?.creditLimit || 0,
+        gracePeriod: initialData.subscription?.gracePeriod || 7,
+        autoSuspend: initialData.subscription?.autoSuspend || false,
+        
+        brandDisplayName: initialData.branding?.displayName || '',
+        brandPrimaryColor: initialData.branding?.primaryColor || '#0B2A5B',
+        brandAccentColor: initialData.branding?.accentColor || '#00A7C4',
+        brandReportHeaderText: initialData.branding?.reportHeaderText || '',
+        brandReportFooterText: initialData.branding?.reportFooterText || '',
+        brandSupportEmail: initialData.branding?.supportEmail || '',
+        brandSupportPhone: initialData.branding?.supportPhone || '',
+        brandPortalSubdomain: initialData.branding?.portalSubdomain || '',
+        brandCustomDomain: initialData.branding?.customDomain || '',
+        brandEmailSenderName: initialData.branding?.emailSenderName || '',
+        brandLogo: initialData.branding?.logo || '',
+        brandFavicon: initialData.branding?.favicon || '',
+        brandHeaderLogo: initialData.branding?.headerLogo || '',
+
+        assignmentMode: initialData.reportingWorkflow?.assignmentMode || 'Manual',
+        whoCanAssign: initialData.reportingWorkflow?.whoCanAssign || 'Organization Admin',
+        casePriorities: initialData.reportingWorkflow?.casePriorities || ['Routine', 'Urgent'],
+        tatClockStart: initialData.reportingWorkflow?.tatClockStart || 'DICOM receipt',
+        tatPauseRules: initialData.reportingWorkflow?.tatPauseRules || [],
+        radiologistAcceptance: initialData.reportingWorkflow?.radiologistAcceptance ?? false,
+        reportingStatuses: initialData.reportingWorkflow?.reportingStatuses || ['Uploaded', 'Pending', 'Assigned', 'In Reporting', 'Final'],
+        criticalFindingWorkflow: initialData.reportingWorkflow?.criticalFindingWorkflow ?? false,
+        queryWorkflow: initialData.reportingWorkflow?.queryWorkflow ?? false,
+        addendum: initialData.reportingWorkflow?.addendum ?? false,
+        secondReadQa: initialData.reportingWorkflow?.secondReadQa ?? false,
+        autoLockFinalReport: initialData.reportingWorkflow?.autoLockFinalReport ?? true
       });
     } else if (isOpen) {
       setFormData({
-        name: '', city: '', email: '', phone: '', username: '', password: '', supportedModalities: [], headerSpace: 4,
+        name: '', code: '', organizationType: 'Teleradiology Company', legalName: '', gstin: '', pan: '', contactPerson: '', phone: '', email: '', address: '', addressLine2: '', city: '', state: '', country: 'India', pinCode: '', timeZone: 'Asia/Kolkata', dateFormat: 'DD-MM-YYYY', status: 'Trial', goLiveDate: '', notes: '',
+        adminFullName: '', adminEmail: '', adminMobile: '', adminRole: 'SITE_ADMIN', loginMode: 'Password', temporaryPassword: '', mfaEnabled: true, allowedCentres: 'All Centres', accountStatus: 'Invite Pending', supportedModalities: [], headerSpace: 4,
         globalHeaderSpace: false, emergency: true, border: true, viewImages: false, deleteStudy: false, shareStudy: false, template: false, enablePrepaid: false, headerOnlyOnPdf: false, shareLinkNewStudy: false, demographyAllPages: false, billingPage: false, transactionHistory: false, downloadInFinalize: false, allowStudiesWithoutImages: false,
         keyImagesOnFinal: false, sendReportByEmail: false, qrInReport: false,
-        headerUrl: '', footerUrl: '', brochureForNewStudy: false
+        headerUrl: '', footerUrl: '', brochureForNewStudy: false, accountType: 'Prepaid',
+        plan: 'Trial', billingCycle: 'Monthly', startDate: new Date().toISOString().split('T')[0], expiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0], maxCentres: 1, maxUsers: 10, maxRadiologists: 5, storageLimit: '1 TB', monthlyStudyLimit: null, dicomRetention: '12 months', reportRetention: 'As per contract', priceModel: 'Flat subscription', perStudyRate: 0, taxPercent: 18, creditLimit: 0, gracePeriod: 7, autoSuspend: false,
+        
+        assignmentMode: 'Manual', whoCanAssign: 'Organization Admin', casePriorities: ['Routine', 'Urgent'], tatClockStart: 'DICOM receipt', tatPauseRules: [], radiologistAcceptance: false, reportingStatuses: ['Uploaded', 'Pending', 'Assigned', 'In Reporting', 'Final'], criticalFindingWorkflow: false, queryWorkflow: false, addendum: false, secondReadQa: false, autoLockFinalReport: true,
+        brandDisplayName: '', brandPrimaryColor: '#0B2A5B', brandAccentColor: '#00A7C4', brandReportHeaderText: '', brandReportFooterText: '', brandSupportEmail: '', brandSupportPhone: '', brandPortalSubdomain: '', brandCustomDomain: '', brandEmailSenderName: '', brandLogo: '', brandFavicon: '', brandHeaderLogo: ''
       });
     }
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData(prev => {
+        const nextState = { ...prev, [name]: value };
+        // Auto-generate code if name changes and it's new
+        if (name === 'name' && !initialData && !prev.code) {
+          nextState.code = value.substring(0, 7).toUpperCase().replace(/\s+/g, '-');
+        }
+        return nextState;
+      });
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: keyof typeof formData) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 500 * 1024) {
+        alert("Image is too large for the mock database (limit 500KB). Please select a smaller file.");
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, [field]: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -120,10 +282,21 @@ export default function AddSiteModal({ isOpen, onClose, initialData }: AddSiteMo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.loginMode === 'OTP' && !otpVerified) {
+      alert("Please verify the Admin Mobile via OTP before submitting.");
+      return;
+    }
 
     const settings: SiteSettings = {
-      username: formData.username,
-      password: formData.password,
+      adminFullName: formData.adminFullName,
+      adminEmail: formData.adminEmail,
+      adminMobile: formData.adminMobile,
+      adminRole: formData.adminRole,
+      loginMode: formData.loginMode,
+      temporaryPassword: formData.temporaryPassword,
+      mfaEnabled: formData.mfaEnabled,
+      allowedCentres: formData.allowedCentres,
+      accountStatus: formData.accountStatus,
       headerSpace: formData.headerSpace,
       globalHeaderSpace: formData.globalHeaderSpace,
       emergency: formData.emergency,
@@ -148,15 +321,85 @@ export default function AddSiteModal({ isOpen, onClose, initialData }: AddSiteMo
       brochureForNewStudy: formData.brochureForNewStudy
     };
 
+    const subscription = {
+      plan: formData.plan,
+      billingCycle: formData.billingCycle,
+      startDate: formData.startDate,
+      expiryDate: formData.expiryDate,
+      maxCentres: formData.maxCentres,
+      maxUsers: formData.maxUsers,
+      maxRadiologists: formData.maxRadiologists,
+      storageLimit: formData.storageLimit,
+      monthlyStudyLimit: formData.monthlyStudyLimit,
+      dicomRetention: formData.dicomRetention,
+      reportRetention: formData.reportRetention,
+      priceModel: formData.priceModel,
+      perStudyRate: formData.perStudyRate,
+      taxPercent: formData.taxPercent,
+      creditLimit: formData.creditLimit,
+      gracePeriod: formData.gracePeriod,
+      autoSuspend: formData.autoSuspend,
+    };
+
+    const reportingWorkflow = {
+      assignmentMode: formData.assignmentMode,
+      whoCanAssign: formData.whoCanAssign,
+      casePriorities: formData.casePriorities,
+      tatClockStart: formData.tatClockStart,
+      tatPauseRules: formData.tatPauseRules,
+      radiologistAcceptance: formData.radiologistAcceptance,
+      reportingStatuses: formData.reportingStatuses,
+      criticalFindingWorkflow: formData.criticalFindingWorkflow,
+      queryWorkflow: formData.queryWorkflow,
+      addendum: formData.addendum,
+      secondReadQa: formData.secondReadQa,
+      autoLockFinalReport: formData.autoLockFinalReport
+    };
+
+    const branding = {
+      displayName: formData.brandDisplayName,
+      primaryColor: formData.brandPrimaryColor,
+      accentColor: formData.brandAccentColor,
+      reportHeaderText: formData.brandReportHeaderText,
+      reportFooterText: formData.brandReportFooterText,
+      supportEmail: formData.brandSupportEmail,
+      supportPhone: formData.brandSupportPhone,
+      portalSubdomain: formData.brandPortalSubdomain,
+      customDomain: formData.brandCustomDomain,
+      emailSenderName: formData.brandEmailSenderName,
+      logo: formData.brandLogo,
+      favicon: formData.brandFavicon,
+      headerLogo: formData.brandHeaderLogo
+    };
+
     if (initialData) {
       updateSite(initialData.id, {
         name: formData.name,
+        code: formData.code,
+        organizationType: formData.organizationType,
+        legalName: formData.legalName,
+        gstin: formData.gstin,
+        pan: formData.pan,
         city: formData.city,
-        contactPerson: formData.name,
+        state: formData.state,
+        country: formData.country,
+        pinCode: formData.pinCode,
+        timeZone: formData.timeZone,
+        dateFormat: formData.dateFormat,
+        status: formData.status,
+        goLiveDate: formData.goLiveDate,
+        notes: formData.notes,
+        contactPerson: formData.contactPerson,
         phone: formData.phone,
         email: formData.email,
+        address: formData.address,
+        addressLine2: formData.addressLine2,
         supportedModalities: formData.supportedModalities,
+        accountType: formData.accountType as any,
         settings,
+        subscription,
+        reportingWorkflow,
+        branding,
         updatedAt: new Date().toISOString()
       });
     } else {
@@ -164,28 +407,48 @@ export default function AddSiteModal({ isOpen, onClose, initialData }: AddSiteMo
       addSite({
         id: newCompanyId,
         name: formData.name,
-        code: formData.name.substring(0, 4).toUpperCase(),
-        contactPerson: formData.name,
+        code: formData.code,
+        organizationType: formData.organizationType,
+        legalName: formData.legalName,
+        gstin: formData.gstin,
+        pan: formData.pan,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        pinCode: formData.pinCode,
+        timeZone: formData.timeZone,
+        dateFormat: formData.dateFormat,
+        status: formData.status,
+        goLiveDate: formData.goLiveDate,
+        notes: formData.notes,
+        contactPerson: formData.contactPerson,
         phone: formData.phone,
         email: formData.email,
-        address: formData.city,
-        city: formData.city,
-        status: 'Active',
+        address: formData.address,
+        addressLine2: formData.addressLine2,
         supportedModalities: formData.supportedModalities,
+        accountType: formData.accountType as any,
         settings,
+        subscription,
+        reportingWorkflow,
+        branding,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
 
-      if (formData.username && formData.password) {
+      if (formData.adminEmail || formData.adminFullName) {
         addUser({
           id: `u_${Date.now()}`,
-          name: `${formData.name} Admin`,
-          email: formData.email || `${formData.username}@telerad.com`,
-          phone: formData.phone,
-          role: 'SITE_ADMIN',
+          name: formData.adminFullName || `${formData.name} Admin`,
+          email: formData.adminEmail || `${formData.name.replace(/\s+/g, '').toLowerCase()}@telerad.com`,
+          phone: formData.adminMobile || formData.phone,
+          role: formData.adminRole as any,
           siteId: newCompanyId,
-          status: 'Active',
+          status: formData.accountStatus as any,
+          loginMode: formData.loginMode as any,
+          password: formData.temporaryPassword,
+          mfaEnabled: formData.mfaEnabled,
+          allowedCentres: [formData.allowedCentres],
           createdAt: new Date().toISOString()
         });
       }
@@ -215,54 +478,215 @@ export default function AddSiteModal({ isOpen, onClose, initialData }: AddSiteMo
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-50 rounded-lg shadow-2xl w-full max-w-[850px] max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-slate-50 rounded-lg shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
 
         {/* Header */}
         <div className="bg-[#384b61] px-6 py-4 flex justify-between items-center shrink-0">
-          <h2 className="text-white text-base font-bold tracking-wide">Create Site</h2>
+          <h2 className="text-white text-base font-bold tracking-wide">{initialData ? 'Edit Site' : 'Create Site'}</h2>
           <button onClick={onClose} className="text-slate-300 hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Body Scroll */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+        <form id="site-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
 
           {/* Section: BASIC INFORMATION */}
           <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
             <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">Basic Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
               <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700">Institute Name <span className="text-rose-500">*</span></label>
-                <Input name="name" required value={formData.name} onChange={handleChange} placeholder="Name of the Institute" className="h-9 text-[13px]" />
+                <label className="text-[12px] font-bold text-slate-700">Organization Name <span className="text-rose-500">*</span></label>
+                <Input name="name" required value={formData.name} onChange={handleChange} placeholder="ABC Teleradiology Pvt Ltd" className="h-9 text-[13px]" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700">City <span className="text-rose-500">*</span></label>
-                <Input name="city" required value={formData.city} onChange={handleChange} placeholder="Enter city" className="h-9 text-[13px]" />
+                <label className="text-[12px] font-bold text-slate-700">Organization Code <span className="text-rose-500">*</span></label>
+                <Input name="code" required value={formData.code} onChange={handleChange} placeholder="ABC-TEL" className="h-9 text-[13px]" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700">Email</label>
-                <Input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="Mail ID" className="h-9 text-[13px]" />
+                <label className="text-[12px] font-bold text-slate-700">Organization Type <span className="text-rose-500">*</span></label>
+                <select name="organizationType" value={formData.organizationType} onChange={handleChange} className="w-full h-9 px-3 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B]">
+                  <option>Teleradiology Company</option>
+                  <option>Independent Hospital</option>
+                </select>
               </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">Legal Entity Name</label>
+                <Input name="legalName" value={formData.legalName} onChange={handleChange} placeholder="For invoices/contracts" className="h-9 text-[13px]" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">GSTIN / Tax ID</label>
+                <Input name="gstin" value={formData.gstin} onChange={handleChange} placeholder="29ABCDE1234F1Z5" className="h-9 text-[13px]" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">PAN / Registration No.</label>
+                <Input name="pan" value={formData.pan} onChange={handleChange} placeholder="Commercial records" className="h-9 text-[13px]" />
+              </div>
+            </div>
+          </div>
 
+          {/* Section: CONTACT & LOCATION */}
+          <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
+            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">Contact & Location</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
               <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700">Mobile No.</label>
+                <label className="text-[12px] font-bold text-slate-700">Primary Contact Name <span className="text-rose-500">*</span></label>
+                <Input name="contactPerson" required value={formData.contactPerson} onChange={handleChange} placeholder="Dr / Mr / Ms Name" className="h-9 text-[13px]" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">Primary Contact Mobile <span className="text-rose-500">*</span></label>
                 <div className="flex h-9">
                   <div className="bg-slate-100 border border-r-0 border-slate-300 px-3 flex items-center justify-center rounded-l-md text-[13px] text-slate-600 font-medium">
                     +91
                   </div>
-                  <Input name="phone" value={formData.phone} onChange={handleChange} placeholder="Mobile No" className="h-9 text-[13px] rounded-l-none border-l-0" />
+                  <Input name="phone" required value={formData.phone} onChange={handleChange} placeholder="Mobile No" className="h-9 text-[13px] rounded-l-none border-l-0" />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700">Username <span className="text-rose-500">*</span></label>
-                <Input name="username" required value={formData.username} onChange={handleChange} placeholder="Username" className="h-9 text-[13px]" />
+                <label className="text-[12px] font-bold text-slate-700">Primary Contact Email <span className="text-rose-500">*</span></label>
+                <Input name="email" required type="email" value={formData.email} onChange={handleChange} placeholder="admin@abc.com" className="h-9 text-[13px]" />
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[12px] font-bold text-slate-700">Address Line 1 <span className="text-rose-500">*</span></label>
+                <Input name="address" required value={formData.address} onChange={handleChange} placeholder="Registered/business address" className="h-9 text-[13px]" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700">Password <span className="text-rose-500">*</span></label>
-                <Input name="password" required type="password" value={formData.password} onChange={handleChange} placeholder="Password" className="h-9 text-[13px]" />
+                <label className="text-[12px] font-bold text-slate-700">Address Line 2</label>
+                <Input name="addressLine2" value={formData.addressLine2} onChange={handleChange} placeholder="Optional" className="h-9 text-[13px]" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">City <span className="text-rose-500">*</span></label>
+                <Input name="city" required value={formData.city} onChange={handleChange} placeholder="Mysuru" className="h-9 text-[13px]" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">State <span className="text-rose-500">*</span></label>
+                <select name="state" required value={formData.state} onChange={handleChange} className="w-full h-9 px-3 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B]">
+                  <option value="">Select State</option>
+                  <option value="Karnataka">Karnataka</option>
+                  <option value="Maharashtra">Maharashtra</option>
+                  <option value="Delhi">Delhi</option>
+                  <option value="Tamil Nadu">Tamil Nadu</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">Country <span className="text-rose-500">*</span></label>
+                <select name="country" required value={formData.country} onChange={handleChange} className="w-full h-9 px-3 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B]">
+                  <option value="India">India</option>
+                  <option value="USA">USA</option>
+                  <option value="UK">UK</option>
+                  <option value="UAE">UAE</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">PIN / Postal Code <span className="text-rose-500">*</span></label>
+                <Input name="pinCode" required value={formData.pinCode} onChange={handleChange} placeholder="570005" className="h-9 text-[13px]" />
+              </div>
+            </div>
+          </div>
+
+          {/* Section: CONFIGURATION & SETUP */}
+          <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
+            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">Configuration & Setup</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">Time Zone <span className="text-rose-500">*</span></label>
+                <select name="timeZone" required value={formData.timeZone} onChange={handleChange} className="w-full h-9 px-3 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B]">
+                  <option value="Asia/Kolkata">Asia/Kolkata</option>
+                  <option value="America/New_York">America/New_York</option>
+                  <option value="Europe/London">Europe/London</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">Date Format <span className="text-rose-500">*</span></label>
+                <select name="dateFormat" required value={formData.dateFormat} onChange={handleChange} className="w-full h-9 px-3 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B]">
+                  <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+                  <option value="MM-DD-YYYY">MM-DD-YYYY</option>
+                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                </select>
               </div>
 
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">Go-Live Date</label>
+                <Input name="goLiveDate" type="date" value={formData.goLiveDate} onChange={handleChange} className="h-9 text-[13px]" />
+              </div>
+              <div className="space-y-1.5 col-span-full">
+                <label className="text-[12px] font-bold text-slate-700">Notes</label>
+                <textarea name="notes" value={formData.notes} onChange={handleChange} rows={2} placeholder="Internal Super Admin notes only." className="w-full px-3 py-2 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B] custom-scrollbar"></textarea>
+              </div>
+              
+              <div className="space-y-1.5 col-span-full mt-4 border-t border-slate-100 pt-4">
+                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Organization Admin Account</h4>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">Admin Full Name <span className="text-rose-500">*</span></label>
+                <Input name="adminFullName" required minLength={2} maxLength={100} value={formData.adminFullName} onChange={handleChange} placeholder="Full Name" className="h-9 text-[13px]" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">Admin Email <span className="text-rose-500">*</span></label>
+                <Input name="adminEmail" required type="email" value={formData.adminEmail} onChange={handleChange} placeholder="unique.admin@domain.com" className="h-9 text-[13px]" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">Admin Mobile</label>
+                <div className="flex h-9">
+                  <div className="bg-slate-100 border border-r-0 border-slate-300 px-3 flex items-center justify-center rounded-l-md text-[13px] text-slate-600 font-medium">+91</div>
+                  <Input name="adminMobile" value={formData.adminMobile} onChange={handleChange} placeholder="Mobile No" className="h-9 text-[13px] rounded-l-none border-l-0" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">Role <span className="text-rose-500">*</span></label>
+                <select name="adminRole" required value={formData.adminRole} onChange={handleChange} className="w-full h-9 px-3 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B]">
+                  <option value="SITE_ADMIN">Organization Admin</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-700">Login Mode <span className="text-rose-500">*</span></label>
+                <select name="loginMode" required value={formData.loginMode} onChange={handleChange} className="w-full h-9 px-3 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B]">
+                  <option value="Password">Password</option>
+                  <option value="OTP">OTP</option>
+                </select>
+              </div>
+              
+              {formData.loginMode === 'OTP' && (
+                <div className="space-y-1.5 col-span-full bg-indigo-50/50 p-4 rounded-md border border-indigo-100">
+                  <label className="text-[12px] font-bold text-slate-700">Verify Admin Mobile (OTP) <span className="text-rose-500">*</span></label>
+                  {!otpSent ? (
+                    <div className="flex flex-col space-y-2">
+                      <p className="text-[11px] text-slate-500">An OTP will be sent to the admin mobile number to verify the account.</p>
+                      <button type="button" onClick={() => setOtpSent(true)} className="bg-[#2C4A6B] text-white text-[12px] px-4 py-1.5 rounded-md hover:bg-[#1A314C] transition-colors w-max">
+                        Send OTP
+                      </button>
+                    </div>
+                  ) : !otpVerified ? (
+                    <div className="flex flex-col space-y-2 mt-2">
+                      <p className="text-[11px] text-slate-500">OTP has been sent to +91 {formData.adminMobile || '...'}. Enter the 6-digit code below.</p>
+                      <div className="flex space-x-2">
+                        <Input value={otpInput} onChange={e => setOtpInput(e.target.value)} placeholder="000000" className="h-9 text-[13px] w-32 tracking-widest text-center" maxLength={6} />
+                        <button type="button" onClick={() => { if(otpInput.length > 3) setOtpVerified(true); }} className="bg-[#00A8CC] text-white text-[12px] px-4 py-1.5 rounded-md hover:bg-[#008ba8] transition-colors">
+                          Verify
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2 mt-2 text-emerald-600 bg-emerald-50 p-2 rounded-md border border-emerald-100">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <span className="text-[12px] font-bold">Mobile number successfully verified!</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {formData.loginMode === 'Password' && (
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-bold text-slate-700">Temporary Password <span className="text-rose-500">*</span></label>
+                  <Input name="temporaryPassword" required type="password" value={formData.temporaryPassword} onChange={handleChange} placeholder="Temporary Password" className="h-9 text-[13px]" />
+                  <p className="text-[10px] text-slate-500">Force change on first login.</p>
+                </div>
+              )}
+
+
+              <div className="space-y-1.5 col-span-full mt-4 border-t border-slate-100 pt-4">
+                <label className="text-[12px] font-bold text-slate-700">Header Space</label>
+                <Input name="headerSpace" type="number" value={formData.headerSpace} onChange={handleChange} className="h-9 text-[13px]" />
+              </div>
               <div className="space-y-1.5 col-span-full">
                 <label className="text-[12px] font-bold text-slate-700">Supported Modalities</label>
                 <div className="flex flex-wrap gap-4 mt-1">
@@ -286,74 +710,81 @@ export default function AddSiteModal({ isOpen, onClose, initialData }: AddSiteMo
                   ))}
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700">Header Space</label>
-                <Input name="headerSpace" type="number" value={formData.headerSpace} onChange={handleChange} className="h-9 text-[13px]" />
+            </div>
+          </div>
+
+          {user?.role === 'SUPER_ADMIN' && (
+            <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
+              <h3 className="text-[11px] font-black text-[#00A8CC] uppercase tracking-widest mb-4">Billing Strategy & Configuration</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-bold text-slate-700">Account Type <span className="text-rose-500">*</span></label>
+                  <select name="accountType" required value={formData.accountType} onChange={handleChange} className="w-full h-9 px-3 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B]">
+                    <option value="Prepaid">Prepaid</option>
+                    <option value="Postpaid">Postpaid</option>
+                  </select>
+                </div>
+                
+
+                {formData.accountType === 'Postpaid' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-[12px] font-bold text-slate-700">Tax % (Include option)</label>
+                      <Input type="number" name="taxPercent" value={formData.taxPercent} onChange={handleChange} className="h-9 text-[13px]" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[12px] font-bold text-slate-700">Credit Limit (₹)</label>
+                      <Input type="number" name="creditLimit" value={formData.creditLimit} onChange={handleChange} className="h-9 text-[13px]" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[12px] font-bold text-slate-700">Grace Period (Days)</label>
+                      <Input type="number" name="gracePeriod" value={formData.gracePeriod} onChange={handleChange} className="h-9 text-[13px]" />
+                    </div>
+                    <div className="space-y-1.5 flex items-end pb-1">
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" name="autoSuspend" checked={formData.autoSuspend} onChange={handleChange} className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                        <span className="text-[13px] font-bold text-slate-700">Auto Suspend Enabled</span>
+                      </label>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Section: PERMISSIONS & SETTINGS */}
-          <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
-            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">Permissions & Settings</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-2">
-              <CheckboxItem name="globalHeaderSpace" label="Global Header Space" />
-              <CheckboxItem name="emergency" label="Emergency" />
-              <CheckboxItem name="border" label="Border" />
-              <CheckboxItem name="viewImages" label="View Images" />
 
-              <CheckboxItem name="deleteStudy" label="Delete Study" />
-              <CheckboxItem name="shareStudy" label="Share Study" />
-              <CheckboxItem name="template" label="Template" />
-              <CheckboxItem name="enablePrepaid" label="Enable Prepaid" />
 
-              <CheckboxItem name="headerOnlyOnPdf" label="Header Only on PDF" />
-              <CheckboxItem name="shareLinkNewStudy" label="Share Link (New Study)" />
-              <CheckboxItem name="demographyAllPages" label="Demography All Pages" />
-              <CheckboxItem name="billingPage" label="Billing Page" />
-
-              <CheckboxItem name="transactionHistory" label="Transaction History" />
-              <CheckboxItem name="downloadInFinalize" label="Download in Finalize" />
-              <CheckboxItem name="allowStudiesWithoutImages" label="Allow Studies Without Images" />
-            </div>
-          </div>
-
-          {/* Section: REPORTS & COMMUNICATION */}
-          <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
-            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">Reports & Communication</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-2">
-              <CheckboxItem name="keyImagesOnFinal" label="Key Images on Final" />
-              <CheckboxItem name="sendReportByEmail" label="Send Report by Email" />
-              <CheckboxItem name="qrInReport" label="QR in Report" />
-            </div>
-          </div>
 
           {/* Section: FILE UPLOADS */}
           <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
             <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">File Uploads</h3>
             <div className="flex flex-wrap items-center gap-6">
-              <button type="button" className="flex items-center space-x-2 px-6 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:text-[#2C4A6B] hover:border-[#2C4A6B] hover:bg-slate-50 transition-colors text-sm font-medium">
+              <label className="flex items-center space-x-2 px-6 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:text-[#2C4A6B] hover:border-[#2C4A6B] hover:bg-slate-50 transition-colors text-sm font-medium cursor-pointer">
                 <Upload className="w-4 h-4" />
-                <span>Header</span>
-              </button>
-              <button type="button" className="flex items-center space-x-2 px-6 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:text-[#2C4A6B] hover:border-[#2C4A6B] hover:bg-slate-50 transition-colors text-sm font-medium">
+                <span>{formData.headerUrl ? 'Change Header' : 'Header'}</span>
+                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'headerUrl')} />
+              </label>
+              <label className="flex items-center space-x-2 px-6 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:text-[#2C4A6B] hover:border-[#2C4A6B] hover:bg-slate-50 transition-colors text-sm font-medium cursor-pointer">
                 <Upload className="w-4 h-4" />
-                <span>Footer</span>
-              </button>
+                <span>{formData.footerUrl ? 'Change Footer' : 'Footer'}</span>
+                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'footerUrl')} />
+              </label>
               <div className="pl-4">
                 <CheckboxItem name="brochureForNewStudy" label="Brochure for New Study" />
               </div>
             </div>
           </div>
 
-        </div>
+          {/* Hidden submit button to allow enter to submit form */}
+          <button type="submit" className="hidden">Submit</button>
+        </form>
 
         {/* Footer */}
         <div className="bg-white border-t border-slate-200 px-6 py-4 flex justify-end gap-3 shrink-0">
           <Button type="button" variant="outline" onClick={onClose} className="rounded-md h-9 px-6 text-sm font-bold text-slate-600">
             Cancel
           </Button>
-          <Button type="submit" onClick={handleSubmit} className="bg-[#465f7b] hover:bg-[#2C4A6B] text-white rounded-md shadow-sm h-9 px-8 text-sm font-bold">
+          <Button type="submit" form="site-form" className="bg-[#465f7b] hover:bg-[#2C4A6B] text-white rounded-md shadow-sm h-9 px-8 text-sm font-bold">
             Submit
           </Button>
         </div>
@@ -361,3 +792,4 @@ export default function AddSiteModal({ isOpen, onClose, initialData }: AddSiteMo
     </div>
   );
 }
+

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMockDb } from '../../store/useMockDb';
+import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { useNavigate } from 'react-router-dom';
@@ -7,8 +8,16 @@ import { History, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function AddStudy() {
+  const { user } = useAuthStore();
   const { addStudy, addInvoice, patients, hospitals, studies, templates, modalities } = useMockDb();
   const navigate = useNavigate();
+
+  const scopedHospitals = hospitals.filter(h => {
+    if (user?.role === 'SUPER_ADMIN') return true;
+    if (user?.siteId) return h.parentSiteId === user.siteId;
+    if (user?.hospitalId) return h.id === user.hospitalId;
+    return false;
+  });
 
   const [formData, setFormData] = useState({
     patientId: patients?.[0]?.id || '',
@@ -16,9 +25,16 @@ export default function AddStudy() {
     studyDescription: '',
     bodyPart: '',
     priority: 'Routine',
-    hospitalId: hospitals?.[0]?.id || '',
+    hospitalId: user?.hospitalId || scopedHospitals?.[0]?.id || '',
     referringDoctor: '',
-    historyAttachment: ''
+    historyAttachment: '',
+    studyUid: '',
+    clinicalHistory: '',
+    provisionalDiagnosis: '',
+    relevantNotes: '',
+    creatinineFlag: false,
+    pregnancyFlag: false,
+    technician: ''
   });
 
   const previousStudies = studies.filter(s => s.patientId === formData.patientId).sort((a, b) => new Date(b.studyDate).getTime() - new Date(a.studyDate).getTime());
@@ -27,6 +43,7 @@ export default function AddStudy() {
     e.preventDefault();
     const newStudy = {
       ...formData,
+      referringPhysician: formData.referringDoctor,
       id: 'st' + Date.now(),
       caseNumber: 'CAS-' + Math.floor(10000 + Math.random() * 90000),
       accessionNumber: 'ACC-' + Math.floor(10000 + Math.random() * 90000),
@@ -152,16 +169,55 @@ export default function AddStudy() {
             <Input value={formData.referringDoctor} onChange={e => setFormData({...formData, referringDoctor: e.target.value})} />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Hospital</label>
-            <select className="w-full border rounded-md p-2" value={formData.hospitalId} onChange={e => setFormData({...formData, hospitalId: e.target.value})}>
-              {hospitals.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-            </select>
-          </div>
+          {user?.role !== 'HOSPITAL_ADMIN' && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Hospital</label>
+              <select className="w-full border rounded-md p-2" value={formData.hospitalId} onChange={e => setFormData({...formData, hospitalId: e.target.value})}>
+                {scopedHospitals.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+              </select>
+            </div>
+          )}
 
           <div className="space-y-2 col-span-2">
             <label className="text-sm font-medium">History / Prescription Image (URL)</label>
             <Input type="url" placeholder="e.g. https://example.com/prescription.jpg" value={formData.historyAttachment} onChange={e => setFormData({...formData, historyAttachment: e.target.value})} />
+          </div>
+          
+          {/* New Fields added per requirements */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Study UID</label>
+            <Input value={formData.studyUid} onChange={e => setFormData({...formData, studyUid: e.target.value})} placeholder="DICOM Study Instance UID" />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Technician / User</label>
+            <Input value={formData.technician} onChange={e => setFormData({...formData, technician: e.target.value})} placeholder="Technician Name" />
+          </div>
+
+          <div className="space-y-2 col-span-2">
+            <label className="text-sm font-medium">Clinical History</label>
+            <textarea className="w-full border rounded-md p-2 text-sm" rows={2} value={formData.clinicalHistory} onChange={e => setFormData({...formData, clinicalHistory: e.target.value})} placeholder="Clinical History..." />
+          </div>
+
+          <div className="space-y-2 col-span-2">
+            <label className="text-sm font-medium">Provisional Diagnosis</label>
+            <textarea className="w-full border rounded-md p-2 text-sm" rows={2} value={formData.provisionalDiagnosis} onChange={e => setFormData({...formData, provisionalDiagnosis: e.target.value})} placeholder="Provisional Diagnosis..." />
+          </div>
+
+          <div className="space-y-2 col-span-2">
+            <label className="text-sm font-medium">Previous Surgery / Relevant Notes</label>
+            <textarea className="w-full border rounded-md p-2 text-sm" rows={2} value={formData.relevantNotes} onChange={e => setFormData({...formData, relevantNotes: e.target.value})} placeholder="Relevant Notes..." />
+          </div>
+
+          <div className="space-y-2 col-span-2 flex items-center space-x-6">
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={formData.creatinineFlag} onChange={e => setFormData({...formData, creatinineFlag: e.target.checked})} className="rounded border-gray-300" />
+              <span className="text-sm font-medium">Creatinine Flag</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={formData.pregnancyFlag} onChange={e => setFormData({...formData, pregnancyFlag: e.target.checked})} className="rounded border-gray-300" />
+              <span className="text-sm font-medium">Pregnancy Flag</span>
+            </label>
           </div>
         </div>
 

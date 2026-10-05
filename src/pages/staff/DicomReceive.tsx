@@ -446,17 +446,32 @@ export default function DicomReceive() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Modality</label>
-                    <div className="flex items-center space-x-2 bg-slate-50 rounded-xl p-2.5 border border-slate-200 h-10">
-                      <Stethoscope className="h-4 w-4 text-slate-400" />
-                      <span className="font-bold text-slate-800 text-sm">{fields.modality}</span>
-                    </div>
+                    <select
+                      value={fields.modality}
+                      onChange={e => updateField('modality', e.target.value)}
+                      className="w-full border-slate-200 rounded-xl px-3 h-10 text-sm font-semibold bg-slate-50 outline-none focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] border"
+                    >
+                      <option value="CR">CR (Computed Radiography)</option>
+                      <option value="CT">CT (Computed Tomography)</option>
+                      <option value="DX">DX (Digital Radiography)</option>
+                      <option value="MG">MG (Mammography)</option>
+                      <option value="MR">MR (Magnetic Resonance)</option>
+                      <option value="NM">NM (Nuclear Medicine)</option>
+                      <option value="PT">PT (Positron Emission Tomography)</option>
+                      <option value="RF">RF (Radiofluoroscopy)</option>
+                      <option value="US">US (Ultrasound)</option>
+                      <option value="XA">XA (X-Ray Angiography)</option>
+                      <option value="OT">OT (Other)</option>
+                    </select>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Study Date</label>
-                    <div className="flex items-center space-x-2 bg-slate-50 rounded-xl p-2.5 border border-slate-200 h-10">
-                      <Calendar className="h-4 w-4 text-slate-400" />
-                      <span className="text-slate-800 font-bold text-sm">{fields.studyDate}</span>
-                    </div>
+                    <Input 
+                      type="date"
+                      value={fields.studyDate} 
+                      onChange={e => updateField('studyDate', e.target.value)} 
+                      className="h-10 text-sm font-semibold bg-slate-50 border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20" 
+                    />
                   </div>
                 </div>
                 <div className="space-y-1.5">

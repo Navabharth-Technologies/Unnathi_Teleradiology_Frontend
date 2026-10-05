@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import axios from 'axios';
+const API_URL = 'http://localhost:5000/api';
 import type { Site, Hospital, User, Radiologist, Patient, Study, Invoice, UtilityTemplate, ModalityConfig } from '../types';
 
 interface MockDbState {
@@ -37,6 +39,7 @@ interface MockDbState {
   modalities: ModalityConfig[];
   
   // Actions
+  fetchData: () => Promise<void>;
   addSite: (company: Site) => void;
   updateSite: (id: string, data: Partial<Site>) => void;
   deleteCompany: (id: string) => void;
@@ -79,9 +82,7 @@ const mockSites: Site[] = [];
 
 const mockHospitals: Hospital[] = [];
 
-const mockUsers: User[] = [
-  { id: 'u1', name: 'Unnathi Super Admin', email: 'admin@unnathi.com', phone: '000', role: 'SUPER_ADMIN', status: 'Active' }
-];
+const mockUsers: User[] = [];
 
 const mockRadiologists: Radiologist[] = [];
 
@@ -120,29 +121,87 @@ export const useMockDb = create<MockDbState>()(
       invoices: mockInvoices,
       templates: mockTemplates,
       modalities: mockModalities,
+      fetchData: async () => {
+        try {
+          const [sitesRes, hospitalsRes, usersRes, patientsRes, studiesRes] = await Promise.all([
+            axios.get(`${API_URL}/sites`).catch(() => null),
+            axios.get(`${API_URL}/hospitals`).catch(() => null),
+            axios.get(`${API_URL}/users`).catch(() => null),
+            axios.get(`${API_URL}/patients`).catch(() => null),
+            axios.get(`${API_URL}/studies`).catch(() => null)
+          ]);
+          set((state) => ({
+            sites: sitesRes ? sitesRes.data : state.sites,
+            hospitals: hospitalsRes ? hospitalsRes.data : state.hospitals,
+            users: usersRes ? usersRes.data : state.users,
+            patients: patientsRes ? patientsRes.data : state.patients,
+            studies: studiesRes ? studiesRes.data : state.studies
+          }));
+        } catch (error) {
+          console.error("Error fetching data from API:", error);
+        }
+      },
+
+      addSite: async (company) => {
+        await axios.post(`${API_URL}/sites`, company).catch(console.error);
+        set((state) => ({ sites: [...state.sites, company] }));
+      },
+      updateSite: async (id, data) => {
+        await axios.put(`${API_URL}/sites/${id}`, data).catch(console.error);
+        set((state) => ({ sites: state.sites.map(c => c.id === id ? { ...c, ...data } : c) }));
+      },
+      deleteCompany: async (id) => {
+        await axios.delete(`${API_URL}/sites/${id}`).catch(console.error);
+        set((state) => ({ sites: state.sites.filter(c => c.id !== id) }));
+      },
       
-      addSite: (company) => set((state) => ({ sites: [...state.sites, company] })),
-      updateSite: (id, data) => set((state) => ({ sites: state.sites.map(c => c.id === id ? { ...c, ...data } : c) })),
-      deleteCompany: (id) => set((state) => ({ sites: state.sites.filter(c => c.id !== id) })),
+      addHospital: async (hospital) => {
+        await axios.post(`${API_URL}/hospitals`, hospital).catch(console.error);
+        set((state) => ({ hospitals: [...state.hospitals, hospital] }));
+      },
+      updateHospital: async (id, data) => {
+        await axios.put(`${API_URL}/hospitals/${id}`, data).catch(console.error);
+        set((state) => ({ hospitals: state.hospitals.map(h => h.id === id ? { ...h, ...data } : h) }));
+      },
+      deleteHospital: async (id) => {
+        await axios.delete(`${API_URL}/hospitals/${id}`).catch(console.error);
+        set((state) => ({ hospitals: state.hospitals.filter(h => h.id !== id) }));
+      },
       
-      addHospital: (hospital) => set((state) => ({ hospitals: [...state.hospitals, hospital] })),
-      updateHospital: (id, data) => set((state) => ({ hospitals: state.hospitals.map(h => h.id === id ? { ...h, ...data } : h) })),
-      deleteHospital: (id) => set((state) => ({ hospitals: state.hospitals.filter(h => h.id !== id) })),
-      
-      addUser: (user) => set((state) => ({ users: [...state.users, user] })),
-      updateUser: (id, data) => set((state) => ({ users: state.users.map(u => u.id === id ? { ...u, ...data } : u) })),
-      deleteUser: (id) => set((state) => ({ users: state.users.filter(u => u.id !== id) })),
+      addUser: async (user) => {
+        await axios.post(`${API_URL}/users`, user).catch(console.error);
+        set((state) => ({ users: [...state.users, user] }));
+      },
+      updateUser: async (id, data) => {
+        await axios.put(`${API_URL}/users/${id}`, data).catch(console.error);
+        set((state) => ({ users: state.users.map(u => u.id === id ? { ...u, ...data } : u) }));
+      },
+      deleteUser: async (id) => {
+        await axios.delete(`${API_URL}/users/${id}`).catch(console.error);
+        set((state) => ({ users: state.users.filter(u => u.id !== id) }));
+      },
       
       addRadiologist: (rad) => set((state) => ({ radiologists: [...state.radiologists, rad] })),
       updateRadiologist: (id, data) => set((state) => ({ radiologists: state.radiologists.map(r => r.id === id ? { ...r, ...data } : r) })),
       deleteRadiologist: (id) => set((state) => ({ radiologists: state.radiologists.filter(r => r.id !== id) })),
       
-      addPatient: (patient) => set((state) => ({ patients: [...state.patients, patient] })),
-      updatePatient: (id, data) => set((state) => ({ patients: state.patients.map(p => p.id === id ? { ...p, ...data } : p) })),
+      addPatient: async (patient) => {
+        await axios.post(`${API_URL}/patients`, patient).catch(console.error);
+        set((state) => ({ patients: [...state.patients, patient] }));
+      },
+      updatePatient: async (id, data) => {
+        await axios.put(`${API_URL}/patients/${id}`, data).catch(console.error);
+        set((state) => ({ patients: state.patients.map(p => p.id === id ? { ...p, ...data } : p) }));
+      },
       
-      addStudy: (study) => set((state) => ({ studies: [...state.studies, study] })),
-      updateStudy: (id, data) => set((state) => ({ studies: state.studies.map(s => s.id === id ? { ...s, ...data } : s) })),
-
+      addStudy: async (study) => {
+        await axios.post(`${API_URL}/studies`, study).catch(console.error);
+        set((state) => ({ studies: [...state.studies, study] }));
+      },
+      updateStudy: async (id, data) => {
+        await axios.put(`${API_URL}/studies/${id}`, data).catch(console.error);
+        set((state) => ({ studies: state.studies.map(s => s.id === id ? { ...s, ...data } : s) }));
+      },
       addInvoice: (invoice) => set((state) => ({ invoices: [...state.invoices, invoice] })),
       updateInvoice: (id, data) => set((state) => ({ invoices: state.invoices.map(i => i.id === id ? { ...i, ...data } : i) })),
       
@@ -157,7 +216,7 @@ export const useMockDb = create<MockDbState>()(
       deleteModality: (id) => set((state) => ({ modalities: state.modalities.filter(m => m.id !== id) }))
     }),
     {
-      name: 'unnathi-mock-db-v9', // Bumped version to clear all data
+      name: 'unnathi-mock-db-v13', // Bumped version to completely clear cached local data
     }
   )
 );
