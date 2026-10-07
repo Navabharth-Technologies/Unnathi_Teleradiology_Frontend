@@ -311,7 +311,7 @@ export default function Login() {
                 <p className="text-[15px] text-[#64748B] font-medium">Verify your identity to proceed.</p>
               </div>
 
-              <form onSubmit={handleLogin} className="space-y-6">
+              <form onSubmit={handleLogin} className="space-y-6" autoComplete="off">
                 
                 {/* Animated Email Input */}
                 <div className="space-y-2 relative">
@@ -333,6 +333,9 @@ export default function Login() {
                       className="w-full bg-transparent !border-none !border-transparent text-[#0F172A] text-[15px] font-bold !focus:ring-0 !focus:outline-none !focus:border-transparent placeholder-[#CBD5E1] py-4 pr-5 outline-none shadow-none ring-0 focus:ring-transparent focus:shadow-none"
                       placeholder="name@organization.com"
                       required
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck="false"
                       style={{ boxShadow: 'none' }}
                     />
                     {email.length > 5 && email.includes('@') && (
@@ -368,6 +371,7 @@ export default function Login() {
                       className="w-full bg-transparent !border-none !border-transparent text-[#0F172A] text-[15px] font-black !focus:ring-0 !focus:outline-none !focus:border-transparent placeholder-[#CBD5E1] py-4 pr-5 outline-none shadow-none ring-0 focus:ring-transparent focus:shadow-none tracking-[0.2em]"
                       placeholder="••••••••"
                       required
+                      autoComplete="new-password"
                       style={{ boxShadow: 'none' }}
                     />
                   </div>
