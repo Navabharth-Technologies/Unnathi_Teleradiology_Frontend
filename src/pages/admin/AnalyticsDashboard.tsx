@@ -4,6 +4,18 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Activity, Briefcase, Stethoscope, TrendingUp, Download, Calendar } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 export default function AnalyticsDashboard() {
   const { studies, patients, hospitals } = useMockDb();
@@ -21,18 +33,16 @@ export default function AnalyticsDashboard() {
 
   const totalStudies = scopedStudies.length;
   const totalPatients = scopedPatients.length;
-  const totalRevenue = scopedStudies.length * 2500; // Mock calculation based on real volume
+  const totalRevenue = scopedStudies.length * 2500;
   const avgTat = '1.8 Hrs';
 
-  // Modality Distribution Real Data
   const modalityCounts = scopedStudies.reduce((acc, curr) => {
     acc[curr.modality] = (acc[curr.modality] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
   const modalityData = Object.keys(modalityCounts).map(key => ({ name: key, value: modalityCounts[key] }));
-  const COLORS = ['#0D2461', '#00A8CC', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+  const COLORS = ['#10263D', '#176B73', '#B08D57', '#5C6875', '#2563EB', '#D7DEE4'];
 
-  // Centre Performance Real Data
   const centreData = filteredHospitals.map(h => {
     const hStudies = scopedStudies.filter(s => s.hospitalId === h.id);
     return {
@@ -42,7 +52,6 @@ export default function AnalyticsDashboard() {
     };
   }).filter(h => h.cases > 0);
 
-  // Daily Trend Mock/Real Hybrid Data
   const trendData = [
     { name: 'Mon', studies: Math.floor(totalStudies * 0.1), emergencies: Math.floor(totalStudies * 0.02) },
     { name: 'Tue', studies: Math.floor(totalStudies * 0.15), emergencies: Math.floor(totalStudies * 0.03) },
@@ -54,186 +63,154 @@ export default function AnalyticsDashboard() {
   ];
 
   return (
-    <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6 max-w-[1600px] mx-auto">
       
-      {/* Modern Top Header */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-        <div className="flex items-center space-x-6">
-          <div>
-            <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">Analytics & Intelligence</h1>
-            <p className="text-xs text-slate-500 font-medium mt-1">Real-time operational metrics and financial performance</p>
-          </div>
+      {/* Header */}
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <h1 className="text-3xl font-black text-[#10263D] tracking-tight font-heading">Analytics & Intelligence</h1>
+          <p className="text-sm font-semibold text-slate-500 mt-1">Operational metrics and financial performance</p>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-200">
-            <Input type="date" className="h-8 text-xs w-36 border-0 bg-transparent focus-visible:ring-0 shadow-none font-bold text-slate-600" defaultValue="2026-08-01" />
-            <span className="text-slate-300 font-medium text-xs">to</span>
-            <Input type="date" className="h-8 text-xs w-36 border-0 bg-transparent focus-visible:ring-0 shadow-none font-bold text-slate-600" defaultValue="2026-09-08" />
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2 bg-card p-1 rounded-md border border-border shadow-sm">
+            <Input type="date" className="h-8 text-sm w-36 border-0 focus-visible:ring-0 shadow-none font-medium" defaultValue="2026-08-01" />
+            <span className="text-xs text-muted-foreground font-medium px-1">to</span>
+            <Input type="date" className="h-8 text-sm w-36 border-0 focus-visible:ring-0 shadow-none font-medium" defaultValue="2026-09-08" />
           </div>
-          <Button className="bg-[#00A8CC] hover:bg-[#008ba8] text-white h-10 px-5 text-sm font-bold rounded-xl shadow-md shadow-[#00A8CC]/20">
-            <Download className="w-4 h-4 mr-2" /> Export Report
+          <Button variant="outline" className="h-10">
+            <Download className="w-4 h-4 mr-2" /> Export
           </Button>
         </div>
+      </motion.div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <motion.div variants={itemVariants} className="bg-gradient-to-br from-[#F8FAFC] to-[#EFF6FF] p-6 rounded-2xl border-t-4 border-t-blue-500 border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-blue-100/50 rounded-full blur-xl group-hover:bg-blue-200/50 transition-colors duration-500" />
+          <div className="relative z-10 flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[11px] font-black text-blue-600/80 uppercase tracking-widest">Total Volume</h3>
+            <Activity className="w-5 h-5 text-blue-600" />
+          </div>
+          <div className="relative z-10 mt-2">
+            <div className="text-3xl font-black text-blue-950">{totalStudies.toLocaleString()}</div>
+            <p className="text-xs text-blue-600 font-bold mt-2 flex items-center">
+              <TrendingUp className="w-3.5 h-3.5 mr-1" /> +12.5% from last month
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="bg-gradient-to-br from-[#F8FAFC] to-[#F0FDF4] p-6 rounded-2xl border-t-4 border-t-emerald-500 border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-emerald-100/50 rounded-full blur-xl group-hover:bg-emerald-200/50 transition-colors duration-500" />
+          <div className="relative z-10 flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[11px] font-black text-emerald-600/80 uppercase tracking-widest">Active Patients</h3>
+            <Briefcase className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div className="relative z-10 mt-2">
+            <div className="text-3xl font-black text-emerald-950">{totalPatients.toLocaleString()}</div>
+            <p className="text-xs text-emerald-600 font-bold mt-2 flex items-center">
+              <TrendingUp className="w-3.5 h-3.5 mr-1" /> +8.2% from last month
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="bg-gradient-to-br from-[#F8FAFC] to-[#FFF7ED] p-6 rounded-2xl border-t-4 border-t-orange-500 border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-orange-100/50 rounded-full blur-xl group-hover:bg-orange-200/50 transition-colors duration-500" />
+          <div className="relative z-10 flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[11px] font-black text-orange-600/80 uppercase tracking-widest">System TAT</h3>
+            <Stethoscope className="w-5 h-5 text-orange-600" />
+          </div>
+          <div className="relative z-10 mt-2">
+            <div className="text-3xl font-black text-orange-950">{avgTat}</div>
+            <p className="text-xs text-emerald-600 font-bold mt-2 flex items-center">
+              <TrendingUp className="w-3.5 h-3.5 mr-1" /> -15 mins improvement
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-6 rounded-2xl border border-indigo-400/20 shadow-[0_8px_30px_rgb(99,102,241,0.2)] text-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+          <div className="relative z-10 flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[11px] font-black text-indigo-100 uppercase tracking-widest">Est. Revenue</h3>
+            <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg text-white"><TrendingUp className="w-4 h-4" /></div>
+          </div>
+          <div className="relative z-10 mt-2">
+            <div className="text-3xl font-black text-white">₹ {(totalRevenue / 100000).toFixed(2)}L</div>
+            <p className="text-xs text-indigo-100 font-bold mt-2 flex items-center">
+              <TrendingUp className="w-3.5 h-3.5 mr-1" /> +22.4% from last month
+            </p>
+          </div>
+        </motion.div>
       </div>
 
-      {/* Premium Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="absolute right-0 top-0 w-24 h-24 bg-blue-500/5 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform"></div>
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Volume</p>
-              <h3 className="text-3xl font-black text-[#0D2461]">{totalStudies.toLocaleString()}</h3>
-            </div>
-            <div className="p-3 bg-blue-50 rounded-xl text-blue-600"><Activity className="w-5 h-5" /></div>
-          </div>
-          <div className="flex items-center text-xs font-bold text-emerald-600">
-            <TrendingUp className="w-3.5 h-3.5 mr-1" /> +12.5% <span className="text-slate-400 font-medium ml-1">vs last month</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="absolute right-0 top-0 w-24 h-24 bg-purple-500/5 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform"></div>
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Active Patients</p>
-              <h3 className="text-3xl font-black text-[#0D2461]">{totalPatients.toLocaleString()}</h3>
-            </div>
-            <div className="p-3 bg-purple-50 rounded-xl text-purple-600"><Briefcase className="w-5 h-5" /></div>
-          </div>
-          <div className="flex items-center text-xs font-bold text-emerald-600">
-            <TrendingUp className="w-3.5 h-3.5 mr-1" /> +8.2% <span className="text-slate-400 font-medium ml-1">vs last month</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="absolute right-0 top-0 w-24 h-24 bg-amber-500/5 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform"></div>
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">System TAT</p>
-              <h3 className="text-3xl font-black text-[#0D2461]">{avgTat}</h3>
-            </div>
-            <div className="p-3 bg-amber-50 rounded-xl text-amber-600"><Stethoscope className="w-5 h-5" /></div>
-          </div>
-          <div className="flex items-center text-xs font-bold text-emerald-600">
-            <TrendingUp className="w-3.5 h-3.5 mr-1" /> -15 mins <span className="text-slate-400 font-medium ml-1">improvement</span>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-[#0D2461] to-indigo-900 rounded-2xl p-6 shadow-md border border-indigo-800 relative overflow-hidden group hover:shadow-lg transition-all text-white">
-          <div className="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform"></div>
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-xs font-bold text-indigo-200 uppercase tracking-widest mb-1">Est. Revenue</p>
-              <h3 className="text-3xl font-black text-white">₹ {(totalRevenue / 100000).toFixed(2)}L</h3>
-            </div>
-            <div className="p-3 bg-white/10 rounded-xl text-emerald-300 backdrop-blur-sm"><TrendingUp className="w-5 h-5" /></div>
-          </div>
-          <div className="flex items-center text-xs font-bold text-emerald-300">
-            <TrendingUp className="w-3.5 h-3.5 mr-1" /> +22.4% <span className="text-indigo-200 font-medium ml-1">vs last month</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Line Chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-          <div className="flex justify-between items-center mb-6">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <h3 className="text-base font-black text-[#0D2461]">Volume Trajectory</h3>
-              <p className="text-xs font-medium text-slate-400">Total cases vs emergencies over 7 days</p>
+              <CardTitle>Volume Trajectory</CardTitle>
+              <CardDescription>Total cases vs emergencies over 7 days</CardDescription>
             </div>
-            <select className="text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:border-[#00A8CC]">
-              <option>This Week</option>
-              <option>Last Week</option>
-            </select>
-          </div>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', fontWeight: 'bold', fontSize: '12px' }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', paddingTop: '20px' }} />
-                <Line type="monotone" dataKey="studies" stroke="#0D2461" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} name="Total Studies" />
-                <Line type="monotone" dataKey="emergencies" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} name="Emergencies" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D7DEE4" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#5C6875' }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#5C6875' }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #D7DEE4', boxShadow: '0 4px 6px -1px rgba(16, 38, 61, 0.08)' }}
+                    itemStyle={{ fontSize: '13px', fontWeight: 500 }}
+                  />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
+                  <Line type="monotone" dataKey="studies" name="Routine Cases" stroke="#10263D" strokeWidth={3} dot={{ r: 4, fill: '#10263D', strokeWidth: 0 }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                  <Line type="monotone" dataKey="emergencies" name="Emergency" stroke="#DC2626" strokeWidth={3} dot={{ r: 4, fill: '#DC2626', strokeWidth: 0 }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Pie Chart */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col">
-          <div className="mb-2">
-            <h3 className="text-base font-black text-[#0D2461]">Modality Split</h3>
-            <p className="text-xs font-medium text-slate-400">Distribution across modalities</p>
-          </div>
-          <div className="h-[260px] flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={modalityData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {modalityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 'bold', fontSize: '12px' }}
-                  itemStyle={{ color: '#333' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            {modalityData.map((m, i) => (
-              <div key={m.name} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i] }}></div>
-                <div className="text-xs font-bold text-slate-700">{m.name} <span className="text-slate-400 font-medium">({m.value}%)</span></div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Modality Distribution</CardTitle>
+            <CardDescription>Breakdown by study type</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72 w-full relative flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={modalityData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={90}
+                    paddingAngle={2}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {modalityData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(16, 38, 61, 0.08)' }}
+                    itemStyle={{ fontSize: '13px', fontWeight: 500, color: '#18212B' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-3xl font-semibold text-primary">{totalStudies}</span>
+                <span className="text-xs text-muted-foreground">Total</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
-      {/* Bar Chart */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h3 className="text-base font-black text-[#0D2461]">Top Performing Hospitals</h3>
-            <p className="text-xs font-medium text-slate-400">Revenue and volume comparison across top 5 locations</p>
-          </div>
-          <Button variant="outline" size="sm" className="text-xs font-bold border-slate-200">View All Locations</Button>
-        </div>
-        <div className="h-[350px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={centreData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barGap={8}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-              <YAxis yAxisId="left" orientation="left" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-              <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(val) => `₹${val/1000}k`} />
-              <Tooltip 
-                cursor={{ fill: '#f8fafc' }}
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 'bold', fontSize: '12px' }}
-              />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', paddingTop: '20px' }} />
-              <Bar yAxisId="left" dataKey="cases" fill="#00A8CC" name="Total Cases" radius={[6, 6, 0, 0]} maxBarSize={40} />
-              <Bar yAxisId="right" dataKey="revenue" fill="#0D2461" name="Revenue (₹)" radius={[6, 6, 0, 0]} maxBarSize={40} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </div>
+    </motion.div>
   );
 }

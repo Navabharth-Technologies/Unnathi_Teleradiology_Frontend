@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
 const API_URL = 'http://localhost:5000/api';
-import type { Site, Hospital, User, Radiologist, Patient, Study, Invoice, UtilityTemplate, ModalityConfig } from '../types';
+import type { Site, Hospital, User, Radiologist, Patient, Study, Invoice, UtilityTemplate, ModalityConfig, CustomRole } from '../types';
 
 interface MockDbState {
   sites: Site[];
@@ -14,6 +14,7 @@ interface MockDbState {
   invoices: Invoice[];
   templates: UtilityTemplate[];
   modalities: ModalityConfig[];
+  customRoles: CustomRole[];
   
   // Actions
   addSite: (company: Site) => void;
@@ -74,6 +75,8 @@ interface MockDbState {
   addModality: (modality: ModalityConfig) => void;
   updateModality: (id: string, data: Partial<ModalityConfig>) => void;
   deleteModality: (id: string) => void;
+
+  addCustomRole: (role: CustomRole) => void;
 }
 
 const mockSites: Site[] = [];
@@ -121,6 +124,7 @@ export const useMockDb = create<MockDbState>()(
       invoices: mockInvoices,
       templates: mockTemplates,
       modalities: mockModalities,
+      customRoles: [],
       fetchData: async () => {
         try {
           const [sitesRes, hospitalsRes, usersRes, patientsRes, studiesRes] = await Promise.all([
@@ -141,6 +145,8 @@ export const useMockDb = create<MockDbState>()(
           console.error("Error fetching data from API:", error);
         }
       },
+
+      addCustomRole: (role) => set((state) => ({ customRoles: [...state.customRoles, role] })),
 
       addSite: async (company) => {
         await axios.post(`${API_URL}/sites`, company).catch(console.error);

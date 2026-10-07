@@ -77,35 +77,35 @@ export default function AccountantDashboard() {
     <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
       
       {/* Modern Top Header */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex justify-between items-center bg-card p-5 rounded-2xl shadow-sm border border-border">
         <div className="flex items-center space-x-6">
-          <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600">
+          <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500 border border-emerald-500/20">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">Accountant Dashboard</h1>
-            <p className="text-xs text-slate-500 font-medium mt-1">Daily revenue and pending dues overview</p>
+            <h1 className="text-2xl font-black text-primary tracking-tight">Accountant Dashboard</h1>
+            <p className="text-[11px] font-black text-slate-400 mt-1 uppercase tracking-widest">Daily revenue and pending dues overview</p>
           </div>
         </div>
-        <Button onClick={() => navigate('/accountant/invoices')} className="h-10 px-5 text-sm font-black rounded-xl bg-[#00A8CC] hover:bg-[#008ba8] text-white shadow-md shadow-cyan-500/20 tracking-wide">
+        <Button onClick={() => navigate('/accountant/invoices')} className="h-11 px-6 text-sm font-bold rounded-xl bg-accent hover:bg-accent-hover text-white shadow-sm hover:-translate-y-0.5 transition-all duration-300">
           Manage Invoices <ArrowUpRight className="ml-2 w-4 h-4" />
         </Button>
       </div>
 
       {/* Premium Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 animate-unnathi-slide-up" style={{ animationDelay: '100ms' }}>
         {/* Total Revenue */}
-        <div className="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100 rounded-bl-full -mr-10 -mt-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative bg-card p-6 rounded-2xl shadow-sm border border-border overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full -mr-10 -mt-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10 flex justify-between items-start">
             <div className="space-y-4">
-              <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl inline-block">
+              <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl inline-block border border-emerald-500/20">
                 <IndianRupee className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Revenue</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Revenue</p>
                 <div className="flex items-baseline space-x-2">
-                  <span className="text-3xl font-black text-slate-800 tracking-tight">₹{totalRevenue.toLocaleString('en-IN')}</span>
+                  <span className="text-3xl font-black text-primary tracking-tight">₹{totalRevenue.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
@@ -113,17 +113,17 @@ export default function AccountantDashboard() {
         </div>
 
         {/* Pending Dues */}
-        <div className="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-100 rounded-bl-full -mr-10 -mt-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative bg-card p-6 rounded-2xl shadow-sm border border-border overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-bl-full -mr-10 -mt-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10 flex justify-between items-start">
             <div className="space-y-4">
-              <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl inline-block">
+              <div className="p-2.5 bg-rose-500/10 text-rose-500 rounded-xl inline-block border border-rose-500/20">
                 <AlertCircle className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pending Dues</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending Dues</p>
                 <div className="flex items-baseline space-x-2">
-                  <span className="text-3xl font-black text-slate-800 tracking-tight">₹{pendingRevenue.toLocaleString('en-IN')}</span>
+                  <span className="text-3xl font-black text-primary tracking-tight">₹{pendingRevenue.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
@@ -131,17 +131,17 @@ export default function AccountantDashboard() {
         </div>
 
         {/* Invoices Issued */}
-        <div className="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#0D2461]/5 rounded-bl-full -mr-10 -mt-10 opacity-100 group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative bg-card p-6 rounded-2xl shadow-sm border border-border overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-10 -mt-10 opacity-100 group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10 flex justify-between items-start">
             <div className="space-y-4">
-              <div className="p-2.5 bg-slate-50 text-[#0D2461] rounded-xl inline-block border border-slate-100">
+              <div className="p-2.5 bg-background text-primary rounded-xl inline-block border border-border">
                 <FileText className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Invoices Issued</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Invoices Issued</p>
                 <div className="flex items-baseline space-x-2">
-                  <span className="text-3xl font-black text-slate-800 tracking-tight">{invoices.length}</span>
+                  <span className="text-3xl font-black text-primary tracking-tight">{invoices.length}</span>
                 </div>
               </div>
             </div>
@@ -149,17 +149,17 @@ export default function AccountantDashboard() {
         </div>
 
         {/* Unbilled Studies */}
-        <div className="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100 rounded-bl-full -mr-10 -mt-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative bg-card p-6 rounded-2xl shadow-sm border border-border overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-bl-full -mr-10 -mt-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10 flex justify-between items-start">
             <div className="space-y-4">
-              <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl inline-block">
+              <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl inline-block border border-amber-500/20">
                 <Banknote className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Unbilled Studies</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Unbilled Studies</p>
                 <div className="flex items-baseline space-x-2">
-                  <span className="text-3xl font-black text-slate-800 tracking-tight">{unpaidStudies.length}</span>
+                  <span className="text-3xl font-black text-primary tracking-tight">{unpaidStudies.length}</span>
                 </div>
               </div>
             </div>
@@ -167,20 +167,20 @@ export default function AccountantDashboard() {
         </div>
 
         {/* Super Admin Dues */}
-        <div className="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-100 rounded-bl-full -mr-10 -mt-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative bg-card p-6 rounded-2xl shadow-sm border border-border overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-bl-full -mr-10 -mt-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10 flex justify-between items-start">
             <div className="space-y-4">
-              <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl inline-block">
+              <div className="p-2.5 bg-purple-500/10 text-purple-500 rounded-xl inline-block border border-purple-500/20">
                 <Banknote className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Super Admin Dues</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Super Admin Dues</p>
                 <div className="flex items-baseline space-x-2">
-                  <span className="text-3xl font-black text-slate-800 tracking-tight">₹{superAdminDues.toLocaleString('en-IN')}</span>
+                  <span className="text-3xl font-black text-primary tracking-tight">₹{superAdminDues.toLocaleString('en-IN')}</span>
                 </div>
                 {superAdminDues > 0 && (
-                  <button onClick={() => setShowConfirmModal(true)} className="mt-3 text-[10px] font-bold text-white bg-purple-500 hover:bg-purple-600 px-3 py-1.5 rounded-lg w-full transition-colors">
+                  <button onClick={() => setShowConfirmModal(true)} className="mt-3 text-[10px] font-bold text-white bg-purple-500 hover:bg-purple-600 px-3 py-1.5 rounded-lg w-full transition-all hover:-translate-y-0.5">
                     Pay Dues
                   </button>
                 )}
@@ -190,16 +190,16 @@ export default function AccountantDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-unnathi-slide-up" style={{ animationDelay: '200ms' }}>
         
         {/* Revenue Trend Chart */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-lg font-black text-[#0D2461]">Revenue Trend</h2>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">This Week</p>
+              <h2 className="text-lg font-black text-primary tracking-tight">Revenue Trend</h2>
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-1">This Week</p>
             </div>
-            <div className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black">+14.5%</div>
+            <div className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-full text-xs font-black border border-emerald-500/20">+14.5%</div>
           </div>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -218,7 +218,7 @@ export default function AccountantDashboard() {
                   tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }} 
                   tickFormatter={(val) => `₹${val/1000}k`}
                 />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
                 <Bar 
                   dataKey="revenue" 
                   fill="#00A8CC" 
@@ -232,31 +232,31 @@ export default function AccountantDashboard() {
         </div>
 
         {/* Recent Unbilled Studies */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-            <h2 className="text-lg font-black text-[#0D2461]">Recent Unbilled Studies</h2>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Needs Invoice Generation</p>
+        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-border bg-slate-50/50">
+            <h2 className="text-lg font-black text-primary tracking-tight">Recent Unbilled Studies</h2>
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-1">Needs Invoice Generation</p>
           </div>
           <div className="p-2 flex-1">
-            <div className="space-y-1">
+            <div className="space-y-1 stagger-children">
               {unpaidStudies.slice(0, 5).map(study => (
-                <div key={study.id} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-xl transition-colors group">
+                <div key={study.id} className="flex items-center justify-between p-4 hover:bg-accent/5 rounded-xl transition-all group hover:-translate-y-0.5">
                   <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0">
-                      <Banknote className="w-5 h-5 text-amber-600" />
+                    <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                      <Banknote className="w-5 h-5 text-amber-500" />
                     </div>
                     <div>
-                      <p className="text-sm font-black text-slate-800">{study.caseNumber}</p>
+                      <p className="text-sm font-black text-primary">{study.caseNumber}</p>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase tracking-wider">{study.modality}</span>
-                        <span className="text-xs font-semibold text-slate-500 truncate max-w-[200px]">{study.studyDescription}</span>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase tracking-widest">{study.modality}</span>
+                        <span className="text-xs font-bold text-slate-500 truncate max-w-[200px]">{study.studyDescription}</span>
                       </div>
                     </div>
                   </div>
                   <Button 
                     onClick={() => navigate('/accountant/invoices')} 
-                    variant="outline"
-                    className="h-9 px-4 text-xs font-black rounded-lg border-slate-200 text-[#0D2461] hover:text-[#00A8CC] hover:border-[#00A8CC]/30 hover:bg-cyan-50 transition-all opacity-0 group-hover:opacity-100"
+                    variant="ghost"
+                    className="h-9 px-4 text-xs font-black rounded-lg text-slate-500 hover:text-accent hover:bg-accent/10 transition-all opacity-0 group-hover:opacity-100"
                   >
                     Generate
                   </Button>
@@ -264,14 +264,14 @@ export default function AccountantDashboard() {
               ))}
               {unpaidStudies.length === 0 && (
                 <div className="py-12 flex flex-col items-center justify-center text-slate-400">
-                  <CheckCircle className="w-10 h-10 mb-3 text-emerald-400" />
+                  <CheckCircle className="w-10 h-10 mb-3 text-emerald-500 opacity-50" />
                   <p className="text-sm font-bold">All studies are billed!</p>
                 </div>
               )}
             </div>
           </div>
-          <div className="p-4 border-t border-slate-100 bg-slate-50">
-            <button onClick={() => navigate('/studies')} className="w-full text-[11px] font-bold text-slate-500 hover:text-[#00A8CC] uppercase tracking-widest transition-colors">
+          <div className="p-4 border-t border-border bg-slate-50/50 text-center">
+            <button onClick={() => navigate('/studies')} className="w-full text-[11px] font-black text-slate-400 hover:text-accent uppercase tracking-widest transition-colors">
               View All Studies →
             </button>
           </div>
@@ -281,27 +281,27 @@ export default function AccountantDashboard() {
 
       {showConfirmModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 flex flex-col items-center p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-50 border-4 border-emerald-100 flex items-center justify-center mb-6">
+          <div className="bg-card rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-border flex flex-col items-center p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 border-4 border-emerald-500/20 flex items-center justify-center mb-6">
               <CheckCircle className="w-8 h-8 text-emerald-500" />
             </div>
             
-            <h2 className="text-xl font-black text-[#0D2461] mb-2">Confirm Payment</h2>
-            <p className="text-sm font-semibold text-slate-500 mb-8">
-              Are you sure you want to mark <strong className="text-slate-800">₹{superAdminDues.toLocaleString('en-IN')}</strong> as paid to the Super Admin? This action cannot be undone.
+            <h2 className="text-xl font-black text-primary mb-2 tracking-tight">Confirm Payment</h2>
+            <p className="text-sm font-bold text-slate-500 mb-8">
+              Are you sure you want to mark <strong className="text-primary">₹{superAdminDues.toLocaleString('en-IN')}</strong> as paid to the Super Admin? This action cannot be undone.
             </p>
             
             <div className="flex items-center justify-center w-full gap-3">
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 onClick={() => setShowConfirmModal(false)} 
-                className="flex-1 h-12 rounded-xl font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
+                className="flex-1 h-12 rounded-xl font-bold border border-transparent hover:border-border text-slate-500 hover:text-primary transition-all"
               >
                 Cancel
               </Button>
               <Button 
                 onClick={handlePaySuperAdmin} 
-                className="flex-1 h-12 rounded-xl font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20"
+                className="flex-1 h-12 rounded-xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm hover:-translate-y-0.5 transition-all"
               >
                 Confirm Paid
               </Button>

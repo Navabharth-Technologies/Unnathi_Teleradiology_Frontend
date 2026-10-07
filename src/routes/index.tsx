@@ -45,6 +45,7 @@ import SubscriptionsPlans from '../pages/unnathi/SubscriptionsPlans';
 import StorageUsage from '../pages/unnathi/StorageUsage';
 import AuditLogs from '../pages/unnathi/AuditLogs';
 import SystemSettings from '../pages/unnathi/SystemSettings';
+import SplashScreen from '../pages/SplashScreen';
 
 export const router = createHashRouter([
   {
@@ -57,7 +58,7 @@ export const router = createHashRouter([
       },
       {
         path: '',
-        element: <Navigate to="/login" replace />,
+        element: <SplashScreen />,
       }
     ],
   },

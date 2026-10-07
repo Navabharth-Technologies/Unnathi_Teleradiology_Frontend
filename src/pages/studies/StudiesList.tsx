@@ -11,9 +11,10 @@ import { AddHistoryModal } from '../../components/modals/AddHistoryModal';
 import { format } from 'date-fns';
 import { useAuthStore } from '../../store/useAuthStore';
 import type { Study } from '../../types';
+import { Card } from '../../components/ui/card';
 
 export default function StudiesList() {
-  const { studies, patients, hospitals, radiologists, updateStudy } = useMockDb();
+  const { studies, patients, hospitals, updateStudy } = useMockDb();
   const [searchTerm, setSearchTerm] = useState('');
   const [historyStudy, setHistoryStudy] = useState<Study | null>(null);
   const [sharingStudy, setSharingStudy] = useState<Study | null>(null);
@@ -23,13 +24,6 @@ export default function StudiesList() {
   const filtered = studies.filter(s => {
     if (selectedHospitalId && s.hospitalId !== selectedHospitalId) return false;
     
-    const hospital = hospitals.find(h => h.id === s.hospitalId);
-
-    // Allow Super Admin to see all studies
-    if (user?.role === 'SUPER_ADMIN') {
-      // no-op, sees everything
-    }
-    // Isolate independent hospitals from Site Admins
     if (user?.role === 'SITE_ADMIN') {
       const hospital = hospitals.find(h => h.id === s.hospitalId);
       if (hospital?.parentSiteId !== user.siteId) return false;
@@ -44,109 +38,113 @@ export default function StudiesList() {
 
   const getPriorityColor = (priority: string) => {
     switch(priority) {
-      case 'Emergency': return 'bg-rose-50 text-rose-700 border-rose-200';
-      case 'Urgent': return 'bg-amber-50 text-amber-700 border-amber-200';
-      default: return 'bg-slate-50 text-slate-700 border-slate-200';
+      case 'Emergency': return 'bg-destructive/10 text-destructive border-destructive/20';
+      case 'Urgent': return 'bg-warning/10 text-warning border-warning/20';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch(status) {
-      case 'New': return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'Final': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'Action Needed': return 'bg-rose-50 text-rose-700 border-rose-200';
-      default: return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'New': return 'bg-info/10 text-info border-info/20';
+      case 'Final': return 'bg-success/10 text-success border-success/20';
+      case 'Action Needed': return 'bg-destructive/10 text-destructive border-destructive/20';
+      default: return 'bg-warning/10 text-warning border-warning/20';
     }
   }
 
   return (
-    <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       
-      {/* Modern Top Header */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-        <div className="flex items-center space-x-6">
-          <div>
-            <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">Study Worklist</h1>
-            <p className="text-xs text-slate-500 font-medium mt-1">Manage and assign all incoming diagnostic studies</p>
-          </div>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Study Worklist</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage and assign all incoming diagnostic studies</p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex space-x-3">
           <div className="relative group">
-            <Search className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-[#00A8CC] transition-colors" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search by case or accession..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-10 w-[300px] h-10 text-sm bg-slate-50 text-slate-900 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] transition-all shadow-inner"
+              className="pl-9 w-[300px]"
             />
           </div>
           {currentRole !== 'Accountant' && (
-            <Button onClick={() => navigate('/studies/new')} className="bg-[#0D2461] hover:bg-[#081840] text-white h-10 px-5 text-sm font-bold rounded-xl shadow-md shadow-[#0D2461]/20">
+            <Button onClick={() => navigate('/studies/new')}>
               <PlusCircle className="w-4 h-4 mr-2" /> Add Study
             </Button>
           )}
         </div>
       </div>
 
-      {/* Premium Data Grid */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100">
-        <Table>
-          <TableHeader className="bg-slate-50/80 border-b border-slate-200">
-            <TableRow>
-              <TableHead className="text-slate-500 font-black py-4 px-6 text-[11px] tracking-widest uppercase">Case No</TableHead>
-              <TableHead className="text-slate-500 font-black py-4 px-4 text-[11px] tracking-widest uppercase">Patient</TableHead>
-              <TableHead className="text-slate-500 font-black py-4 px-4 text-[11px] tracking-widest uppercase">Hospital</TableHead>
-              <TableHead className="text-slate-500 font-black py-4 px-4 text-[11px] tracking-widest uppercase">Modality/Study</TableHead>
-              <TableHead className="text-slate-500 font-black py-4 px-4 text-[11px] tracking-widest uppercase">Priority</TableHead>
-              <TableHead className="text-slate-500 font-black py-4 px-4 text-[11px] tracking-widest uppercase">Status</TableHead>
-              <TableHead className="text-slate-500 font-black py-4 px-4 text-[11px] tracking-widest uppercase">Date</TableHead>
-              <TableHead className="text-slate-500 font-black py-4 px-6 text-[11px] tracking-widest uppercase text-right">Command Hub</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map(study => (
-              <TableRow key={study.id} className="hover:bg-cyan-50/30 transition-colors border-b border-slate-100">
-                <TableCell className="py-4 px-6 font-bold text-slate-800 text-sm">{study.caseNumber}</TableCell>
-                <TableCell className="py-4 px-4 font-semibold text-slate-700 text-sm">{getPatientName(study.patientId)}</TableCell>
-                <TableCell className="py-4 px-4 text-sm text-slate-600 font-medium">{getHospitalName(study.hospitalId)}</TableCell>
-                <TableCell className="py-4 px-4">
-                  <div className="font-bold text-slate-800 text-sm">{study.modality}</div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{study.studyDescription}</div>
-                </TableCell>
-                <TableCell className="py-4 px-4">
-                  <span className={`border px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide shadow-sm uppercase ${getPriorityColor(study.priority)}`}>
-                    {study.priority}
-                  </span>
-                </TableCell>
-                <TableCell className="py-4 px-4">
-                  <span className={`border px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide shadow-sm uppercase ${getStatusColor(study.status)}`}>
-                    {study.status}
-                  </span>
-                </TableCell>
-                <TableCell className="py-4 px-4 text-sm font-semibold text-slate-700">
-                  {format(new Date(study.studyDate), 'dd MMM yyyy')}
-                </TableCell>
-                <TableCell className="py-4 px-6 align-top">
-                  <div className="flex items-center justify-end h-full gap-2">
-                    <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-lg border border-slate-200 shadow-sm">
-                      <button onClick={() => navigate(`/viewer/${study.id}`)} className="p-1.5 rounded-md hover:bg-white text-[#0D2461] hover:shadow-sm transition-all" title="View Viewer"><Eye className="w-4 h-4" /></button>
-                      <button onClick={() => setHistoryStudy(study)} className={`p-1.5 rounded-md hover:bg-white hover:shadow-sm transition-all ${study.clinicalHistory ? 'text-emerald-600' : 'text-slate-400'}`} title="View/Edit History"><ClipboardList className="w-4 h-4" /></button>
-                      <button onClick={() => setSharingStudy(study)} className="p-1.5 rounded-md hover:bg-white text-indigo-600 hover:shadow-sm transition-all" title="Share Study"><Share2 className="w-4 h-4" /></button>
+      {/* Data Grid */}
+      <Card>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-muted/50 border-b border-border">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Case No</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Patient</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Hospital</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Modality/Study</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Priority</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Status</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Date</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(study => (
+                <TableRow key={study.id} className="hover:bg-muted/30 transition-colors border-b border-border group cursor-pointer" onClick={() => navigate(`/viewer/${study.id}`)}>
+                  <TableCell className="py-3 font-medium text-foreground text-sm">{study.caseNumber}</TableCell>
+                  <TableCell className="py-3 font-medium text-primary text-sm">{getPatientName(study.patientId)}</TableCell>
+                  <TableCell className="py-3 text-sm text-muted-foreground">{getHospitalName(study.hospitalId)}</TableCell>
+                  <TableCell className="py-3">
+                    <div className="font-semibold text-foreground text-sm">{study.modality}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{study.studyDescription}</div>
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase border ${getPriorityColor(study.priority)}`}>
+                      {study.priority}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase border ${getStatusColor(study.status)}`}>
+                      {study.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-3 text-sm text-muted-foreground">
+                    {format(new Date(study.studyDate), 'dd MMM yyyy')}
+                  </TableCell>
+                  <TableCell className="py-3 align-middle text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); navigate(`/viewer/${study.id}`); }}>
+                        <Eye className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); setHistoryStudy(study); }}>
+                        <ClipboardList className={`w-4 h-4 ${study.clinicalHistory ? 'text-success' : 'text-muted-foreground'}`} />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); setSharingStudy(study); }}>
+                        <Share2 className="w-4 h-4 text-info" />
+                      </Button>
                     </div>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-slate-500 text-sm font-medium">
-                  No studies found matching your search.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-10 text-muted-foreground text-sm">
+                    No studies found matching your search.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       <AddHistoryModal 
         isOpen={!!historyStudy}

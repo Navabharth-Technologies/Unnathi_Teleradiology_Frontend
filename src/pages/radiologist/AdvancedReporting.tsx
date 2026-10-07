@@ -10,6 +10,7 @@ import { MoreInfoModal } from '../../components/modals/MoreInfoModal';
 import { EditPatientModal } from '../../components/modals/EditPatientModal';
 import { ShareModal } from '../../components/modals/ShareModal';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 export default function AdvancedReporting() {
   const navigate = useNavigate();
@@ -281,118 +282,191 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#f0f2f5] font-sans">
+    <div className="h-full flex flex-col bg-[#F8FAFC] font-sans animate-unnathi-fade-in relative overflow-hidden">
+      {/* Colorful Light Ambient Particles */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <motion.div 
+          className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#1FC8D0]/10 rounded-full blur-[120px]"
+          animate={{ x: [0, 50, 0], y: [0, 30, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div 
+          className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-[#2563EB]/10 rounded-full blur-[150px]"
+          animate={{ x: [0, -50, 0], y: [0, -40, 0], scale: [1, 1.2, 1] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        />
+        <motion.div 
+          className="absolute top-[40%] left-[60%] w-[300px] h-[300px] bg-[#8B5CF6]/10 rounded-full blur-[100px]"
+          animate={{ x: [0, -30, 0], y: [0, 50, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        />
+        {/* Floating small particles */}
+        {Array.from({ length: 10 }).map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full bg-gradient-to-r from-[#1FC8D0] to-[#2563EB]"
+            style={{
+              width: Math.random() * 6 + 2 + 'px',
+              height: Math.random() * 6 + 2 + 'px',
+              left: Math.random() * 100 + '%',
+              top: Math.random() * 100 + '%',
+              opacity: Math.random() * 0.4 + 0.1
+            }}
+            animate={{
+              y: [0, -40 - Math.random() * 60],
+              x: [0, (Math.random() - 0.5) * 40],
+              opacity: [0, Math.random() * 0.6 + 0.2, 0],
+            }}
+            transition={{
+              duration: Math.random() * 4 + 4,
+              repeat: Infinity,
+              delay: Math.random() * 5,
+              ease: "linear"
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="relative z-10 flex flex-col h-full p-6 space-y-4">
       {toastMessage && (
-        <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg z-50 flex items-center space-x-2 animate-in fade-in slide-in-from-bottom-5">
-          <CheckCircle2 className="w-4 h-4 text-green-400" />
-          <span className="text-sm font-medium">{toastMessage}</span>
+        <div className="fixed bottom-4 right-4 bg-[#0F172A] text-white px-5 py-3 rounded-xl shadow-2xl z-50 flex items-center space-x-3 animate-in fade-in slide-in-from-bottom-5 border border-white/10">
+          <CheckCircle2 className="w-5 h-5 text-[#1FC8D0]" />
+          <span className="text-sm font-bold font-['Plus_Jakarta_Sans']">{toastMessage}</span>
         </div>
       )}
       
       {/* Top Header / Filter Bar */}
-      <div className="bg-[#2D333B] text-white px-2 py-1 flex items-center justify-between text-xs border-b border-[#1E2328]">
-        <div className="flex items-center space-x-1">
-          <Button onClick={() => setDateFilter('Today')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${dateFilter === 'Today' ? 'bg-[#3D444D] text-white' : 'text-slate-300'}`}>Today</Button>
-          <Button onClick={() => setDateFilter('Yesterday')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${dateFilter === 'Yesterday' ? 'bg-[#3D444D] text-white' : 'text-slate-300'}`}>Yesterday</Button>
-          <Button onClick={() => setDateFilter('Month')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${dateFilter === 'Month' ? 'bg-[#3D444D] text-white' : 'text-slate-300'}`}>Month</Button>
-          <div className="w-px h-4 bg-slate-600 mx-1"></div>
-          
-          <Button onClick={() => setStatusFilter('All')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${statusFilter === 'All' ? 'bg-[#3D444D] text-white' : 'text-slate-300'}`}>All</Button>
-          <Button onClick={() => setStatusFilter('Active')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${statusFilter === 'Active' ? 'bg-[#3D444D] text-[#4CAF50]' : 'text-[#4CAF50]'}`}>Active</Button>
-          <Button onClick={() => setStatusFilter('New')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${statusFilter === 'New' ? 'bg-[#3D444D] text-[#2196F3]' : 'text-[#2196F3]'}`}>New</Button>
-          <Button onClick={() => setStatusFilter('Unread')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${statusFilter === 'Unread' ? 'bg-[#3D444D] text-gray-300' : 'text-gray-300'}`}>Unread</Button>
-          <Button onClick={() => setStatusFilter('Pending')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${statusFilter === 'Pending' ? 'bg-[#3D444D] text-[#F26B50]' : 'text-[#F26B50]'}`}>Pending</Button>
-          <Button onClick={() => setStatusFilter('Action Needed')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${statusFilter === 'Action Needed' ? 'bg-[#3D444D] text-[#FF9800]' : 'text-[#FF9800]'}`}>Action Needed</Button>
-          <Button onClick={() => setStatusFilter('Draft')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${statusFilter === 'Draft' ? 'bg-[#3D444D] text-slate-300' : 'text-slate-300'}`}>Draft</Button>
-          <Button onClick={() => setStatusFilter('Final')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${statusFilter === 'Final' ? 'bg-[#3D444D] text-[#009688]' : 'text-[#009688]'}`}>Final</Button>
-          <Button onClick={() => setStatusFilter('Review')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${statusFilter === 'Review' ? 'bg-[#3D444D] text-[#E91E63]' : 'text-[#E91E63]'}`}>Review</Button>
-          <Button onClick={() => setStatusFilter('Cancel')} variant="ghost" className={`h-7 px-2 hover:bg-[#3D444D] rounded-sm text-xs font-semibold ${statusFilter === 'Cancel' ? 'bg-[#3D444D] text-[#F44336]' : 'text-[#F44336]'}`}>Cancel</Button>
-        </div>
-      </div>
-
-      {/* Secondary Search Bar */}
-      <div className="bg-white p-2 flex items-center space-x-2 border-b border-slate-200 text-xs shadow-sm">
-        <select value={siteFilter} onChange={e => setSiteFilter(e.target.value)} className="border border-slate-300 rounded-sm px-2 py-1 bg-white focus:outline-none w-40">
-          <option value="">Select Site Names</option>
-          {availableSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-        <div className="relative">
-          <input 
-            type="text" 
-            placeholder="Patient ID / Name / Accession No" 
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="border border-slate-300 rounded-sm px-2 py-1 w-60 focus:outline-none focus:border-blue-500" 
-          />
-        </div>
-        <select value={modalityFilter} onChange={e => setModalityFilter(e.target.value)} className="border border-slate-300 rounded-sm px-2 py-1 bg-white focus:outline-none w-32">
-          <option value="">Modality</option>
-          {availableModalities.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <select value={studyNameFilter} onChange={e => setStudyNameFilter(e.target.value)} className="border border-slate-300 rounded-sm px-2 py-1 bg-white focus:outline-none w-48">
-          <option value="">Select Study Name</option>
-          {availableStudyNames.map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
-        <select value={radiologistFilter} onChange={e => setRadiologistFilter(e.target.value)} className="border border-slate-300 rounded-sm px-2 py-1 bg-white focus:outline-none w-40">
-          <option value="">Select Radiologist</option>
-          {availableRadiologists.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-        </select>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col space-y-4">
         
-        <div className="flex items-center space-x-2 ml-4">
-          <Button onClick={() => {}} className="h-7 px-4 bg-[#0D2461] hover:bg-[#081840] text-white text-xs rounded-sm font-semibold">Go</Button>
-          <Button onClick={handleClearFilters} variant="outline" className="h-7 px-3 text-xs rounded-sm">Clear</Button>
+        {/* Date & Status Pills */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center space-x-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+            {['Today', 'Yesterday', 'Month', 'All'].map(date => (
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                key={date}
+                onClick={() => setDateFilter(date as any)} 
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${dateFilter === date ? 'bg-gradient-to-r from-[#1FC8D0] to-[#2563EB] shadow-[0_4px_12px_rgba(31,200,208,0.3)] text-white border border-transparent' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                {date}
+              </motion.button>
+            ))}
+          </div>
+
+          <div className="flex items-center space-x-2 overflow-x-auto p-2 -m-2 scrollbar-hide">
+            {[
+              { id: 'All', label: 'All', color: 'text-slate-600', bg: 'bg-slate-100 border-slate-200 hover:bg-slate-200' },
+              { id: 'Active', label: 'Active', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100' },
+              { id: 'New', label: 'New', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200 hover:bg-blue-100' },
+              { id: 'Unread', label: 'Unread', color: 'text-slate-500', bg: 'bg-slate-100 border-slate-200 hover:bg-slate-200' },
+              { id: 'Pending', label: 'Pending', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200 hover:bg-orange-100' },
+              { id: 'Action Needed', label: 'Action Needed', color: 'text-rose-700', bg: 'bg-rose-50 border-rose-200 hover:bg-rose-100' },
+              { id: 'Draft', label: 'Draft', color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100' },
+              { id: 'Final', label: 'Final', color: 'text-teal-700', bg: 'bg-teal-50 border-teal-200 hover:bg-teal-100' },
+              { id: 'Review', label: 'Review', color: 'text-fuchsia-700', bg: 'bg-fuchsia-50 border-fuchsia-200 hover:bg-fuchsia-100' },
+              { id: 'Cancel', label: 'Cancel', color: 'text-red-700', bg: 'bg-red-50 border-red-200 hover:bg-red-100' }
+            ].map(status => (
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                key={status.id}
+                onClick={() => setStatusFilter(status.id)} 
+                className={`px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wide transition-all duration-300 border whitespace-nowrap ${statusFilter === status.id ? `${status.bg} shadow-md ring-2 ring-offset-2 ring-${status.color.split('-')[1]}-400/60` : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:shadow-sm'}`}
+              >
+                <span className={statusFilter === status.id ? status.color : ''}>{status.label}</span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+        {/* Secondary Search Bar */}
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={siteFilter} onChange={e => setSiteFilter(e.target.value)} className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-40">
+            <option value="">Select Site Names</option>
+            {availableSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <div className="relative flex-1 min-w-[250px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Search Patient ID / Name / Accession No" 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="border border-slate-300 rounded-xl pl-9 pr-4 py-2 w-full text-xs font-semibold text-slate-800 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-all placeholder-slate-400" 
+            />
+          </div>
+          <select value={modalityFilter} onChange={e => setModalityFilter(e.target.value)} className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-32">
+            <option value="">Modality</option>
+            {availableModalities.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+          <select value={studyNameFilter} onChange={e => setStudyNameFilter(e.target.value)} className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-48">
+            <option value="">Select Study Name</option>
+            {availableStudyNames.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <select value={radiologistFilter} onChange={e => setRadiologistFilter(e.target.value)} className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-40">
+            <option value="">Select Radiologist</option>
+            {availableRadiologists.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+          
+          <Button onClick={() => {}} className="bg-[#123B5D] hover:bg-[#0B1F33] text-white text-xs px-5 rounded-xl font-bold transition-colors">Go</Button>
+          <Button onClick={handleClearFilters} variant="outline" className="text-xs px-4 rounded-xl border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors font-bold">Clear</Button>
+        </div>
+        
+        {/* Action Bar */}
+        <div className="flex flex-wrap items-center justify-between pt-4 border-t border-slate-100">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => navigate('/studies/new')} className="bg-[#16A6A8] hover:bg-[#128a8c] text-white text-xs px-4 py-2 rounded-xl font-bold shadow-sm shadow-[#16A6A8]/20 transition-all">
+              <PlusCircle className="w-4 h-4 mr-1.5" /> Add Study
+            </Button>
+            <Button onClick={() => { if (fileInputRef.current) fileInputRef.current.click(); }} variant="outline" className="border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm">
+              {isUploading ? <RefreshCw className="w-4 h-4 mr-1.5 animate-spin text-[#16A6A8]" /> : <Upload className="w-4 h-4 mr-1.5 text-slate-400" />}
+              {isUploading ? 'Uploading...' : 'Zip Upload'}
+            </Button>
+            <input type="file" ref={fileInputRef} className="hidden" accept=".zip" onChange={handleZipUpload} />
+            <Button onClick={handleRefresh} variant="outline" className={`border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm ${isRefreshing ? 'opacity-70' : ''}`}>
+              <RefreshCw className={`w-4 h-4 mr-1.5 text-slate-400 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
+            </Button>
+            <Button onClick={() => setEmergencyFilter(!emergencyFilter)} className={`text-xs px-4 py-2 rounded-xl font-bold shadow-sm transition-all ${emergencyFilter ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
+              Emergency
+            </Button>
+            <select className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none transition-colors">
+              <option>Assigned studies</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 bg-[#176B87]/10 px-3 py-1.5 rounded-xl border border-[#176B87]/20">
+              <div className="w-2 h-2 rounded-full bg-[#1FC8D0] animate-pulse"></div>
+              <span className="text-[11px] font-black tracking-widest text-[#176B87] uppercase">Online Staff</span>
+            </div>
+            <div className="text-[11px] font-black tracking-widest text-slate-500 uppercase bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+              Exams: <span className="text-[#0F172A]">{filteredStudies.length}</span>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <div className="bg-slate-100 p-2 flex justify-between items-center border-b border-slate-200">
-        <div className="flex space-x-2">
-          <Button onClick={() => navigate('/studies/new')} className="h-7 bg-[#2D333B] hover:bg-[#1E2328] text-white text-xs px-3 rounded-sm">
-            <PlusCircle className="w-3.5 h-3.5 mr-1" /> Add Study
-          </Button>
-          <Button onClick={() => { if (fileInputRef.current) fileInputRef.current.click(); }} className="h-7 bg-[#2D333B] hover:bg-[#1E2328] text-white text-xs px-3 rounded-sm">
-            {isUploading ? <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1" />}
-            {isUploading ? 'Uploading...' : 'Zip Upload'}
-          </Button>
-          <input type="file" ref={fileInputRef} className="hidden" accept=".zip" onChange={handleZipUpload} />
-          <Button onClick={handleRefresh} variant="outline" className={`h-7 bg-white text-xs px-3 rounded-sm border-slate-300 shadow-sm flex items-center ${isRefreshing ? 'opacity-50' : ''}`}>
-            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
-          </Button>
-          <Button onClick={() => setEmergencyFilter(!emergencyFilter)} className={`h-7 text-white text-xs px-3 rounded-sm transition-colors ${emergencyFilter ? 'bg-red-800' : 'bg-red-600 hover:bg-red-700'}`}>
-            Emergency
-          </Button>
-          <select className="h-7 border border-slate-300 rounded-sm px-2 text-xs bg-white">
-            <option>Assigned studies</option>
-          </select>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button className="h-7 bg-teal-600 hover:bg-teal-700 text-white text-xs px-3 rounded-sm">Online staff</Button>
-          <div className="relative">
-            <input type="text" placeholder="Search text" className="h-7 border border-slate-300 rounded-sm pl-2 pr-8 text-xs focus:outline-none" />
-            <Search className="w-3.5 h-3.5 absolute right-2 top-1.5 text-slate-400" />
-          </div>
-          <span className="text-xs font-bold text-slate-700 mx-2">Exams : {filteredStudies.length}</span>
-        </div>
       </div>
 
       {/* Main Table Content */}
-      <div className="flex-1 overflow-auto bg-white">
+      <div className="flex-1 overflow-auto bg-white rounded-2xl shadow-sm border border-slate-200 animate-unnathi-slide-up">
         <table className="w-full text-left text-xs">
-          <thead className="bg-[#414E5B] text-white sticky top-0 z-20 shadow-md">
+          <thead className="bg-[#F8FAFC] text-slate-500 sticky top-0 z-20 shadow-sm border-b border-slate-200 font-black">
             <tr>
-              <th className="py-2 px-3 font-semibold w-[12%] cursor-pointer border-r border-[#515E6B] hover:bg-[#515E6B] text-center">Patient ID</th>
-              <th className="py-2 px-3 font-semibold w-[18%] cursor-pointer border-r border-[#515E6B] hover:bg-[#515E6B]">Patient Name</th>
-              <th className="py-2 px-2 font-semibold w-[8%] text-center cursor-pointer border-r border-[#515E6B] hover:bg-[#515E6B]">Age / Sex</th>
-              <th className="py-2 px-2 font-semibold w-[5%] text-center cursor-pointer border-r border-[#515E6B] hover:bg-[#515E6B]">Mod. ↕</th>
-              <th className="py-2 px-3 font-semibold w-[15%] cursor-pointer border-r border-[#515E6B] hover:bg-[#515E6B]">Study / Description ↕</th>
-              <th className="py-2 px-2 font-semibold w-[8%] text-center cursor-pointer border-r border-[#515E6B] hover:bg-[#515E6B]">Date ↕</th>
-              <th className="py-2 px-3 font-semibold w-[10%] text-center border-r border-[#515E6B]">History / Attach</th>
-              <th className="py-2 px-3 font-semibold w-[8%] text-center border-r border-[#515E6B]">Report</th>
-              <th className="py-2 px-3 font-semibold w-[12%] text-center border-r border-[#515E6B]">Radiologist</th>
-              <th className="py-2 px-2 font-semibold w-[5%] text-center border-r border-[#515E6B]">Se / Img</th>
-              <th className="py-2 px-3 font-semibold text-center hover:bg-[#515E6B] cursor-pointer">Centre</th>
+              <th className="py-4 px-4 w-[12%] cursor-pointer hover:bg-slate-100 transition-colors uppercase tracking-widest text-[10px] rounded-tl-2xl">Patient ID</th>
+              <th className="py-4 px-4 w-[18%] cursor-pointer hover:bg-slate-100 transition-colors uppercase tracking-widest text-[10px]">Patient Name</th>
+              <th className="py-4 px-3 w-[8%] text-center cursor-pointer hover:bg-slate-100 transition-colors uppercase tracking-widest text-[10px]">Age / Sex</th>
+              <th className="py-4 px-3 w-[5%] text-center cursor-pointer hover:bg-slate-100 transition-colors uppercase tracking-widest text-[10px]">Mod.</th>
+              <th className="py-4 px-4 w-[15%] cursor-pointer hover:bg-slate-100 transition-colors uppercase tracking-widest text-[10px]">Study / Description</th>
+              <th className="py-4 px-3 w-[8%] text-center cursor-pointer hover:bg-slate-100 transition-colors uppercase tracking-widest text-[10px]">Date</th>
+              <th className="py-4 px-4 w-[10%] text-center hover:bg-slate-100 transition-colors uppercase tracking-widest text-[10px]">History / Attach</th>
+              <th className="py-4 px-4 w-[8%] text-center hover:bg-slate-100 transition-colors uppercase tracking-widest text-[10px]">Report</th>
+              <th className="py-4 px-4 w-[12%] text-center hover:bg-slate-100 transition-colors uppercase tracking-widest text-[10px]">Radiologist</th>
+              <th className="py-4 px-3 w-[5%] text-center hover:bg-slate-100 transition-colors uppercase tracking-widest text-[10px]">Se / Img</th>
+              <th className="py-4 px-4 text-center cursor-pointer hover:bg-slate-100 transition-colors uppercase tracking-widest text-[10px] rounded-tr-2xl">Centre</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-slate-100 stagger-children">
             {filteredStudies.map((study, idx) => {
               const patient = patients.find(p => p.id === study.patientId);
               const hospital = hospitals.find(h => h.id === study.hospitalId);
@@ -409,24 +483,24 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
 
               return (
                 <React.Fragment key={study.id}>
-                  <tr className={`hover:bg-blue-50/50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} ${selectedStudies.includes(study.id) ? 'bg-blue-50' : ''}`}>
-                    <td className="py-2 px-3 align-top">
-                      <div className="font-semibold text-slate-800">{study.caseNumber}</div>
-                      <div className="flex items-center space-x-2 mt-1.5">
-                        <input type="checkbox" checked={selectedStudies.includes(study.id)} onChange={() => toggleSelectStudy(study.id)} className="rounded-sm border-slate-300" />
-                        <Pencil onClick={() => { setSelectedPatientForEdit(patient); setEditPatientModalOpen(true); }} className="w-3.5 h-3.5 text-[#00A8CC] cursor-pointer hover:text-blue-700" title="Edit Patient" />
+                  <tr className={`animate-unnathi-fade-in hover:-translate-y-[1px] hover:shadow-[0_4px_20px_rgb(22,166,168,0.08)] hover:z-10 relative transition-all duration-300 ease-out cursor-pointer ${idx % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]/50'} ${selectedStudies.includes(study.id) ? 'bg-[#16A6A8]/5 border-l-[3px] border-l-[#16A6A8]' : 'border-l-[3px] border-l-transparent'}`}>
+                    <td className="py-3 px-4 align-top">
+                      <div className="font-bold text-[#0F172A]">{study.caseNumber}</div>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <input type="checkbox" checked={selectedStudies.includes(study.id)} onChange={() => toggleSelectStudy(study.id)} className="rounded text-[#16A6A8] focus:ring-[#16A6A8] border-slate-300 w-3.5 h-3.5" />
+                        <Pencil onClick={() => { setSelectedPatientForEdit(patient); setEditPatientModalOpen(true); }} className="w-3.5 h-3.5 text-[#16A6A8] cursor-pointer hover:text-[#128a8c]" title="Edit Patient" />
                       </div>
                     </td>
                     
-                    <td className="py-2 px-3 align-top font-bold text-slate-700 pt-3">
+                    <td className="py-3 px-4 align-top font-black text-[#0F172A] pt-4" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                       {patient?.name}
                     </td>
                     
-                    <td className="py-2 px-2 align-top text-center pt-3 text-slate-600 font-semibold">
+                    <td className="py-3 px-3 align-top text-center pt-4 text-slate-600 font-bold">
                       {patient?.age}Y / {patient?.gender?.charAt(0)}
                     </td>
                     
-                    <td className="py-2 px-2 align-top text-center pt-3 font-bold text-slate-800">
+                    <td className="py-3 px-3 align-top text-center pt-4 font-black text-[#123B5D]">
                       {study.modality}
                     </td>
                     
@@ -444,8 +518,8 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                       <div className="flex flex-col items-center">
                         <div className="text-[10px] text-slate-500 mb-1">{historyDate}</div>
                         <div className="flex items-center space-x-1.5 border border-slate-200 px-2 py-0.5 rounded bg-white cursor-pointer hover:bg-slate-50 shadow-sm" onClick={() => handleAction('History', study)}>
-                          <FileText className="w-3 h-3 text-[#00A8CC]" />
-                          <span className="font-mono text-[10px] font-bold text-[#0D2461]">TT : {study.tat}</span>
+                          <FileText className="w-3 h-3 text-accent" />
+                          <span className="font-mono text-[10px] font-bold text-primary">TT : {study.tat}</span>
                         </div>
                       </div>
                     </td>
@@ -496,7 +570,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                     <td className="py-2 px-2 align-top pt-2.5 text-center">
                       <div className="text-[10px] font-bold text-slate-600 mb-1">{study.series?.length || 1} / {study.series?.reduce((acc: any, s: any) => acc + s.imageCount, 0) || 1}</div>
                       <div className="flex justify-center space-x-1">
-                        <button onClick={() => toggleSeries(study.id)} className="p-1 text-slate-500 hover:text-[#0D2461] hover:bg-slate-200 rounded" title="View Series">
+                        <button onClick={() => toggleSeries(study.id)} className="p-1 text-slate-500 hover:text-primary hover:bg-slate-200 rounded" title="View Series">
                           <Activity className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => navigate(`/viewer/${study.id}`)} className="p-1 text-[#00A8CC] hover:text-blue-600 hover:bg-blue-50 rounded" title="Open Viewer">

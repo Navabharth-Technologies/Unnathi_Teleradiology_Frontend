@@ -43,14 +43,14 @@ const SitesList = () => {
   );
 
   return (
-    <div className="p-6">
+    <div className="p-6 animate-unnathi-fade-in">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-indigo-600" />
-            Sites
+          <h1 className="text-2xl font-black tracking-tight text-primary flex items-center gap-2">
+            <Building2 className="w-6 h-6 text-accent" />
+            Teleradiology Companies
           </h1>
-          <p className="text-gray-500 mt-1">Manage partner sites</p>
+          <p className="text-slate-500 mt-1 font-medium">Manage partner teleradiology companies</p>
         </div>
         {user?.role === 'SUPER_ADMIN' && (
           <button 
@@ -58,7 +58,7 @@ const SitesList = () => {
               setEditingCompany(null);
               setIsAddModalOpen(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary-hover shadow-sm hover:-translate-y-0.5 transition-all duration-300"
           >
             <Plus className="w-4 h-4" />
             Add Company
@@ -66,14 +66,14 @@ const SitesList = () => {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <div className="relative max-w-md">
-            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden animate-unnathi-slide-up">
+        <div className="p-4 border-b border-border bg-slate-50/30">
+          <div className="relative max-w-md group">
+            <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-accent transition-colors" />
             <input
               type="text"
-              placeholder="Search sites..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Search companies..."
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-primary font-medium focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition-all shadow-inner"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -82,28 +82,34 @@ const SitesList = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-slate-50/50 border-b border-border">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company Code</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Person</th>
+                <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Company Code</th>
+                <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Name</th>
+                <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Contact Person</th>
                 
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-4 text-right text-[11px] font-black text-slate-500 uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border stagger-children">
               {filteredSites.map((company) => (
-                <tr key={company.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{company.code}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{company.name}</td>
+                <tr key={company.id} className="animate-unnathi-fade-in hover:bg-accent/5 hover:-translate-y-[2px] hover:shadow-md hover:z-10 relative bg-card transition-all duration-300 ease-out group">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{company.contactPerson}</div>
-                    <div className="text-xs text-gray-500">{company.email}</div>
+                    <div className="text-sm font-black text-primary uppercase tracking-widest">{company.code}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">{company.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-bold text-primary">{company.contactPerson}</div>
+                    <div className="text-xs font-medium text-slate-400 mt-0.5">{company.email}</div>
                   </td>
 
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onClick={() => handleEdit(company)} className="text-indigo-600 hover:text-indigo-900 mr-3"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(company.id)} className="text-red-600 hover:text-red-900"><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => handleEdit(company)} className="text-slate-500 hover:text-primary hover:bg-slate-100 p-2 rounded-lg transition-colors mr-1">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDelete(company.id)} className="text-slate-400 hover:text-destructive hover:bg-destructive/10 p-2 rounded-lg transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               ))}

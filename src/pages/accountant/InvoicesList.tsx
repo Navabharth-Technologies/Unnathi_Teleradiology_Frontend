@@ -128,28 +128,28 @@ export default function InvoicesList() {
     <>
     <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
       {/* Modern Top Header */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex justify-between items-center bg-card p-5 rounded-2xl shadow-sm border border-border">
         <div className="flex items-center space-x-6">
-          <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600 border border-indigo-100">
+          <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-500 border border-indigo-500/20">
             <Receipt className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">Billing & Invoices</h1>
-            <p className="text-xs text-slate-500 font-medium mt-1">Manage unbilled studies and generated invoices</p>
+            <h1 className="text-2xl font-black text-primary tracking-tight">Billing & Invoices</h1>
+            <p className="text-[11px] font-black text-slate-400 mt-1 uppercase tracking-widest">Manage unbilled studies and generated invoices</p>
           </div>
         </div>
       </div>
 
       {/* Unbilled Studies Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-amber-50/30 flex justify-between items-center">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden animate-unnathi-slide-up" style={{ animationDelay: '100ms' }}>
+        <div className="p-6 border-b border-border bg-amber-500/5 flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-black text-amber-900">Unbilled Studies</h2>
-            <p className="text-[10px] font-bold text-amber-600/70 uppercase tracking-widest mt-1">Requires immediate invoicing</p>
+            <h2 className="text-lg font-black text-amber-600 tracking-tight">Unbilled Studies</h2>
+            <p className="text-[11px] font-black text-amber-600/70 uppercase tracking-widest mt-1">Requires immediate invoicing</p>
           </div>
         </div>
         <Table>
-          <TableHeader className="bg-slate-50 border-b border-slate-100">
+          <TableHeader className="bg-slate-50/50 border-b border-border">
             <TableRow className="hover:bg-transparent">
               <TableHead className="text-slate-400 font-black py-4 px-6 text-[10px] tracking-widest uppercase">Case No</TableHead>
               <TableHead className="text-slate-400 font-black py-4 px-4 text-[10px] tracking-widest uppercase">Patient / Hospital</TableHead>
@@ -158,25 +158,25 @@ export default function InvoicesList() {
               <TableHead className="text-slate-400 font-black py-4 px-6 text-[10px] tracking-widest uppercase text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="stagger-children">
             {unbilledStudies.map(study => (
-              <TableRow key={study.id} className="hover:bg-amber-50/30 transition-colors border-b border-slate-50">
-                <TableCell className="py-4 px-6 font-bold text-slate-800 text-sm">{study.caseNumber}</TableCell>
+              <TableRow key={study.id} className="hover:bg-amber-500/5 transition-all duration-300 border-b border-border group hover:-translate-y-[1px] hover:shadow-sm relative z-0 hover:z-10 bg-card">
+                <TableCell className="py-4 px-6 font-black text-primary text-sm tracking-tight">{study.caseNumber}</TableCell>
                 <TableCell className="py-4 px-4">
-                  <div className="font-black text-[#0D2461]">{getPatientName(study.patientId)}</div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{getHospitalName(study.hospitalId)}</div>
+                  <div className="font-black text-primary text-sm tracking-tight">{getPatientName(study.patientId)}</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{getHospitalName(study.hospitalId)}</div>
                 </TableCell>
                 <TableCell className="py-4 px-4">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase tracking-wider">{study.modality}</span>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase tracking-widest">{study.modality}</span>
                 </TableCell>
-                <TableCell className="py-4 px-4 font-semibold text-slate-600 text-sm">{format(new Date(study.studyDate), 'dd MMM yyyy')}</TableCell>
+                <TableCell className="py-4 px-4 font-bold text-slate-600 text-sm">{format(new Date(study.studyDate), 'dd MMM yyyy')}</TableCell>
                 <TableCell className="py-4 px-6 text-right">
                   <Button size="sm" onClick={() => {
                     const hosp = hospitals.find(h => h.id === study.hospitalId);
                     const comm = hosp?.modalityCommissions?.[study.modality] || 0;
                     setInvoiceAmount(String(comm));
                     setGeneratingForStudy(study);
-                  }} className="h-9 px-4 text-xs font-black rounded-lg bg-[#0D2461] hover:bg-[#081840] text-white shadow-sm shadow-[#0D2461]/20">
+                  }} className="h-9 px-4 text-xs font-black rounded-lg bg-primary hover:bg-primary-hover text-white shadow-sm transition-all hover:-translate-y-0.5 opacity-0 group-hover:opacity-100">
                     <FileText className="mr-2 h-3.5 w-3.5" /> Generate Invoice
                   </Button>
                 </TableCell>
@@ -197,24 +197,24 @@ export default function InvoicesList() {
       </div>
 
       {/* Invoices List */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden animate-unnathi-slide-up" style={{ animationDelay: '200ms' }}>
+        <div className="p-6 border-b border-border bg-slate-50/50 flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-black text-[#0D2461]">Generated Invoices</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Track payment statuses</p>
+            <h2 className="text-lg font-black text-primary tracking-tight">Generated Invoices</h2>
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-1">Track payment statuses</p>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-accent transition-colors" />
             <Input 
               placeholder="Search Invoice Number..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 w-[250px] h-10 rounded-xl bg-white border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 text-sm font-semibold shadow-sm"
+              className="pl-9 w-[250px] h-10 rounded-xl bg-background border-border focus:border-accent focus:ring-accent/20 text-sm font-bold shadow-inner transition-all"
             />
           </div>
         </div>
         <Table>
-          <TableHeader className="bg-slate-50 border-b border-slate-100">
+          <TableHeader className="bg-slate-50/50 border-b border-border">
             <TableRow className="hover:bg-transparent">
               <TableHead className="text-slate-400 font-black py-4 px-6 text-[10px] tracking-widest uppercase">Invoice No</TableHead>
               <TableHead className="text-slate-400 font-black py-4 px-4 text-[10px] tracking-widest uppercase">Patient / Hospital</TableHead>
@@ -224,33 +224,33 @@ export default function InvoicesList() {
               <TableHead className="text-slate-400 font-black py-4 px-6 text-[10px] tracking-widest uppercase text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="stagger-children">
             {filteredInvoices.map(inv => (
-              <TableRow key={inv.id} className="hover:bg-slate-50/50 transition-colors border-b border-slate-50">
+              <TableRow key={inv.id} className="hover:bg-accent/5 transition-all duration-300 border-b border-border group hover:-translate-y-[1px] hover:shadow-sm relative z-0 hover:z-10 bg-card">
                 <TableCell className="py-4 px-6 font-mono text-slate-600 font-bold text-xs">{inv.invoiceNumber}</TableCell>
                 <TableCell className="py-4 px-4">
-                  <div className="font-black text-[#0D2461]">{getPatientName(inv.patientId)}</div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{getHospitalName(inv.hospitalId)}</div>
+                  <div className="font-black text-primary text-sm tracking-tight">{getPatientName(inv.patientId)}</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{getHospitalName(inv.hospitalId)}</div>
                 </TableCell>
-                <TableCell className="py-4 px-4 font-black text-emerald-600">₹{inv.amount.toLocaleString('en-IN')}</TableCell>
-                <TableCell className="py-4 px-4 font-semibold text-slate-600 text-sm">{format(new Date(inv.date), 'dd MMM yyyy')}</TableCell>
+                <TableCell className="py-4 px-4 font-black text-emerald-600 text-sm tracking-tight">₹{inv.amount.toLocaleString('en-IN')}</TableCell>
+                <TableCell className="py-4 px-4 font-bold text-slate-600 text-sm">{format(new Date(inv.date), 'dd MMM yyyy')}</TableCell>
                 <TableCell className="py-4 px-4">
                   {inv.status === 'Paid' ? (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-emerald-50 text-emerald-600">Paid</span>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Paid</span>
                   ) : (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-rose-50 text-rose-600">Unpaid</span>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest bg-rose-500/10 text-rose-600 border border-rose-500/20">Unpaid</span>
                   )}
                 </TableCell>
                 <TableCell className="py-4 px-6 text-right">
                   {inv.status !== 'Paid' ? (
-                    <Button size="sm" className="h-9 px-4 text-xs font-black rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/20" onClick={() => setPayingInvoice(inv.id)}>
+                    <Button size="sm" className="h-9 px-4 text-xs font-black rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm transition-all hover:-translate-y-0.5 opacity-0 group-hover:opacity-100" onClick={() => setPayingInvoice(inv.id)}>
                       <IndianRupee className="mr-1.5 h-3.5 w-3.5" /> Mark Paid
                     </Button>
                   ) : (
                     <Button 
                       size="sm" 
-                      variant="outline"
-                      className="h-9 px-4 text-xs font-black rounded-lg border-slate-200 text-[#0D2461] hover:text-[#00A8CC] hover:bg-cyan-50 transition-colors"
+                      variant="ghost"
+                      className="h-9 px-4 text-xs font-black rounded-lg text-slate-500 hover:text-accent hover:bg-accent/10 transition-all opacity-0 group-hover:opacity-100"
                       onClick={() => setViewingReceipt(inv)}
                     >
                       <FileText className="mr-2 h-3.5 w-3.5" />
@@ -270,43 +270,43 @@ export default function InvoicesList() {
       {/* Generate Invoice Overlay */}
       {generatingForStudy && (
         <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
-            <div className="p-6 bg-slate-50/50 flex justify-between items-center border-b border-slate-100">
+          <div className="bg-card rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-border">
+            <div className="p-6 bg-slate-50/50 flex justify-between items-center border-b border-border">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-indigo-100 rounded-xl">
-                  <FileText className="w-5 h-5 text-indigo-600" />
+                <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                  <FileText className="w-5 h-5 text-indigo-500" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-[#0D2461] tracking-tight">Generate Invoice</h2>
+                  <h2 className="text-xl font-black text-primary tracking-tight">Generate Invoice</h2>
                 </div>
               </div>
-              <button onClick={() => setGeneratingForStudy(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+              <button onClick={() => setGeneratingForStudy(null)} className="p-2 hover:bg-accent/10 rounded-full transition-colors text-slate-400 hover:text-accent">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <div className="p-6 space-y-5">
-              <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
-                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Generating For Case</p>
-                <p className="text-lg font-black text-indigo-900 mt-1">{generatingForStudy.caseNumber}</p>
+              <div className="bg-indigo-500/5 p-4 rounded-2xl border border-indigo-500/10 shadow-inner">
+                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Generating For Case</p>
+                <p className="text-lg font-black text-primary mt-1 tracking-tight">{generatingForStudy.caseNumber}</p>
               </div>
               
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Invoice Amount (₹)</label>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Invoice Amount (₹)</label>
                 <Input 
                   type="number" 
                   value={invoiceAmount} 
                   onChange={(e) => setInvoiceAmount(e.target.value)} 
-                  className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 text-sm font-semibold"
+                  className="h-11 rounded-xl bg-background border-border focus:border-accent focus:ring-accent/20 text-sm font-bold shadow-inner transition-all"
                 />
               </div>
             </div>
             
-            <div className="flex items-center justify-end p-6 border-t border-slate-100 bg-slate-50/50 gap-3">
-              <Button variant="outline" onClick={() => setGeneratingForStudy(null)} className="h-11 px-6 rounded-xl font-bold border-slate-200">
+            <div className="flex items-center justify-end p-6 border-t border-border bg-slate-50/50 gap-3">
+              <Button variant="ghost" onClick={() => setGeneratingForStudy(null)} className="h-11 px-6 rounded-xl font-bold border border-transparent hover:border-border text-slate-500 hover:text-primary transition-all">
                 Cancel
               </Button>
-              <Button onClick={handleGenerateInvoice} className="h-11 px-8 rounded-xl font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20">
+              <Button onClick={handleGenerateInvoice} className="h-11 px-8 rounded-xl font-black bg-accent hover:bg-accent-hover text-white shadow-sm hover:-translate-y-0.5 transition-all">
                 Generate
               </Button>
             </div>
@@ -317,32 +317,32 @@ export default function InvoicesList() {
       {/* Pay Invoice Overlay */}
       {payingInvoice && (
         <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
-            <div className="p-6 bg-slate-50/50 flex justify-between items-center border-b border-slate-100">
+          <div className="bg-card rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-border">
+            <div className="p-6 bg-slate-50/50 flex justify-between items-center border-b border-border">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-emerald-100 rounded-xl">
-                  <IndianRupee className="w-5 h-5 text-emerald-600" />
+                <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                  <IndianRupee className="w-5 h-5 text-emerald-500" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-[#0D2461] tracking-tight">Record Payment</h2>
+                  <h2 className="text-xl font-black text-primary tracking-tight">Record Payment</h2>
                 </div>
               </div>
-              <button onClick={() => setPayingInvoice(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+              <button onClick={() => setPayingInvoice(null)} className="p-2 hover:bg-accent/10 rounded-full transition-colors text-slate-400 hover:text-accent">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <div className="p-6">
-              <p className="text-slate-600 font-semibold text-sm leading-relaxed">
+              <p className="text-slate-500 font-bold text-sm leading-relaxed">
                 Are you sure you want to mark this invoice as fully paid? This will also update the corresponding study's status.
               </p>
             </div>
             
-            <div className="flex items-center justify-end p-6 border-t border-slate-100 bg-slate-50/50 gap-3">
-              <Button variant="outline" onClick={() => setPayingInvoice(null)} className="h-11 px-6 rounded-xl font-bold border-slate-200">
+            <div className="flex items-center justify-end p-6 border-t border-border bg-slate-50/50 gap-3">
+              <Button variant="ghost" onClick={() => setPayingInvoice(null)} className="h-11 px-6 rounded-xl font-bold border border-transparent hover:border-border text-slate-500 hover:text-primary transition-all">
                 Cancel
               </Button>
-              <Button onClick={handleMarkPaid} className="h-11 px-8 rounded-xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20">
+              <Button onClick={handleMarkPaid} className="h-11 px-8 rounded-xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm hover:-translate-y-0.5 transition-all">
                 Confirm Payment
               </Button>
             </div>
@@ -353,17 +353,17 @@ export default function InvoicesList() {
       {/* Receipt Preview Overlay */}
       {viewingReceipt && (
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 max-h-[90vh] flex flex-col">
-            <div className="p-4 bg-slate-50/80 flex justify-between items-center border-b border-slate-100 shrink-0">
+          <div className="bg-card rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-border max-h-[90vh] flex flex-col">
+            <div className="p-4 bg-slate-50/50 flex justify-between items-center border-b border-border shrink-0">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-emerald-100 rounded-xl">
-                  <Receipt className="w-5 h-5 text-emerald-600" />
+                <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                  <Receipt className="w-5 h-5 text-emerald-500" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-[#0D2461] tracking-tight">Receipt Preview</h2>
+                  <h2 className="text-xl font-black text-primary tracking-tight">Receipt Preview</h2>
                 </div>
               </div>
-              <button onClick={() => setViewingReceipt(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+              <button onClick={() => setViewingReceipt(null)} className="p-2 hover:bg-accent/10 rounded-full transition-colors text-slate-400 hover:text-accent">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -372,7 +372,7 @@ export default function InvoicesList() {
               {/* The Receipt Document */}
               <div 
                 ref={receiptRef} 
-                className="bg-white p-10 max-w-lg mx-auto shadow-sm border border-slate-200 rounded-sm relative overflow-hidden"
+                className="bg-card p-10 max-w-lg mx-auto shadow-md border border-border rounded-lg relative overflow-hidden"
               >
                 {/* Watermark */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
@@ -380,54 +380,54 @@ export default function InvoicesList() {
                 </div>
                 
                 <div className="relative z-10">
-                  <div className="flex justify-between items-start border-b-2 border-slate-100 pb-6 mb-6">
+                  <div className="flex justify-between items-start border-b-2 border-border pb-6 mb-6">
                     <div>
-                      <h3 className="text-2xl font-black text-[#0D2461] tracking-tight">UNNATHI</h3>
-                      <p className="text-[10px] font-bold text-[#00A8CC] uppercase tracking-widest mt-0.5">Site Solutions</p>
-                      <div className="mt-4 text-xs font-semibold text-slate-500 leading-relaxed">
+                      <h3 className="text-2xl font-black text-primary tracking-tight">UNNATHI</h3>
+                      <p className="text-[10px] font-black text-accent uppercase tracking-widest mt-0.5">Site Solutions</p>
+                      <div className="mt-4 text-xs font-bold text-slate-500 leading-relaxed">
                         123 Healthcare Blvd,<br/>
                         Tech Park, Bangalore<br/>
                         finance@unnathi.com
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="inline-block px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded text-[10px] font-black uppercase tracking-widest mb-3">
+                      <div className="inline-block px-3 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded text-[10px] font-black uppercase tracking-widest mb-3">
                         Payment Receipt
                       </div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Receipt No.</p>
-                      <p className="text-base font-black text-slate-800 font-mono mt-0.5">{viewingReceipt.invoiceNumber.replace('INV-', 'RCT-')}</p>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-3">Date Paid</p>
-                      <p className="text-sm font-bold text-slate-800 mt-0.5">{format(new Date(viewingReceipt.date), 'dd MMM yyyy, hh:mm a')}</p>
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Receipt No.</p>
+                      <p className="text-base font-black text-primary font-mono mt-0.5">{viewingReceipt.invoiceNumber.replace('INV-', 'RCT-')}</p>
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-3">Date Paid</p>
+                      <p className="text-sm font-black text-primary mt-0.5">{format(new Date(viewingReceipt.date), 'dd MMM yyyy, hh:mm a')}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-8 mb-8">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Billed To</p>
-                      <p className="text-sm font-black text-[#0D2461]">{getHospitalName(viewingReceipt.hospitalId)}</p>
-                      <p className="text-xs font-semibold text-slate-500 mt-1">Patient: {getPatientName(viewingReceipt.patientId)}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Billed To</p>
+                      <p className="text-sm font-black text-primary">{getHospitalName(viewingReceipt.hospitalId)}</p>
+                      <p className="text-xs font-bold text-slate-500 mt-1">Patient: {getPatientName(viewingReceipt.patientId)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Original Invoice</p>
-                      <p className="text-sm font-bold font-mono text-slate-800">{viewingReceipt.invoiceNumber}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Original Invoice</p>
+                      <p className="text-sm font-bold font-mono text-primary">{viewingReceipt.invoiceNumber}</p>
                     </div>
                   </div>
 
-                  <div className="border border-slate-200 rounded-lg overflow-hidden mb-6">
+                  <div className="border border-border rounded-lg overflow-hidden mb-6">
                     <table className="w-full text-left">
-                      <thead className="bg-slate-50 border-b border-slate-200">
+                      <thead className="bg-slate-50/50 border-b border-border">
                         <tr>
-                          <th className="py-3 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Description</th>
-                          <th className="py-3 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Amount</th>
+                          <th className="py-3 px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Description</th>
+                          <th className="py-3 px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Amount</th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr className="border-b border-slate-100">
+                        <tr className="border-b border-border">
                           <td className="py-4 px-4">
-                            <p className="text-sm font-bold text-slate-800">Site Reporting Services</p>
-                            <p className="text-xs font-semibold text-slate-500 mt-0.5">Professional fee for diagnostic reporting.</p>
+                            <p className="text-sm font-black text-primary">Site Reporting Services</p>
+                            <p className="text-xs font-bold text-slate-500 mt-0.5">Professional fee for diagnostic reporting.</p>
                           </td>
-                          <td className="py-4 px-4 text-right font-black text-slate-800">₹{viewingReceipt.amount.toLocaleString('en-IN')}</td>
+                          <td className="py-4 px-4 text-right font-black text-primary">₹{viewingReceipt.amount.toLocaleString('en-IN')}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -436,30 +436,30 @@ export default function InvoicesList() {
                   <div className="flex justify-end mb-8">
                     <div className="w-1/2">
                       <div className="flex justify-between items-center py-2">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Subtotal</span>
-                        <span className="text-sm font-bold text-slate-800">₹{viewingReceipt.amount.toLocaleString('en-IN')}</span>
+                        <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Subtotal</span>
+                        <span className="text-sm font-black text-primary">₹{viewingReceipt.amount.toLocaleString('en-IN')}</span>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tax (0%)</span>
-                        <span className="text-sm font-bold text-slate-800">₹0</span>
+                      <div className="flex justify-between items-center py-2 border-b border-border">
+                        <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Tax (0%)</span>
+                        <span className="text-sm font-black text-primary">₹0</span>
                       </div>
                       <div className="flex justify-between items-center py-3">
-                        <span className="text-sm font-black text-[#0D2461] uppercase tracking-widest">Total Paid</span>
+                        <span className="text-sm font-black text-primary uppercase tracking-widest">Total Paid</span>
                         <span className="text-xl font-black text-emerald-600">₹{viewingReceipt.amount.toLocaleString('en-IN')}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-center pt-6 border-t border-slate-100">
-                    <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-                    <p className="text-sm font-bold text-slate-800">Payment Processed Successfully</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Thank you for your business</p>
+                  <div className="text-center pt-6 border-t border-border">
+                    <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80" />
+                    <p className="text-sm font-black text-primary tracking-tight">Payment Processed Successfully</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Thank you for your business</p>
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center justify-between p-4 border-t border-slate-100 bg-white shrink-0">
+            <div className="flex items-center justify-between p-4 border-t border-border bg-slate-50/50 shrink-0">
               <Button variant="ghost" onClick={() => {
                 const printWindow = window.open('', '_blank');
                 if (printWindow && receiptRef.current) {
@@ -476,18 +476,18 @@ export default function InvoicesList() {
                   `);
                   printWindow.document.close();
                 }
-              }} className="font-bold text-slate-600 hover:text-[#0D2461]">
+              }} className="h-11 px-6 rounded-xl font-bold border border-transparent hover:border-border text-slate-500 hover:text-primary transition-all">
                 <Printer className="w-4 h-4 mr-2" /> Print
               </Button>
               
-              <div className="flex space-x-3">
-                <Button variant="outline" onClick={() => setViewingReceipt(null)} className="px-6 rounded-xl font-bold border-slate-200">
+              <div className="flex gap-3">
+                <Button variant="ghost" onClick={() => setViewingReceipt(null)} className="h-11 px-6 rounded-xl font-bold border border-transparent hover:border-border text-slate-500 hover:text-primary transition-all">
                   Close
                 </Button>
                 <Button 
                   onClick={handleDownloadPDF} 
                   disabled={downloadingReceipt === 'downloading'}
-                  className="px-8 rounded-xl font-black bg-[#00A8CC] hover:bg-[#008ba8] text-white shadow-md shadow-cyan-500/20 transition-all"
+                  className="h-11 px-8 rounded-xl font-black bg-accent hover:bg-accent-hover text-white shadow-sm hover:-translate-y-0.5 transition-all"
                 >
                   {downloadingReceipt === 'downloading' ? (
                     <>

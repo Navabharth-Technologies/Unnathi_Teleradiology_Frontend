@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Button } from '../../components/ui/button';
 import { Calendar, Download, RefreshCw, Search, Building2, UserCircle2, FileText } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
+import { Card } from '../../components/ui/card';
 
 export default function FinanceBilling() {
   const { user } = useAuthStore();
@@ -137,24 +138,24 @@ export default function FinanceBilling() {
   };
 
   return (
-    <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       
-      {/* Modern Top Header with Segmented Tabs */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100 gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-border pb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">Finance Billing</h1>
-          <p className="text-xs text-slate-500 font-medium mt-1">Manage postpaid sites and radiologist payouts</p>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Finance Billing</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage postpaid sites and radiologist payouts</p>
         </div>
         
-        <div className="flex p-1 bg-slate-100 rounded-xl">
+        <div className="flex bg-muted/50 p-1 rounded-md border border-border">
           {['Site Postpaid', 'Radiologist'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
-              className={`flex items-center px-6 py-2 text-sm font-black rounded-lg transition-all ${
+              className={`flex items-center px-4 py-1.5 text-sm font-medium rounded-sm transition-colors ${
                 activeTab === tab 
-                  ? 'bg-white text-[#0D2461] shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-card text-foreground shadow-sm border border-border' 
+                  : 'text-muted-foreground hover:text-foreground border border-transparent'
               }`}
             >
               {tab === 'Site Postpaid' ? <Building2 className="w-4 h-4 mr-2" /> : <UserCircle2 className="w-4 h-4 mr-2" />}
@@ -164,150 +165,151 @@ export default function FinanceBilling() {
         </div>
       </div>
 
-      {/* Floating Control Strip */}
-      <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
-        <select 
-          value={selectedFilter}
-          onChange={(e) => setSelectedFilter(e.target.value)}
-          className="flex-1 min-w-[200px] h-11 border-slate-200 rounded-xl text-sm font-semibold bg-slate-50 px-4 focus:border-[#00A8CC] focus:ring-2 focus:ring-[#00A8CC]/20 outline-none transition-all"
-        >
-          <option value="All">All {activeTab === 'Site Postpaid' ? 'Sites' : 'Radiologists'}</option>
-          {activeTab === 'Site Postpaid' 
-            ? scopedHospitals.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
-            : scopedRadiologists.map(r => <option key={r.id} value={r.id}>{r.name}</option>)
-          }
-        </select>
+      {/* Control Strip */}
+      <Card className="p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <select 
+            value={selectedFilter}
+            onChange={(e) => setSelectedFilter(e.target.value)}
+            className="flex-1 min-w-[200px] h-9 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium transition-all duration-200 outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm"
+          >
+            <option value="All">All {activeTab === 'Site Postpaid' ? 'Sites' : 'Radiologists'}</option>
+            {activeTab === 'Site Postpaid' 
+              ? scopedHospitals.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+              : scopedRadiologists.map(r => <option key={r.id} value={r.id}>{r.name}</option>)
+            }
+          </select>
 
-        <div className="flex items-center space-x-2 border border-slate-200 rounded-xl px-4 h-11 bg-slate-50 text-sm font-semibold text-slate-600">
-          <span>{dateRangeStr}</span>
-          <Calendar className="w-4 h-4 text-slate-400 ml-2" />
+          <div className="flex items-center space-x-2 border border-border rounded-md px-3 h-9 bg-card text-sm font-medium text-foreground shadow-sm">
+            <span>{dateRangeStr}</span>
+            <Calendar className="w-4 h-4 text-muted-foreground ml-2" />
+          </div>
+
+          <label className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground transition-colors bg-card border border-border h-9 px-3 rounded-md shadow-sm">
+            <input type="checkbox" checked={isLastMonth} onChange={(e) => setIsLastMonth(e.target.checked)} className="rounded border-border text-primary focus:ring-primary w-4 h-4" />
+            <span>Last Month</span>
+          </label>
+
+          <Button className="h-9 px-4">
+            <Search className="w-4 h-4 mr-2" /> Search
+          </Button>
+
+          <Button onClick={handleExport} variant="outline" className="h-9 px-4">
+            <Download className="w-4 h-4 mr-2" /> Export
+          </Button>
         </div>
+      </Card>
 
-        <label className="flex items-center space-x-2 text-sm font-bold text-slate-600 cursor-pointer hover:text-[#0D2461] transition-colors bg-slate-50 border border-slate-200 h-11 px-4 rounded-xl">
-          <input type="checkbox" checked={isLastMonth} onChange={(e) => setIsLastMonth(e.target.checked)} className="rounded text-[#00A8CC] focus:ring-[#00A8CC] w-4 h-4" />
-          <span>Last Month</span>
-        </label>
-
-        <Button className="h-11 px-6 rounded-xl font-black bg-[#0D2461] hover:bg-[#081840] text-white shadow-md shadow-[#0D2461]/20">
-          <Search className="w-4 h-4 mr-2" /> Search
-        </Button>
-
-        <Button onClick={handleExport} variant="outline" className="h-11 px-6 rounded-xl font-bold border-slate-200 text-slate-600 hover:bg-slate-50">
-          <Download className="w-4 h-4 mr-2" /> Export
-        </Button>
-      </div>
-
-      {/* Premium Summary Badges */}
-      <div className="flex flex-wrap gap-4 justify-start">
-        <div className="flex items-center px-5 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm">
-          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
-            <Building2 className="w-4 h-4 text-indigo-600" />
+      {/* Summary Badges */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="flex items-center p-4">
+          <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center mr-4">
+            <Building2 className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Total {activeTab === 'Site Postpaid' ? 'Hospitals' : 'Radiologists'}</p>
-            <p className="text-lg font-black text-indigo-900">{totalEntities}</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase">Total {activeTab === 'Site Postpaid' ? 'Hospitals' : 'Radiologists'}</p>
+            <p className="text-xl font-semibold text-foreground">{totalEntities}</p>
           </div>
-        </div>
+        </Card>
         
-        <div className="flex items-center px-5 py-2.5 bg-blue-50 border border-blue-100 rounded-xl shadow-sm">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-            <FileText className="w-4 h-4 text-blue-600" />
+        <Card className="flex items-center p-4">
+          <div className="w-10 h-10 rounded-md bg-secondary/10 flex items-center justify-center mr-4">
+            <FileText className="w-5 h-5 text-secondary" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Total Studies</p>
-            <p className="text-lg font-black text-blue-900">{totalStudies}</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase">Total Studies</p>
+            <p className="text-xl font-semibold text-foreground">{totalStudies}</p>
           </div>
-        </div>
+        </Card>
 
-        <div className="flex items-center px-5 py-2.5 bg-emerald-50 border border-emerald-100 rounded-xl shadow-sm">
-          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center mr-3">
-            <span className="font-black text-emerald-600 text-sm">₹</span>
+        <Card className="flex items-center p-4">
+          <div className="w-10 h-10 rounded-md bg-success/10 flex items-center justify-center mr-4">
+            <span className="font-semibold text-success text-lg">₹</span>
           </div>
           <div>
-            <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Total Amount</p>
-            <p className="text-lg font-black text-emerald-900">₹ {totalAmount.toLocaleString('en-IN')}</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase">Total Amount</p>
+            <p className="text-xl font-semibold text-success">₹ {totalAmount.toLocaleString('en-IN')}</p>
           </div>
-        </div>
+        </Card>
       </div>
 
-      {/* Premium Data Grid */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <Table>
-          <TableHeader className="bg-slate-50 border-b border-slate-100">
-            <TableRow className="hover:bg-transparent">
-              {activeTab === 'Site Postpaid' ? (
-                <>
-                  <TableHead className="text-slate-400 font-black py-4 px-6 text-[10px] tracking-widest uppercase">Site No</TableHead>
-                  <TableHead className="text-slate-400 font-black py-4 px-4 text-[10px] tracking-widest uppercase">Site Name</TableHead>
-                  <TableHead className="text-slate-400 font-black py-4 px-4 text-[10px] tracking-widest uppercase">Date Range</TableHead>
-                  <TableHead className="text-slate-400 font-black py-4 px-4 text-[10px] tracking-widest uppercase">Services</TableHead>
-                </>
-              ) : (
-                <>
-                  <TableHead className="text-slate-400 font-black py-4 px-6 text-[10px] tracking-widest uppercase">Rad ID</TableHead>
-                  <TableHead className="text-slate-400 font-black py-4 px-4 text-[10px] tracking-widest uppercase">Name</TableHead>
-                  <TableHead className="text-slate-400 font-black py-4 px-4 text-[10px] tracking-widest uppercase">Date Range</TableHead>
-                  <TableHead className="text-slate-400 font-black py-4 px-4 text-[10px] tracking-widest uppercase">Specialization</TableHead>
-                </>
+      {/* Data Grid */}
+      <Card>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-muted/50 border-b border-border">
+              <TableRow className="hover:bg-transparent">
+                {activeTab === 'Site Postpaid' ? (
+                  <>
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Site No</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Site Name</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Date Range</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Services</TableHead>
+                  </>
+                ) : (
+                  <>
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Rad ID</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Name</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Date Range</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Specialization</TableHead>
+                  </>
+                )}
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-right">Total Study</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-right">Total Amount</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-center">Payment Status</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-center">{activeTab === 'Site Postpaid' ? 'Service Status' : 'Status'}</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredData.map((row: any, idx: number) => (
+                <TableRow key={row.id || idx} className="hover:bg-muted/30 transition-colors border-b border-border group">
+                  <TableCell className="py-3 font-mono text-muted-foreground text-xs">{activeTab === 'Site Postpaid' ? row.siteNo : row.radId}</TableCell>
+                  <TableCell className="py-3 font-medium text-primary text-sm">{activeTab === 'Site Postpaid' ? row.siteName : row.name}</TableCell>
+                  <TableCell className="py-3">
+                    <div className="text-xs font-medium text-foreground">{row.fromDate}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">to {row.toDate}</div>
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase border ${row.services === 'Postpaid' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-success/10 text-success border-success/20'}`}>
+                      {activeTab === 'Site Postpaid' ? row.services : row.specialization}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-3 text-right font-medium text-foreground">{row.totalStudy}</TableCell>
+                  <TableCell className="py-3 text-right font-semibold text-success">₹ {row.totalAmount.toLocaleString('en-IN')}</TableCell>
+                  <TableCell className="py-3 text-center">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked={row.paymentStatus} />
+                      <div className="w-9 h-5 bg-muted border border-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-success peer-checked:border-success"></div>
+                    </label>
+                  </TableCell>
+                  <TableCell className="py-3 text-center">
+                    <span className="text-[10px] font-semibold text-success uppercase">{row.serviceStatus}</span>
+                  </TableCell>
+                  <TableCell className="py-3 text-right">
+                    {user?.role === 'SUPER_ADMIN' && activeTab === 'Site Postpaid' && !row.paymentStatus ? (
+                      <Button onClick={() => handleCollectDues(row.id)} size="sm" className="h-7 px-3 text-[10px] bg-success hover:bg-success/90 text-success-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                        Collect
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity" title={activeTab === 'Site Postpaid' ? 'Regenerate Bill Summary' : 'Process Payout'}>
+                        <RefreshCw className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredData.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground text-sm">
+                    No billing records found
+                  </TableCell>
+                </TableRow>
               )}
-              <TableHead className="text-slate-400 font-black py-4 px-4 text-[10px] tracking-widest uppercase text-right">Total Study</TableHead>
-              <TableHead className="text-slate-400 font-black py-4 px-6 text-[10px] tracking-widest uppercase text-right">Total Amount</TableHead>
-              <TableHead className="text-slate-400 font-black py-4 px-4 text-[10px] tracking-widest uppercase text-center">Payment Status</TableHead>
-              <TableHead className="text-slate-400 font-black py-4 px-4 text-[10px] tracking-widest uppercase text-center">{activeTab === 'Site Postpaid' ? 'Service Status' : 'Status'}</TableHead>
-              <TableHead className="text-slate-400 font-black py-4 px-6 text-[10px] tracking-widest uppercase text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredData.map((row: any, idx: number) => (
-              <TableRow key={row.id || idx} className="hover:bg-cyan-50/30 transition-colors border-b border-slate-50 group">
-                <TableCell className="py-4 px-6 font-mono text-slate-500 font-bold text-xs">{activeTab === 'Site Postpaid' ? row.siteNo : row.radId}</TableCell>
-                <TableCell className="py-4 px-4 font-black text-[#0D2461] text-sm uppercase">{activeTab === 'Site Postpaid' ? row.siteName : row.name}</TableCell>
-                <TableCell className="py-4 px-4">
-                  <div className="text-xs font-bold text-slate-600">{row.fromDate}</div>
-                  <div className="text-[10px] font-semibold text-slate-400">to {row.toDate}</div>
-                </TableCell>
-                <TableCell className="py-4 px-4">
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider ${row.services === 'Postpaid' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                    {activeTab === 'Site Postpaid' ? row.services : row.specialization}
-                  </span>
-                </TableCell>
-                <TableCell className="py-4 px-4 text-right font-black text-slate-800">{row.totalStudy}</TableCell>
-                <TableCell className="py-4 px-6 text-right font-black text-emerald-600">₹ {row.totalAmount.toLocaleString('en-IN')}</TableCell>
-                <TableCell className="py-4 px-4 text-center">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" defaultChecked={row.paymentStatus} />
-                    <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00A8CC]"></div>
-                  </label>
-                </TableCell>
-                <TableCell className="py-4 px-4 text-center">
-                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">{row.serviceStatus}</span>
-                </TableCell>
-                <TableCell className="py-4 px-6 text-center">
-                  {user?.role === 'SUPER_ADMIN' && activeTab === 'Site Postpaid' && !row.paymentStatus ? (
-                    <Button onClick={() => handleCollectDues(row.id)} className="h-8 px-3 text-[10px] font-black bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg">
-                      Collect
-                    </Button>
-                  ) : (
-                    <button className="p-2 rounded-lg text-slate-400 hover:text-[#00A8CC] hover:bg-cyan-50 transition-colors" title={activeTab === 'Site Postpaid' ? 'Regenerate Bill Summary' : 'Process Payout'}>
-                      <RefreshCw className="w-4 h-4 mx-auto" />
-                    </button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-            {filteredData.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-12">
-                  <div className="flex flex-col items-center justify-center text-slate-400">
-                    <FileText className="h-8 w-8 mb-3 opacity-20" />
-                    <p className="text-sm font-medium">No billing records found</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
     </div>
   );
 }

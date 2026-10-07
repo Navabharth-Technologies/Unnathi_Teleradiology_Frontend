@@ -182,25 +182,25 @@ export default function GlobalBilling() {
       
       return (
         <React.Fragment key={id}>
-          <tr className={`border-b border-gray-100 hover:bg-[#F8FAFC] transition-colors ${depth === 0 ? 'bg-white' : depth === 1 ? 'bg-slate-50/70' : 'bg-slate-50/30'}`}>
+          <tr className={`border-b border-border hover:bg-slate-50/50 transition-colors ${depth === 0 ? 'bg-card' : depth === 1 ? 'bg-slate-50/70' : 'bg-slate-50/30'}`}>
             <td className="px-6 py-5">
               <div className="flex items-center" style={{ paddingLeft: `${depth * 2}rem` }}>
                 {hasChildren ? (
-                  <button onClick={() => toggleNode(id)} className="mr-2 text-gray-500 hover:text-gray-900 transition-colors">
+                  <button onClick={() => toggleNode(id)} className="mr-2 text-slate-500 hover:text-primary transition-colors">
                     {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </button>
                 ) : (
                   <span className="w-6" /> // spacer
                 )}
                 
-                {node.type === 'company' && <Building2 className="w-4 h-4 text-indigo-600 mr-2" />}
-                {(node.type === 'hospital' || node.type === 'unnathi_managed') && <HeartPulse className="w-4 h-4 text-rose-600 mr-2" />}
+                {node.type === 'company' && <Building2 className="w-4 h-4 text-primary mr-2" />}
+                {(node.type === 'hospital' || node.type === 'unnathi_managed') && <HeartPulse className="w-4 h-4 text-accent mr-2" />}
                 
-                <span className="font-bold text-[#0D2461]">
+                <span className="font-bold text-primary">
                   {node.data?.name || node.name}
                 </span>
                 {node.data?.code && (
-                  <span className="ml-3 text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded tracking-wider uppercase border border-slate-200">
+                  <span className="ml-3 text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded tracking-wider uppercase border border-border">
                     {node.data.code}
                   </span>
                 )}
@@ -218,7 +218,7 @@ export default function GlobalBilling() {
             </td>
             <td className="px-6 py-5 whitespace-nowrap text-right">
               {node.type === 'hospital' && (
-                <button className="text-[#00A8CC] hover:text-[#0D2461] hover:bg-[#00A8CC]/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-end ml-auto gap-1.5">
+                <button className="text-accent hover:text-accent-hover hover:bg-accent/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-end ml-auto gap-1.5">
                   <FileText className="w-4 h-4" />
                   View Invoices
                 </button>
@@ -233,13 +233,13 @@ export default function GlobalBilling() {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto animate-unnathi-fade-in">
-      <div className="flex justify-between items-center mb-8 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex justify-between items-center mb-8 bg-card p-5 rounded-2xl shadow-sm border border-border">
         <div>
-          <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">
+          <h1 className="text-2xl font-black text-primary tracking-tight">
             {user?.role === 'SUPER_ADMIN' ? 'Global Financial Overview' : 
              'Company Financial Overview'}
           </h1>
-          <p className="text-xs font-medium text-slate-500 mt-1 uppercase tracking-wider">
+          <p className="text-[11px] font-black text-slate-400 mt-1 uppercase tracking-widest">
             {user?.role === 'SUPER_ADMIN' ? 'Platform-wide financial accounts across all networks' : 
              'Financial overview for your organization'}
           </p>
@@ -248,67 +248,67 @@ export default function GlobalBilling() {
           {user?.role === 'SUPER_ADMIN' && (
             <button 
               onClick={() => setShowPaymentModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-md font-bold text-sm">
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-sm font-bold text-sm hover:-translate-y-0.5 duration-300">
               <IndianRupee className="w-4 h-4" />
               Receive Payment
             </button>
           )}
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-[#0D2461] hover:bg-[#081840] text-white rounded-xl transition-all shadow-md font-bold text-sm">
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all shadow-sm font-bold text-sm hover:-translate-y-0.5 duration-300">
             <Download className="w-4 h-4" />
             Export Report
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-[#0D2461] to-[#1a367a] rounded-2xl shadow-lg p-6 relative overflow-hidden group">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-unnathi-slide-up">
+        <div className="bg-gradient-to-br from-primary to-indigo-900 rounded-2xl shadow-md border border-primary p-6 relative overflow-hidden group hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
           <div className="absolute -right-4 -top-4 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
             <IndianRupee className="w-32 h-32 text-white" />
           </div>
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-[#00A8CC]" />
-              <p className="text-xs font-bold text-white/80 uppercase tracking-widest">Total Network Revenue</p>
+              <TrendingUp className="w-4 h-4 text-accent" />
+              <p className="text-[11px] font-black text-white/80 uppercase tracking-widest">Total Network Revenue</p>
             </div>
             <p className="text-4xl font-black text-white tracking-tight">₹{totalRevenue.toLocaleString('en-IN')}</p>
-            <p className="text-[11px] font-medium text-[#00A8CC] mt-2 bg-[#00A8CC]/10 inline-block px-2 py-0.5 rounded-full border border-[#00A8CC]/20">
+            <p className="text-[11px] font-bold text-accent mt-2 bg-accent/10 inline-block px-2 py-0.5 rounded-full border border-accent/20">
               +12.5% from last month
             </p>
           </div>
         </div>
         
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 relative overflow-hidden hover:shadow-md transition-shadow group">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 relative overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
           <div className="absolute -right-4 -top-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
             <IndianRupee className="w-32 h-32 text-emerald-600" />
           </div>
           <div className="relative z-10">
-            <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest">Payments Received</p>
+            <p className="text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">Payments Received</p>
             <p className="text-4xl font-black text-emerald-600 tracking-tight">₹{totalPaid.toLocaleString('en-IN')}</p>
-            <p className="text-[11px] font-medium text-slate-400 mt-2">Verified and settled across network</p>
+            <p className="text-[11px] font-black text-slate-400 mt-2 uppercase tracking-widest">Verified and settled across network</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 relative overflow-hidden hover:shadow-md transition-shadow group">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 relative overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
           <div className="absolute -right-4 -top-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
             <AlertCircle className="w-32 h-32 text-rose-600" />
           </div>
           <div className="relative z-10">
-            <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest">Total Outstanding</p>
+            <p className="text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">Total Outstanding</p>
             <p className="text-4xl font-black text-rose-600 tracking-tight">₹{totalUnpaid.toLocaleString('en-IN')}</p>
-            <p className="text-[11px] font-medium text-slate-400 mt-2">Pending collection and processing</p>
+            <p className="text-[11px] font-black text-slate-400 mt-2 uppercase tracking-widest">Pending collection and processing</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-          <h2 className="text-lg font-black text-[#0D2461]">Organizational Ledger</h2>
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Expand rows to view Centers and Hospitals</span>
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden animate-unnathi-slide-up" style={{ animationDelay: '100ms' }}>
+        <div className="p-5 border-b border-border bg-slate-50/50 flex justify-between items-center">
+          <h2 className="text-lg font-black text-primary">Organizational Ledger</h2>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expand rows to view Centers and Hospitals</span>
         </div>
         
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50 border-b border-border">
               <tr>
                 <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Organization / Entity</th>
                 <th className="px-6 py-4 text-right text-[11px] font-black text-slate-500 uppercase tracking-widest">Total Revenue</th>
@@ -331,16 +331,16 @@ export default function GlobalBilling() {
       </div>
       {/* Payment Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-unnathi-slide">
-            <div className="bg-[#0D2461] p-5">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-border">
+            <div className="bg-primary p-5">
               <h2 className="text-lg font-bold text-white">Receive Payment</h2>
-              <p className="text-slate-300 text-xs mt-1">Add wallet balance to a site or hospital</p>
+              <p className="text-indigo-200 text-xs mt-1">Add wallet balance to a site or hospital</p>
             </div>
             
-            <form onSubmit={handleReceivePayment} className="p-6 space-y-4">
+            <form onSubmit={handleReceivePayment} className="p-6 space-y-5 bg-card">
               <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-700">Organization Type</label>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Organization Type</label>
                 <div className="flex gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input 
@@ -349,9 +349,9 @@ export default function GlobalBilling() {
                       value="hospital" 
                       checked={paymentData.targetType === 'hospital'}
                       onChange={e => setPaymentData({...paymentData, targetType: e.target.value, targetId: ''})}
-                      className="text-[#00A8CC] focus:ring-[#00A8CC]"
+                      className="text-accent focus:ring-accent"
                     />
-                    <span className="text-sm font-medium text-slate-700">Hospital</span>
+                    <span className="text-sm font-bold text-slate-700">Hospital</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input 
@@ -360,20 +360,20 @@ export default function GlobalBilling() {
                       value="site" 
                       checked={paymentData.targetType === 'site'}
                       onChange={e => setPaymentData({...paymentData, targetType: e.target.value, targetId: ''})}
-                      className="text-[#00A8CC] focus:ring-[#00A8CC]"
+                      className="text-accent focus:ring-accent"
                     />
-                    <span className="text-sm font-medium text-slate-700">Site (Company)</span>
+                    <span className="text-sm font-bold text-slate-700">Site (Company)</span>
                   </label>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-700">Select {paymentData.targetType === 'hospital' ? 'Hospital' : 'Site'} <span className="text-rose-500">*</span></label>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Select {paymentData.targetType === 'hospital' ? 'Hospital' : 'Site'} <span className="text-rose-500">*</span></label>
                 <select 
                   required
                   value={paymentData.targetId}
                   onChange={e => setPaymentData({...paymentData, targetId: e.target.value})}
-                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B] outline-none"
+                  className="w-full h-11 px-3 border border-border rounded-lg text-sm font-medium bg-background focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none shadow-inner transition-all"
                 >
                   <option value="">-- Select --</option>
                   {paymentData.targetType === 'hospital' 
@@ -381,28 +381,28 @@ export default function GlobalBilling() {
                     : sites.filter(s => s.accountType === 'Prepaid').map(s => <option key={s.id} value={s.id}>{s.name}</option>)
                   }
                 </select>
-                <p className="text-[10px] text-slate-500">Only prepaid accounts are listed here.</p>
+                <p className="text-[10px] text-slate-500 font-medium ml-1">Only prepaid accounts are listed here.</p>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-700">Amount Received (₹) <span className="text-rose-500">*</span></label>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Amount Received (₹) <span className="text-rose-500">*</span></label>
                 <input 
                   type="number"
                   required
                   min="1"
                   value={paymentData.amount}
                   onChange={e => setPaymentData({...paymentData, amount: e.target.value})}
-                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B] outline-none"
+                  className="w-full h-11 px-3 border border-border rounded-lg text-sm font-medium bg-background focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none shadow-inner transition-all"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-700">Payment Method <span className="text-rose-500">*</span></label>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Payment Method <span className="text-rose-500">*</span></label>
                 <select 
                   required
                   value={paymentData.paymentMethod}
                   onChange={e => setPaymentData({...paymentData, paymentMethod: e.target.value})}
-                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B] outline-none"
+                  className="w-full h-11 px-3 border border-border rounded-lg text-sm font-medium bg-background focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none shadow-inner transition-all"
                 >
                   <option value="NEFT">NEFT / RTGS / IMPS</option>
                   <option value="UPI">UPI</option>
@@ -411,27 +411,27 @@ export default function GlobalBilling() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-700">Transaction Reference / Notes</label>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Transaction Reference / Notes</label>
                 <input 
                   type="text"
                   placeholder="e.g. UTR Number or Cash Receipt No"
                   value={paymentData.reference}
                   onChange={e => setPaymentData({...paymentData, reference: e.target.value})}
-                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B] outline-none"
+                  className="w-full h-11 px-3 border border-border rounded-lg text-sm font-medium bg-background focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none shadow-inner transition-all"
                 />
               </div>
 
-              <div className="pt-4 flex justify-end gap-3">
+              <div className="pt-6 flex justify-end gap-3 border-t border-border mt-6">
                 <button 
                   type="button" 
                   onClick={() => setShowPaymentModal(false)}
-                  className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                  className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:text-primary bg-background border border-border hover:bg-slate-50 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
-                  className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-colors flex items-center gap-2"
+                  className="px-6 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-all hover:-translate-y-0.5 duration-300 flex items-center gap-2"
                 >
                   <IndianRupee className="w-4 h-4" />
                   Confirm Payment

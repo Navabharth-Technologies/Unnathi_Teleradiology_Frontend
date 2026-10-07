@@ -417,7 +417,7 @@ export default function SiteList() {
       <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center space-x-6">
           <div>
-            <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">Sites & Clinics</h1>
+            <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">Sites & Independent Hospitals</h1>
             <p className="text-xs text-slate-500 font-medium mt-1">Manage connected hospitals and diagnostic centers</p>
           </div>
           <div className="h-8 w-px bg-slate-200"></div>

@@ -167,6 +167,16 @@ export interface Hospital {
 
 export type Role = 'SUPER_ADMIN' | 'SITE_ADMIN' | 'HOSPITAL_ADMIN' | 'MANAGER' | 'TECHNICIAN' | 'STAFF' | 'RADIOLOGIST' | 'DOCTOR' | 'PATIENT' | 'ACCOUNTANT' | 'VERIFIER';
 
+export interface CustomRole {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+  createdAt: string;
+  type: string;
+  status: string;
+}
+
 export type UserStatus = 'Invite Pending' | 'Active' | 'Locked' | 'Disabled' | 'Inactive';
 
 export interface User {

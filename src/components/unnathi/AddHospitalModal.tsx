@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Trash2, ImagePlus } from 'lucide-react';
 import { useMockDb } from '../../store/useMockDb';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../ui/button';
@@ -278,6 +278,44 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }: AddHo
     }
   };
 
+  const handleRemoveFile = (field: keyof typeof formData) => {
+    setFormData(prev => ({ ...prev, [field]: '' }));
+  };
+
+  const renderImageUploadPreview = (field: keyof typeof formData, label: string, accept: string, required?: boolean) => {
+    const value = formData[field] as string;
+    return (
+      <div className="space-y-1.5 w-full">
+        <label className="text-[12px] font-bold text-slate-700">{label} {required && <span className="text-rose-500">*</span>}</label>
+        {value ? (
+          <div className="flex items-center justify-between p-2 border border-slate-200 rounded-md bg-slate-50">
+            <div className="flex items-center space-x-3 overflow-hidden">
+              <div className="w-10 h-10 rounded bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                <img src={value} alt="Preview" className="max-w-full max-h-full object-contain" />
+              </div>
+              <span className="text-[11px] text-slate-600 truncate font-medium max-w-[120px]">Image Uploaded</span>
+            </div>
+            <div className="flex items-center space-x-1 shrink-0">
+              <label className="p-1.5 text-slate-400 hover:text-[#00A8CC] hover:bg-[#00A8CC]/10 rounded cursor-pointer transition-colors" title="Change">
+                <Upload className="w-3.5 h-3.5" />
+                <input type="file" className="hidden" accept={accept} onChange={(e) => handleFileUpload(e, field)} />
+              </label>
+              <button type="button" onClick={() => handleRemoveFile(field)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded cursor-pointer transition-colors" title="Remove">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <label className="flex items-center space-x-2 px-4 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:bg-slate-50 text-xs font-medium w-full justify-center cursor-pointer group hover:border-[#2C4A6B] transition-colors">
+            <Upload className="w-4 h-4 group-hover:text-[#2C4A6B] transition-colors" /> 
+            <span className="group-hover:text-[#2C4A6B] transition-colors">Upload {label}</span>
+            <input type="file" className="hidden" accept={accept} onChange={(e) => handleFileUpload(e, field)} />
+          </label>
+        )}
+      </div>
+    );
+  };
+
   const handleModalityToggle = (mod: string) => {
     setFormData(prev => {
       const current = prev.supportedModalities;
@@ -288,7 +326,7 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }: AddHo
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.loginMode === 'OTP' && !otpVerified) {
       alert('Please verify the Admin Mobile via OTP before submitting.');
@@ -381,7 +419,7 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }: AddHo
     };
 
     if (initialData) {
-      updateHospital(initialData.id, {
+      await updateHospital(initialData.id, {
         name: formData.name,
         code: formData.code,
         organizationType: formData.organizationType,
@@ -413,9 +451,38 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }: AddHo
         accountType: formData.accountType as any,
         updatedAt: new Date().toISOString()
       });
+
+      if (formData.adminEmail || formData.adminFullName) {
+        const existingAdmin = users.find(u => u.hospitalId === initialData.id && u.role === 'HOSPITAL_ADMIN');
+        if (existingAdmin) {
+          await updateUser(existingAdmin.id, {
+            name: formData.adminFullName || existingAdmin.name,
+            email: formData.adminEmail || existingAdmin.email,
+            phone: formData.adminMobile || existingAdmin.phone,
+            status: formData.accountStatus as any,
+            loginMode: formData.loginMode as any,
+            password: formData.temporaryPassword || existingAdmin.password,
+          });
+        } else {
+          await addUser({
+            id: `u_${Date.now()}`,
+            name: formData.adminFullName || `${formData.name} Admin`,
+            email: formData.adminEmail || `${formData.name.replace(/\s+/g, '').toLowerCase()}@hospital.com`,
+            phone: formData.adminMobile || formData.phone,
+            role: formData.adminRole as any,
+            hospitalId: initialData.id,
+            status: formData.accountStatus as any,
+            loginMode: formData.loginMode as any,
+            password: formData.temporaryPassword,
+            mfaEnabled: formData.mfaEnabled,
+            allowedCentres: [formData.allowedCentres],
+            createdAt: new Date().toISOString()
+          });
+        }
+      }
     } else {
       const newHospitalId = `hosp_${Date.now()}`;
-      addHospital({
+      await addHospital({
         id: newHospitalId,
         name: formData.name,
         code: formData.code,
@@ -451,7 +518,7 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }: AddHo
       });
 
       if (formData.adminEmail || formData.adminFullName) {
-        addUser({
+        await addUser({
           id: `u_${Date.now()}`,
           name: formData.adminFullName || `${formData.name} Admin`,
           email: formData.adminEmail || `${formData.name.replace(/\s+/g, '').toLowerCase()}@hospital.com`,
@@ -503,8 +570,8 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }: AddHo
         </div>
 
         {/* Body Scroll */}
-        <form id="hospital-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-
+        <form id="hospital-form" onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
           {user?.role === 'SUPER_ADMIN' && (
             <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm mb-6">
               <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">Organization Settings</h3>
@@ -816,18 +883,10 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }: AddHo
           {/* Section: FILE UPLOADS */}
           <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
             <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">File Uploads</h3>
-            <div className="flex flex-wrap items-center gap-6">
-              <label className="flex items-center space-x-2 px-6 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:text-[#2C4A6B] hover:border-[#2C4A6B] hover:bg-slate-50 transition-colors text-sm font-medium cursor-pointer">
-                <Upload className="w-4 h-4" />
-                <span>{formData.headerUrl ? 'Change Header' : 'Header'}</span>
-                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'headerUrl')} />
-              </label>
-              <label className="flex items-center space-x-2 px-6 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:text-[#2C4A6B] hover:border-[#2C4A6B] hover:bg-slate-50 transition-colors text-sm font-medium cursor-pointer">
-                <Upload className="w-4 h-4" />
-                <span>{formData.footerUrl ? 'Change Footer' : 'Footer'}</span>
-                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'footerUrl')} />
-              </label>
-              <div className="pl-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-end">
+              {renderImageUploadPreview('headerUrl', 'Header Image', 'image/*')}
+              {renderImageUploadPreview('footerUrl', 'Footer Image', 'image/*')}
+              <div className="pl-2 pb-2">
                 <CheckboxItem name="brochureForNewStudy" label="Brochure for New Study" />
               </div>
             </div>
@@ -843,24 +902,8 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }: AddHo
                   <Input name="brandDisplayName" required value={formData.brandDisplayName} onChange={handleChange} placeholder="e.g. ABC Teleradiology" className="h-9 text-[13px]" />
                   <p className="text-[10px] text-slate-500">Shown in portal and report header.</p>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[12px] font-bold text-slate-700">Logo <span className="text-rose-500">*</span></label>
-                  <div className="flex items-center gap-2">
-                    <label className="flex items-center space-x-2 px-4 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:bg-slate-50 text-xs font-medium w-full justify-center cursor-pointer">
-                      <Upload className="w-4 h-4" /> 
-                      <span>{formData.brandLogo ? 'Change PNG/SVG' : 'Upload PNG/SVG'}</span>
-                      <input type="file" className="hidden" accept=".png,.svg" onChange={(e) => handleFileUpload(e, 'brandLogo')} />
-                    </label>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[12px] font-bold text-slate-700">Favicon</label>
-                  <label className="flex items-center space-x-2 px-4 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:bg-slate-50 text-xs font-medium w-full justify-center cursor-pointer">
-                    <Upload className="w-4 h-4" /> 
-                    <span>{formData.brandFavicon ? 'Change ICO/PNG' : 'Upload ICO/PNG'}</span>
-                    <input type="file" className="hidden" accept=".ico,.png" onChange={(e) => handleFileUpload(e, 'brandFavicon')} />
-                  </label>
-                </div>
+                {renderImageUploadPreview('brandLogo', 'Logo', '.png,.svg', true)}
+                {renderImageUploadPreview('brandFavicon', 'Favicon', '.ico,.png')}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[12px] font-bold text-slate-700">Primary Colour</label>
@@ -878,14 +921,7 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }: AddHo
                   </div>
                 </div>
                 
-                <div className="space-y-1.5">
-                  <label className="text-[12px] font-bold text-slate-700">Report Header Logo</label>
-                  <label className="flex items-center space-x-2 px-4 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:bg-slate-50 text-xs font-medium w-full justify-center cursor-pointer">
-                    <Upload className="w-4 h-4" /> 
-                    <span>{formData.brandHeaderLogo ? 'Change Header Logo' : 'Upload Header Logo'}</span>
-                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'brandHeaderLogo')} />
-                  </label>
-                </div>
+                {renderImageUploadPreview('brandHeaderLogo', 'Report Header Logo', 'image/*')}
                 <div className="space-y-1.5">
                   <label className="text-[12px] font-bold text-slate-700">Email Sender Name</label>
                   <Input name="brandEmailSenderName" value={formData.brandEmailSenderName} onChange={handleChange} placeholder="e.g. ABC Teleradiology" className="h-9 text-[13px]" />
@@ -919,18 +955,18 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }: AddHo
               </div>
             </div>
           )}
+          </div>
 
+          {/* Footer */}
+          <div className="bg-white border-t border-slate-200 px-6 py-4 flex justify-end gap-3 shrink-0">
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-md h-9 px-6 text-sm font-bold text-slate-600">
+              Cancel
+            </Button>
+            <Button type="submit" className="bg-[#465f7b] hover:bg-[#2C4A6B] text-white rounded-md shadow-sm h-9 px-8 text-sm font-bold">
+              Submit
+            </Button>
+          </div>
         </form>
-
-        {/* Footer */}
-        <div className="bg-white border-t border-slate-200 px-6 py-4 flex justify-end gap-3 shrink-0">
-          <Button type="button" variant="outline" onClick={onClose} className="rounded-md h-9 px-6 text-sm font-bold text-slate-600">
-            Cancel
-          </Button>
-          <Button type="submit" form="hospital-form" className="bg-[#465f7b] hover:bg-[#2C4A6B] text-white rounded-md shadow-sm h-9 px-8 text-sm font-bold">
-            Submit
-          </Button>
-        </div>
       </div>
     </div>
   );
