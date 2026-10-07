@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Shield, Settings2, Plus, Search, X, Check } from 'lucide-react';
+import { Shield, Settings2, Plus, Search, X, Check, Trash2, Edit2, Ban } from 'lucide-react';
 import { useMockDb } from '../../store/useMockDb';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function RolesPermissions() {
-  const { users, customRoles, addCustomRole } = useMockDb();
+  const { users, customRoles, addCustomRole, updateCustomRole, deleteCustomRole } = useMockDb();
 
   // Extract unique roles from real-time user data
   const rolesMap = users.reduce((acc, user) => {
@@ -13,30 +13,35 @@ export default function RolesPermissions() {
   }, {} as Record<string, number>);
 
   let activeRoles = Object.entries(rolesMap).map(([role, count]) => ({
+    id: role,
     name: role,
     type: 'System Built-in',
     users: count,
-    status: 'Active'
+    status: 'Active',
+    description: '',
+    permissions: [] as string[]
   }));
 
   // Ensure SUPER_ADMIN always shows if no users exist
   if (activeRoles.length === 0) {
-    activeRoles = [{ name: 'SUPER_ADMIN', type: 'System Built-in', users: 1, status: 'Active' }];
+    activeRoles = [{ id: 'SUPER_ADMIN', name: 'SUPER_ADMIN', type: 'System Built-in', users: 1, status: 'Active', description: '', permissions: [] }];
   }
   
   // Append custom roles
   const customRoleEntries = (customRoles || []).map(r => ({
+    id: r.id,
     name: r.name,
     type: r.type || 'Custom Role',
     users: 0,
     status: r.status || 'Active',
     description: r.description,
-    permissions: r.permissions
+    permissions: r.permissions || []
   }));
   
   activeRoles = [...activeRoles, ...customRoleEntries];
 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleDesc, setNewRoleDesc] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
@@ -47,21 +52,55 @@ export default function RolesPermissions() {
     );
   };
 
-  const handleCreateRole = (e: React.FormEvent) => {
+  const openCreateModal = () => {
+    setEditingRoleId(null);
+    setNewRoleName('');
+    setNewRoleDesc('');
+    setSelectedPermissions([]);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (roleId: string, name: string, desc: string, perms: string[]) => {
+    setEditingRoleId(roleId);
+    setNewRoleName(name);
+    setNewRoleDesc(desc || '');
+    setSelectedPermissions(perms || []);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteRole = (id: string) => {
+    if (window.confirm("Are you sure you want to permanently delete this custom role?")) {
+      deleteCustomRole(id);
+    }
+  };
+
+  const handleToggleStatus = (id: string, currentStatus: string) => {
+    updateCustomRole(id, { status: currentStatus === 'Active' ? 'Inactive' : 'Active' });
+  };
+
+  const handleSaveRole = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRoleName.trim()) return;
     
-    addCustomRole({
-      id: `role_${Date.now()}`,
-      name: newRoleName,
-      description: newRoleDesc,
-      permissions: selectedPermissions,
-      createdAt: new Date().toISOString(),
-      type: 'Custom',
-      status: 'Active'
-    });
+    if (editingRoleId) {
+      updateCustomRole(editingRoleId, {
+        name: newRoleName,
+        description: newRoleDesc,
+        permissions: selectedPermissions,
+      });
+    } else {
+      addCustomRole({
+        id: `role_${Date.now()}`,
+        name: newRoleName,
+        description: newRoleDesc,
+        permissions: selectedPermissions,
+        createdAt: new Date().toISOString(),
+        type: 'Custom',
+        status: 'Active'
+      });
+    }
     
-    setIsCreateModalOpen(false);
+    setIsModalOpen(false);
     setNewRoleName('');
     setNewRoleDesc('');
     setSelectedPermissions([]);
@@ -78,7 +117,7 @@ export default function RolesPermissions() {
           <p className="text-sm text-slate-500 font-medium mt-1">Manage system roles and access control lists</p>
         </div>
         <button 
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={openCreateModal}
           className="bg-primary hover:bg-primary-hover shadow-sm text-white px-4 py-2 rounded-lg text-sm font-bold transition-all hover:-translate-y-0.5 flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -109,17 +148,14 @@ export default function RolesPermissions() {
           </thead>
           <tbody className="divide-y divide-border text-sm stagger-children">
             {activeRoles.map(role => (
-              <tr key={role.name} className="animate-unnathi-fade-in hover:bg-accent/5 hover:-translate-y-[2px] hover:shadow-md hover:z-10 relative bg-card transition-all duration-300 ease-out group">
+              <tr key={role.id} className="animate-unnathi-fade-in hover:bg-accent/5 hover:-translate-y-[2px] hover:shadow-md hover:z-10 relative bg-card transition-all duration-300 ease-out group">
                 <td className="px-6 py-4 font-black text-primary flex flex-col tracking-tight">
                   <div className="flex items-center">
                     <Shield className="w-4 h-4 mr-2 text-accent" /> {role.name}
                   </div>
-                  {/* @ts-ignore */}
                   {role.description && <div className="text-[10px] font-semibold text-slate-400 mt-1 ml-6">{role.description}</div>}
-                  {/* @ts-ignore */}
                   {role.permissions && role.permissions.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2 ml-6">
-                      {/* @ts-ignore */}
                       {role.permissions.map(p => (
                         <span key={p} className="text-[9px] font-bold uppercase tracking-widest bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">
                           {p}
@@ -131,10 +167,26 @@ export default function RolesPermissions() {
                 <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-500">{role.type}</td>
                 <td className="px-6 py-4 whitespace-nowrap font-bold text-slate-700">{role.users} Active Users</td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 py-1 inline-flex text-[10px] uppercase tracking-widest font-black rounded bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-200">{role.status}</span>
+                  <span className={`px-2 py-1 inline-flex text-[10px] uppercase tracking-widest font-black rounded shadow-sm border ${role.status === 'Active' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>{role.status}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <button className="text-accent bg-accent/10 hover:bg-accent hover:text-white px-3 py-1.5 rounded-lg border border-transparent hover:border-accent/20 transition-all font-bold text-[11px] uppercase tracking-widest shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100">Edit Permissions</button>
+                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    {role.type !== 'System Built-in' ? (
+                      <>
+                        <button onClick={() => handleToggleStatus(role.id, role.status)} title={role.status === 'Active' ? 'Pause/Disable Role' : 'Activate Role'} className="text-amber-500 bg-amber-50 hover:bg-amber-500 hover:text-white p-1.5 rounded-lg border border-transparent hover:border-amber-500/20 transition-all">
+                          <Ban className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => openEditModal(role.id, role.name, role.description || '', role.permissions || [])} title="Edit Permissions" className="text-accent bg-accent/10 hover:bg-accent hover:text-white p-1.5 rounded-lg border border-transparent hover:border-accent/20 transition-all">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteRole(role.id)} title="Permanent Delete" className="text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white p-1.5 rounded-lg border border-transparent hover:border-rose-500/20 transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded">System Default (Read Only)</span>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -142,16 +194,16 @@ export default function RolesPermissions() {
         </table>
       </div>
 
-      {/* Create Custom Role Modal */}
+      {/* Create / Edit Custom Role Modal */}
       <AnimatePresence>
-        {isCreateModalOpen && (
+        {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-              onClick={() => setIsCreateModalOpen(false)}
+              onClick={() => setIsModalOpen(false)}
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }} 
@@ -161,15 +213,15 @@ export default function RolesPermissions() {
             >
               <div className="p-6 border-b border-border flex justify-between items-center bg-slate-50/50">
                 <div>
-                  <h2 className="text-lg font-black text-primary">Create Custom Role</h2>
-                  <p className="text-xs font-semibold text-slate-500 mt-1">Define a new role and configure its permissions.</p>
+                  <h2 className="text-lg font-black text-primary">{editingRoleId ? 'Edit Custom Role' : 'Create Custom Role'}</h2>
+                  <p className="text-xs font-semibold text-slate-500 mt-1">Define a role and configure its permissions.</p>
                 </div>
-                <button onClick={() => setIsCreateModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateRole} className="p-6 space-y-6">
+              <form onSubmit={handleSaveRole} className="p-6 space-y-6">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-2">Role Name</label>
@@ -211,11 +263,11 @@ export default function RolesPermissions() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-border">
-                  <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors">
                     Cancel
                   </button>
                   <button type="submit" className="px-5 py-2.5 text-sm font-bold text-white bg-primary hover:bg-primary-hover rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
-                    Create Role
+                    {editingRoleId ? 'Save Changes' : 'Create Role'}
                   </button>
                 </div>
               </form>

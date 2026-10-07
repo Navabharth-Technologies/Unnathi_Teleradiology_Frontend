@@ -77,6 +77,8 @@ interface MockDbState {
   deleteModality: (id: string) => void;
 
   addCustomRole: (role: CustomRole) => void;
+  updateCustomRole: (id: string, data: Partial<CustomRole>) => void;
+  deleteCustomRole: (id: string) => void;
 }
 
 const mockSites: Site[] = [];
@@ -147,6 +149,10 @@ export const useMockDb = create<MockDbState>()(
       },
 
       addCustomRole: (role) => set((state) => ({ customRoles: [...state.customRoles, role] })),
+      updateCustomRole: (id, data) => set((state) => ({
+        customRoles: state.customRoles.map(r => r.id === id ? { ...r, ...data } : r)
+      })),
+      deleteCustomRole: (id) => set((state) => ({ customRoles: state.customRoles.filter(r => r.id !== id) })),
 
       addSite: async (company) => {
         await axios.post(`${API_URL}/sites`, company).catch(console.error);
