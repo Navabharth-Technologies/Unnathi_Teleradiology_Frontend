@@ -28,7 +28,7 @@ type UserForm = { name: string; email: string; phone: string; role: string; hosp
 const EMPTY: UserForm = { name: '', email: '', phone: '', role: 'Staff', status: 'Active' };
 
 export default function UsersList() {
-  const { users, sites, hospitals, addUser, updateUser, deleteUser, addRadiologist } = useMockDb();
+  const { users, sites, hospitals, customRoles, addUser, updateUser, deleteUser, addRadiologist } = useMockDb();
   const { user: currentUser } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewItem, setViewItem] = useState<User | null>(null);
@@ -38,9 +38,13 @@ export default function UsersList() {
   const [form, setForm] = useState<UserForm>(EMPTY);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const allowedRoles = currentUser?.role === 'SUPER_ADMIN'
+  const baseAllowedRoles = currentUser?.role === 'SUPER_ADMIN'
     ? ['Super Admin', 'Site Admin', 'Hospital Admin', 'Radiologist']
     : ALL_ROLES.filter(r => !['Super Admin', 'Site Admin'].includes(r));
+    
+  // Add active custom roles to the dropdown
+  const activeCustomRoles = (customRoles || []).filter(r => r.status === 'Active').map(r => r.name);
+  const allowedRoles = [...baseAllowedRoles, ...activeCustomRoles];
 
   const allowedHospitals = currentUser?.role === 'SUPER_ADMIN'
     ? hospitals
