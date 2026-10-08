@@ -57,14 +57,17 @@ export function ConfirmDeleteModal({
         {/* Footer */}
         <div className="bg-slate-50 py-4 px-6 border-t border-slate-100 flex justify-end gap-3 shrink-0">
           <Button 
+            type="button"
             variant="outline" 
-            onClick={onClose} 
+            onClick={(e) => { e.preventDefault(); onClose(); }} 
             className="font-bold border-slate-200 hover:bg-white text-slate-700"
           >
             Cancel
           </Button>
           <Button 
-            onClick={() => {
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
               onConfirm();
               onClose();
             }} 

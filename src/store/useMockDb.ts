@@ -129,19 +129,21 @@ export const useMockDb = create<MockDbState>()(
       customRoles: [],
       fetchData: async () => {
         try {
-          const [sitesRes, hospitalsRes, usersRes, patientsRes, studiesRes] = await Promise.all([
+          const [sitesRes, hospitalsRes, usersRes, patientsRes, studiesRes, radiologistsRes] = await Promise.all([
             axios.get(`${API_URL}/sites`).catch(() => null),
             axios.get(`${API_URL}/hospitals`).catch(() => null),
             axios.get(`${API_URL}/users`).catch(() => null),
             axios.get(`${API_URL}/patients`).catch(() => null),
-            axios.get(`${API_URL}/studies`).catch(() => null)
+            axios.get(`${API_URL}/studies`).catch(() => null),
+            axios.get(`${API_URL}/radiologists`).catch(() => null)
           ]);
           set((state) => ({
             sites: sitesRes ? sitesRes.data : state.sites,
             hospitals: hospitalsRes ? hospitalsRes.data : state.hospitals,
             users: usersRes ? usersRes.data : state.users,
             patients: patientsRes ? patientsRes.data : state.patients,
-            studies: studiesRes ? studiesRes.data : state.studies
+            studies: studiesRes ? studiesRes.data : state.studies,
+            radiologists: radiologistsRes ? radiologistsRes.data : state.radiologists
           }));
         } catch (error) {
           console.error("Error fetching data from API:", error);
@@ -193,9 +195,18 @@ export const useMockDb = create<MockDbState>()(
         set((state) => ({ users: state.users.filter(u => u.id !== id) }));
       },
       
-      addRadiologist: (rad) => set((state) => ({ radiologists: [...state.radiologists, rad] })),
-      updateRadiologist: (id, data) => set((state) => ({ radiologists: state.radiologists.map(r => r.id === id ? { ...r, ...data } : r) })),
-      deleteRadiologist: (id) => set((state) => ({ radiologists: state.radiologists.filter(r => r.id !== id) })),
+      addRadiologist: async (rad) => {
+        await axios.post(`${API_URL}/radiologists`, rad).catch(console.error);
+        set((state) => ({ radiologists: [...state.radiologists, rad] }));
+      },
+      updateRadiologist: async (id, data) => {
+        await axios.put(`${API_URL}/radiologists/${id}`, data).catch(console.error);
+        set((state) => ({ radiologists: state.radiologists.map(r => r.id === id ? { ...r, ...data } : r) }));
+      },
+      deleteRadiologist: async (id) => {
+        await axios.delete(`${API_URL}/radiologists/${id}`).catch(console.error);
+        set((state) => ({ radiologists: state.radiologists.filter(r => r.id !== id) }));
+      },
       
       addPatient: async (patient) => {
         await axios.post(`${API_URL}/patients`, patient).catch(console.error);
