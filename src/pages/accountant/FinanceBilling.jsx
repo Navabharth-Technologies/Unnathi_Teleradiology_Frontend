@@ -44,7 +44,7 @@ export default function FinanceBilling() {
   const [isLastMonth, setIsLastMonth] = useState(false);
 
   // Filter entities (sites + hospitals) based on role/access
-  const allEntities = [...sites, ...hospitals];
+  const allEntities = [...hospitals];
   const scopedHospitals = allEntities
     .filter((h) => {
       if (user?.role === "SUPER_ADMIN") return true;
@@ -430,9 +430,6 @@ export default function FinanceBilling() {
                 <th className="px-6 py-4 text-center text-[11px] font-black text-slate-500 uppercase tracking-widest">
                   Payment Status
                 </th>
-                <th className="px-6 py-4 text-center text-[11px] font-black text-slate-500 uppercase tracking-widest">
-                  {activeTab === "Site Postpaid" ? "Service Status" : "Status"}
-                </th>
                 <th className="px-6 py-4 text-right text-[11px] font-black text-slate-500 uppercase tracking-widest">
                   Actions
                 </th>
@@ -495,12 +492,6 @@ export default function FinanceBilling() {
                         <div className="w-10 h-5.5 bg-slate-200 border border-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-500 peer-checked:border-emerald-600 shadow-inner"></div>
                       </label>
                     </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="px-2 py-1 inline-flex items-center text-[9px] uppercase tracking-widest font-black rounded-full bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
-                        {row.serviceStatus}
-                      </span>
-                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                         {user?.role === "SUPER_ADMIN" &&
@@ -532,7 +523,7 @@ export default function FinanceBilling() {
               </AnimatePresence>
               {filteredData.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="text-center py-16">
+                  <td colSpan={8} className="text-center py-16">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <FileText className="w-12 h-12 mb-3 text-slate-300" />
                       <p className="text-sm font-bold">
