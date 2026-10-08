@@ -98,12 +98,17 @@ export default function FinanceBilling() {
   // Filter radiologists based on role/access
   const scopedRadiologists = radiologists.filter((r) => {
     if (user?.role === "SUPER_ADMIN") return true;
-    if (user?.hospitalId) return r.hospitalIds?.includes(user.hospitalId);
+    if (user?.hospitalId) return r.assignedHospitals?.includes(user.hospitalId);
     if (user?.siteId) {
       const siteHospitals = hospitals
         .filter((h) => h.parentSiteId === user.siteId)
         .map((h) => h.id);
-      return r.hospitalIds?.some((id) => siteHospitals.includes(id));
+      
+      // Global radiologists (no assigned hospitals) or those assigned to this site's hospitals
+      return (
+        !r.assignedHospitals?.length ||
+        r.assignedHospitals.some((id) => siteHospitals.includes(id))
+      );
     }
     return true;
   });
