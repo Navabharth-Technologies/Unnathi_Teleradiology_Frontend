@@ -18,18 +18,19 @@ const itemVariants = {
 
 export default function FinanceBilling() {
   const { user } = useAuthStore();
-  const { hospitals, radiologists, invoices, studies, templates, updateStudy } = useMockDb();
+  const { sites, hospitals, radiologists, invoices, studies, templates, updateStudy } = useMockDb();
   const [activeTab, setActiveTab] = useState<'Site Postpaid' | 'Radiologist'>('Site Postpaid');
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [isLastMonth, setIsLastMonth] = useState(false);
 
-  // Filter hospitals based on role/access
-  const scopedHospitals = hospitals.filter(h => {
+  // Filter entities (sites + hospitals) based on role/access
+  const allEntities = [...sites, ...hospitals];
+  const scopedHospitals = allEntities.filter(h => {
     if (user?.role === 'SUPER_ADMIN') return true;
     if (user?.hospitalId) return h.id === user.hospitalId;
-    if (user?.siteId) return h.parentSiteId === user.siteId;
+    if (user?.siteId) return h.id === user.siteId || (h as any).parentSiteId === user.siteId;
     return false;
-  });
+  }).sort((a, b) => a.name.localeCompare(b.name));
 
   // Mock date calculations for UI
   const dateRangeStr = isLastMonth ? '01/08/2026 → 31/08/2026' : '01/09/2026 → 08/09/2026';
@@ -51,7 +52,7 @@ export default function FinanceBilling() {
 
     return {
       id: c.id,
-      siteNo: (c as any).siteNumber ? (c as any).siteNumber.replace('S-', '') : c.code || `S-${i+1}`,
+      siteNo: (c as any).siteNumber ? (c as any).siteNumber.replace('S-', '') : (c as any).code || `S-${i+1}`,
       siteName: c.name,
       fromDate: isLastMonth ? '2026-08-01' : '2026-09-01',
       toDate: isLastMonth ? '2026-08-31' : '2026-09-08',
@@ -192,9 +193,10 @@ export default function FinanceBilling() {
           </select>
         </div>
 
-        <div className="flex items-center space-x-2 border border-border rounded-lg px-4 py-2 bg-slate-50 text-sm font-bold text-slate-700 shadow-inner">
-          <span>{dateRangeStr}</span>
-          <Calendar className="w-4 h-4 text-accent ml-2" />
+        <div className="flex items-center space-x-2 bg-card p-1 rounded-md border border-border shadow-sm">
+          <input type="date" className="h-8 text-sm w-36 border-0 focus-visible:ring-0 shadow-none font-medium bg-transparent outline-none" defaultValue="2026-09-01" />
+          <span className="text-xs text-muted-foreground font-medium px-1">to</span>
+          <input type="date" className="h-8 text-sm w-36 border-0 focus-visible:ring-0 shadow-none font-medium bg-transparent outline-none" defaultValue="2026-09-08" />
         </div>
 
         <label className="flex items-center space-x-2 text-xs font-black uppercase tracking-widest text-slate-500 cursor-pointer hover:text-primary transition-colors bg-card border border-border py-2 px-4 rounded-lg shadow-sm">
@@ -202,7 +204,7 @@ export default function FinanceBilling() {
           <span>Last Month</span>
         </label>
 
-        <Button className="bg-primary hover:bg-primary-hover shadow-sm text-white px-5 py-2 rounded-lg text-sm font-bold transition-all hover:-translate-y-0.5">
+        <Button onClick={() => alert("Live search query execution will be available once the backend is integrated.")} className="bg-primary hover:bg-primary-hover shadow-sm text-white px-5 py-2 rounded-lg text-sm font-bold transition-all hover:-translate-y-0.5">
           <Search className="w-4 h-4 mr-2" /> Search
         </Button>
 

@@ -83,7 +83,7 @@ export default function AppLayout() {
   }
 
   useEffect(() => {
-    let faviconUrl = '/favicon.png';
+    let faviconUrl = '/favicon.png?v=3';
 
     if (user?.hospitalId) {
       const hospital = hospitals.find(h => h.id === user.hospitalId);
@@ -309,7 +309,8 @@ export default function AppLayout() {
               );
             }
             const Icon = link.icon!;
-            const isActive = location.pathname === link.path || location.pathname.startsWith(link.path + '/');
+            const fullPath = location.pathname + location.search;
+            const isActive = fullPath === link.path || location.pathname === link.path || location.pathname.startsWith(link.path + '/');
             return (
               <Link
                 key={link.path}

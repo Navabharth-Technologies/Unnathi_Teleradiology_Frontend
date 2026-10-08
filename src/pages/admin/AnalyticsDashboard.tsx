@@ -1,5 +1,6 @@
 import { useMockDb } from '../../store/useMockDb';
 import { useAuthStore } from '../../store/useAuthStore';
+import { exportToCSV } from '../../utils/export';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
 import { Activity, Briefcase, Stethoscope, TrendingUp, Download, Calendar } from 'lucide-react';
 import { Button } from '../../components/ui/button';
@@ -61,6 +62,14 @@ export default function AnalyticsDashboard() {
     { name: 'Sat', studies: Math.floor(totalStudies * 0.2), emergencies: Math.floor(totalStudies * 0.05) },
     { name: 'Sun', studies: Math.floor(totalStudies * 0.11), emergencies: Math.floor(totalStudies * 0.01) },
   ];
+  const handleExport = () => {
+    const exportData = centreData.map(c => ({
+      'Centre Name': c.name,
+      'Total Cases': c.cases,
+      'Est. Revenue': `Rs. ${c.revenue}`
+    }));
+    exportToCSV('analytics_export.csv', exportData);
+  };
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6 max-w-[1600px] mx-auto">
@@ -77,7 +86,7 @@ export default function AnalyticsDashboard() {
             <span className="text-xs text-muted-foreground font-medium px-1">to</span>
             <Input type="date" className="h-8 text-sm w-36 border-0 focus-visible:ring-0 shadow-none font-medium" defaultValue="2026-09-08" />
           </div>
-          <Button variant="outline" className="h-10">
+          <Button variant="outline" className="h-10" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" /> Export
           </Button>
         </div>

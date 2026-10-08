@@ -5,10 +5,9 @@ import { useMockDb } from '../../store/useMockDb';
 export default function SubscriptionsPlans() {
   const { sites, hospitals } = useMockDb();
   
-  // Combine sites and independent hospitals
   const entities = [
     ...sites.map(s => ({ ...s, entityType: 'Company' })),
-    ...hospitals.filter(h => h.organizationType === 'UNNATHI_MANAGED').map(h => ({ ...h, entityType: 'Independent Hospital' }))
+    ...hospitals.map(h => ({ ...h, entityType: h.organizationType === 'COMPANY_MANAGED' ? 'Company Hospital' : 'Independent Hospital' }))
   ];
 
   return (
@@ -52,13 +51,13 @@ export default function SubscriptionsPlans() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-slate-500">{entity.entityType}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-slate-900 font-medium">
-                    {entity.settings?.accountType || 'N/A'}
+                    {(entity as any).accountType || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-slate-500">
-                    {entity.settings?.accountType === 'Prepaid' 
-                      ? `₹${entity.settings?.walletBalance || 0} Wallet`
-                      : entity.settings?.accountType === 'Postpaid'
-                        ? `₹${entity.settings?.creditLimit || 0} Limit`
+                    {(entity as any).accountType === 'Prepaid' 
+                      ? `₹${(entity as any).walletBalance || 0} Wallet`
+                      : (entity as any).accountType === 'Postpaid'
+                        ? `₹${(entity as any).creditLimit || 0} Limit`
                         : 'N/A'}
                   </td>
                 </tr>

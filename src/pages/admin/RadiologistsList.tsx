@@ -318,13 +318,13 @@ export default function RadiologistsList() {
                 {(['name', 'email', 'phone', 'registrationId', 'qualification', 'signatureUrl', 'stampText'] as const).map(key => (
                   <div key={key} className="space-y-2">
                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1')}</label>
-                    <Input required value={form[key] as string} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} className="h-8 text-xs border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 bg-slate-50" />
+                    <Input autoComplete="new-password" required value={form[key] as string} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} className="h-8 text-xs border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 bg-slate-50" />
                   </div>
                 ))}
                 
                 <div className="space-y-2">
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{adding ? 'Password' : 'New Password (Optional)'}</label>
-                  <Input type="password" value={form.password || ''} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••" className="h-8 text-xs border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 bg-slate-50" />
+                  <Input autoComplete="new-password" type="password" value={form.password || ''} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder={adding ? "Enter password" : "Leave blank to keep current"} className="h-8 text-xs border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 bg-slate-50" />
                 </div>
                 
                 <div className="space-y-2">

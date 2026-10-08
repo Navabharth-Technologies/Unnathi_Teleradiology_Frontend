@@ -2,6 +2,18 @@ import React from 'react';
 import { Database, HardDrive, Server } from 'lucide-react';
 
 export default function StorageUsage() {
+  // To be populated by real-time API
+  const [storageData, setStorageData] = React.useState({
+    totalAllocated: 0,
+    totalUsed: 0,
+    available: 0
+  });
+  const [topConsumers, setTopConsumers] = React.useState<{name: string, used: string, total: string}[]>([]);
+
+  const handleDownload = () => {
+    alert("Export feature will be available once real-time data is integrated.");
+  };
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6 animate-unnathi-fade-in">
       <div className="flex justify-between items-end mb-6">
@@ -9,7 +21,7 @@ export default function StorageUsage() {
           <h1 className="text-2xl font-bold tracking-tight text-[#0D2461]">Storage & Usage</h1>
           <p className="text-sm text-slate-500 mt-1">Monitor platform-wide storage consumption and resources</p>
         </div>
-        <button className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        <button onClick={handleDownload} className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
           Download Report
         </button>
       </div>
@@ -18,21 +30,21 @@ export default function StorageUsage() {
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-sm text-slate-500 font-bold mb-1">Total Allocated</p>
-            <h3 className="text-3xl font-black text-[#0D2461]">500 TB</h3>
+            <h3 className="text-3xl font-black text-[#0D2461]">{storageData.totalAllocated} TB</h3>
           </div>
           <div className="p-4 bg-blue-50 rounded-xl text-blue-600"><Server className="w-8 h-8" /></div>
         </div>
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-sm text-slate-500 font-bold mb-1">Total Used</p>
-            <h3 className="text-3xl font-black text-rose-600">142.5 TB</h3>
+            <h3 className="text-3xl font-black text-rose-600">{storageData.totalUsed} TB</h3>
           </div>
           <div className="p-4 bg-rose-50 rounded-xl text-rose-600"><HardDrive className="w-8 h-8" /></div>
         </div>
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-sm text-slate-500 font-bold mb-1">Available</p>
-            <h3 className="text-3xl font-black text-emerald-600">357.5 TB</h3>
+            <h3 className="text-3xl font-black text-emerald-600">{storageData.available} TB</h3>
           </div>
           <div className="p-4 bg-emerald-50 rounded-xl text-emerald-600"><Database className="w-8 h-8" /></div>
         </div>
@@ -41,11 +53,7 @@ export default function StorageUsage() {
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h2 className="text-lg font-bold text-[#0D2461] mb-6">Top Consumers by Organization</h2>
         <div className="space-y-4">
-          {[
-            { name: 'City Scans & Diagnostics', used: '45', total: '100' },
-            { name: 'Metro Healthcare Group', used: '38', total: '50' },
-            { name: 'Global Imaging Labs', used: '22', total: '50' },
-          ].map(org => (
+          {topConsumers.length > 0 ? topConsumers.map(org => (
             <div key={org.name} className="flex flex-col gap-2">
               <div className="flex justify-between text-sm">
                 <span className="font-bold text-slate-700">{org.name}</span>
@@ -58,7 +66,9 @@ export default function StorageUsage() {
                 ></div>
               </div>
             </div>
-          ))}
+          )) : (
+            <p className="text-sm font-medium text-slate-500 py-4 text-center">Awaiting real-time data synchronization...</p>
+          )}
         </div>
       </div>
     </div>

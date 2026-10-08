@@ -9,7 +9,7 @@ export default function AuditLogs() {
           <h1 className="text-2xl font-bold tracking-tight text-[#0D2461]">Platform Audit Logs</h1>
           <p className="text-sm text-slate-500 mt-1">Global security and activity monitoring</p>
         </div>
-        <button className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+        <button onClick={() => alert("Advanced filters will be enabled when connected to the live audit database.")} className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
           <Filter className="w-4 h-4 mr-2" />
           Advanced Filters
         </button>
