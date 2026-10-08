@@ -83,7 +83,7 @@ export default function AppLayout() {
   }
 
   useEffect(() => {
-    let faviconUrl = '/favicon.ico';
+    let faviconUrl = '/favicon.png';
 
     if (user?.hospitalId) {
       const hospital = hospitals.find(h => h.id === user.hospitalId);
