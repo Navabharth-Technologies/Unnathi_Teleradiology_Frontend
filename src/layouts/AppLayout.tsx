@@ -1,5 +1,5 @@
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { type Role } from '../types';
 import {
@@ -35,9 +35,26 @@ const ROLE_BADGE: Partial<Record<Role, { bg: string; text: string }>> = {
 
 
 export default function AppLayout() {
-  const { isAuthenticated, currentRole, user, setRole, logout } = useAuthStore();
-  const location = useLocation();
-  const { sites, hospitals } = useMockDb();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsCleared, setNotificationsCleared] = useState(false);
+  const { sites, hospitals, studies, patients } = useMockDb();
+
+  // Generate real notifications based on data
+  const derivedNotifications = !notificationsCleared ? studies
+    .filter(s => s.priority === 'Emergency' || s.reportingStatus === 'New' || s.reportingStatus === 'Action Needed')
+    .slice(0, 5)
+    .map(s => {
+      const patient = patients.find(p => p.id === s.patientId);
+      const hospital = hospitals.find(h => h.id === s.hospitalId);
+      return {
+        id: s.id,
+        title: s.priority === 'Emergency' ? `Emergency Study: ${s.modality}` : `New Study: ${s.bodyPart}`,
+        message: `${patient?.name || 'Unknown Patient'} at ${hospital?.name || 'Unknown Hospital'}`,
+        time: s.reportingStatus === 'Action Needed' ? 'Action Required' : 'Just now'
+      };
+    }) : [];
+
+  const unreadCount = derivedNotifications.length;
 
   let currentLogo = logoImg;
   let siteName = 'Unnathi Teleradiology';
@@ -369,10 +386,65 @@ export default function AppLayout() {
           <div className="flex items-center space-x-6">
             
             {/* Notification */}
-            <button className="relative p-2.5 rounded-full text-[#64748B] hover:text-[#102A43] hover:bg-[#F1F5F9] transition-all">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#E76F51] border-2 border-white" />
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2.5 rounded-full text-[#64748B] hover:text-[#102A43] hover:bg-[#F1F5F9] transition-all"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#E76F51] border-2 border-white" />
+                )}
+              </button>
+              
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-[#E2E8F0] overflow-hidden z-50"
+                  >
+                    <div className="p-4 border-b border-[#E2E8F0] flex justify-between items-center bg-[#F8FAFC]">
+                      <h3 className="font-black text-[#102A43] text-sm">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <span className="text-[10px] font-bold bg-[#19B5C5]/10 text-[#19B5C5] px-2 py-0.5 rounded-full">{unreadCount} New</span>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {derivedNotifications.length > 0 ? (
+                        derivedNotifications.map(n => (
+                          <div key={n.id} className="p-4 border-b border-[#E2E8F0] hover:bg-[#F8FAFC] transition-colors cursor-pointer group">
+                            <p className="text-xs font-semibold text-[#334155] group-hover:text-[#102A43]">{n.title}</p>
+                            <p className="text-[11px] text-[#64748B] mt-0.5">{n.message}</p>
+                            <p className="text-[10px] text-[#94A3B8] font-bold mt-1">{n.time}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center text-[#94A3B8]">
+                          <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-xs font-semibold">No new notifications</p>
+                        </div>
+                      )}
+                    </div>
+                    {unreadCount > 0 && (
+                      <div className="p-3 border-t border-[#E2E8F0] bg-[#F8FAFC] text-center">
+                        <button 
+                          onClick={() => {
+                            setNotificationsCleared(true);
+                            setShowNotifications(false);
+                          }}
+                          className="text-[11px] font-black uppercase tracking-widest text-[#2563EB] hover:text-[#1D4ED8]"
+                        >
+                          Mark all as read
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             
             {/* Header Profile & Logout */}
             <div className="flex items-center space-x-4 pl-6 border-l border-[#E2E8F0]">

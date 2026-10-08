@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { useMockDb } from '../../store/useMockDb';
 import { exportToCSV } from '../../utils/export';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Button } from '../../components/ui/button';
-import { Calendar, Download, RefreshCw, Search, Building2, UserCircle2, FileText } from 'lucide-react';
+import { Calendar, Download, RefreshCw, Search, Building2, UserCircle2, FileText, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Card } from '../../components/ui/card';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 export default function FinanceBilling() {
   const { user } = useAuthStore();
@@ -54,7 +63,6 @@ export default function FinanceBilling() {
     };
   });
 
-
   // Filter radiologists based on role/access
   const scopedRadiologists = radiologists.filter(r => {
     if (user?.role === 'SUPER_ADMIN') return true;
@@ -66,7 +74,7 @@ export default function FinanceBilling() {
     return true;
   });
 
-  // Generate payout data based on radiologist studies (assuming 30% payout of template price)
+  // Generate payout data based on radiologist studies
   const payoutData = scopedRadiologists.map((r, i) => {
     const radStudies = studies.filter(s => s.assignedRadiologistId === r.id && (s.reportingStatus === 'Verified' || s.reportingStatus === 'Dispatched' || s.reportingStatus === 'Final'));
     const totalStudy = radStudies.length;
@@ -87,7 +95,7 @@ export default function FinanceBilling() {
       specialization: r.specialization,
       totalStudy,
       totalAmount,
-      paymentStatus: false, // You would need a payout table to track this properly
+      paymentStatus: false,
       serviceStatus: r.availability,
     };
   });
@@ -138,24 +146,26 @@ export default function FinanceBilling() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6 max-w-7xl mx-auto p-8">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-border pb-6 gap-4">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-border pb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Finance Billing</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage postpaid sites and radiologist payouts</p>
+          <h1 className="text-3xl font-black text-primary tracking-tight font-heading flex items-center">
+            <Building2 className="w-8 h-8 text-accent mr-3" /> Finance & Billing
+          </h1>
+          <p className="text-sm font-semibold text-slate-500 mt-1">Manage postpaid sites and radiologist payouts</p>
         </div>
         
-        <div className="flex bg-muted/50 p-1 rounded-md border border-border">
+        <div className="flex bg-slate-100 p-1.5 rounded-xl border border-border shadow-inner">
           {['Site Postpaid', 'Radiologist'].map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
-              className={`flex items-center px-4 py-1.5 text-sm font-medium rounded-sm transition-colors ${
+              onClick={() => { setActiveTab(tab as any); setSelectedFilter('All'); }}
+              className={`flex items-center px-5 py-2 text-sm font-bold rounded-lg transition-all ${
                 activeTab === tab 
-                  ? 'bg-card text-foreground shadow-sm border border-border' 
-                  : 'text-muted-foreground hover:text-foreground border border-transparent'
+                  ? 'bg-white text-primary shadow-md border border-transparent translate-y-[1px]' 
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-transparent'
               }`}
             >
               {tab === 'Site Postpaid' ? <Building2 className="w-4 h-4 mr-2" /> : <UserCircle2 className="w-4 h-4 mr-2" />}
@@ -163,15 +173,16 @@ export default function FinanceBilling() {
             </button>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Control Strip */}
-      <Card className="p-3">
-        <div className="flex flex-wrap items-center gap-3">
+      <motion.div variants={itemVariants} className="bg-card p-4 rounded-xl border border-border shadow-sm flex flex-wrap items-center gap-4">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <select 
             value={selectedFilter}
             onChange={(e) => setSelectedFilter(e.target.value)}
-            className="flex-1 min-w-[200px] h-9 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium transition-all duration-200 outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm"
+            className="w-full pl-9 pr-4 py-2 text-sm font-bold border border-border bg-slate-50 text-slate-700 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all shadow-inner"
           >
             <option value="All">All {activeTab === 'Site Postpaid' ? 'Sites' : 'Radiologists'}</option>
             {activeTab === 'Site Postpaid' 
@@ -179,137 +190,163 @@ export default function FinanceBilling() {
               : scopedRadiologists.map(r => <option key={r.id} value={r.id}>{r.name}</option>)
             }
           </select>
-
-          <div className="flex items-center space-x-2 border border-border rounded-md px-3 h-9 bg-card text-sm font-medium text-foreground shadow-sm">
-            <span>{dateRangeStr}</span>
-            <Calendar className="w-4 h-4 text-muted-foreground ml-2" />
-          </div>
-
-          <label className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground transition-colors bg-card border border-border h-9 px-3 rounded-md shadow-sm">
-            <input type="checkbox" checked={isLastMonth} onChange={(e) => setIsLastMonth(e.target.checked)} className="rounded border-border text-primary focus:ring-primary w-4 h-4" />
-            <span>Last Month</span>
-          </label>
-
-          <Button className="h-9 px-4">
-            <Search className="w-4 h-4 mr-2" /> Search
-          </Button>
-
-          <Button onClick={handleExport} variant="outline" className="h-9 px-4">
-            <Download className="w-4 h-4 mr-2" /> Export
-          </Button>
         </div>
-      </Card>
+
+        <div className="flex items-center space-x-2 border border-border rounded-lg px-4 py-2 bg-slate-50 text-sm font-bold text-slate-700 shadow-inner">
+          <span>{dateRangeStr}</span>
+          <Calendar className="w-4 h-4 text-accent ml-2" />
+        </div>
+
+        <label className="flex items-center space-x-2 text-xs font-black uppercase tracking-widest text-slate-500 cursor-pointer hover:text-primary transition-colors bg-card border border-border py-2 px-4 rounded-lg shadow-sm">
+          <input type="checkbox" checked={isLastMonth} onChange={(e) => setIsLastMonth(e.target.checked)} className="rounded border-slate-300 text-accent focus:ring-accent/50 w-4 h-4 cursor-pointer" />
+          <span>Last Month</span>
+        </label>
+
+        <Button className="bg-primary hover:bg-primary-hover shadow-sm text-white px-5 py-2 rounded-lg text-sm font-bold transition-all hover:-translate-y-0.5">
+          <Search className="w-4 h-4 mr-2" /> Search
+        </Button>
+
+        <Button onClick={handleExport} variant="outline" className="border-border hover:bg-slate-50 text-slate-700 px-5 py-2 rounded-lg text-sm font-bold shadow-sm transition-all">
+          <Download className="w-4 h-4 mr-2 text-slate-400" /> Export
+        </Button>
+      </motion.div>
 
       {/* Summary Badges */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="flex items-center p-4">
-          <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center mr-4">
-            <Building2 className="w-5 h-5 text-primary" />
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-gradient-to-br from-[#F8FAFC] to-[#EFF6FF] p-6 rounded-2xl border-t-4 border-t-blue-500 border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-blue-100/50 rounded-full blur-xl group-hover:bg-blue-200/50 transition-colors duration-500" />
+          <div className="relative z-10 flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[11px] font-black text-blue-600/80 uppercase tracking-widest">Total {activeTab === 'Site Postpaid' ? 'Hospitals' : 'Radiologists'}</h3>
+            <Building2 className="w-5 h-5 text-blue-600" />
           </div>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Total {activeTab === 'Site Postpaid' ? 'Hospitals' : 'Radiologists'}</p>
-            <p className="text-xl font-semibold text-foreground">{totalEntities}</p>
+          <div className="relative z-10 mt-2">
+            <div className="text-3xl font-black text-blue-950">{totalEntities}</div>
           </div>
-        </Card>
+        </div>
         
-        <Card className="flex items-center p-4">
-          <div className="w-10 h-10 rounded-md bg-secondary/10 flex items-center justify-center mr-4">
-            <FileText className="w-5 h-5 text-secondary" />
+        <div className="bg-gradient-to-br from-[#F8FAFC] to-[#F0FDF4] p-6 rounded-2xl border-t-4 border-t-emerald-500 border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-emerald-100/50 rounded-full blur-xl group-hover:bg-emerald-200/50 transition-colors duration-500" />
+          <div className="relative z-10 flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[11px] font-black text-emerald-600/80 uppercase tracking-widest">Total Studies</h3>
+            <FileText className="w-5 h-5 text-emerald-600" />
           </div>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Total Studies</p>
-            <p className="text-xl font-semibold text-foreground">{totalStudies}</p>
+          <div className="relative z-10 mt-2">
+            <div className="text-3xl font-black text-emerald-950">{totalStudies}</div>
           </div>
-        </Card>
+        </div>
 
-        <Card className="flex items-center p-4">
-          <div className="w-10 h-10 rounded-md bg-success/10 flex items-center justify-center mr-4">
-            <span className="font-semibold text-success text-lg">₹</span>
+        <div className="bg-gradient-to-br from-[#F8FAFC] to-[#FFF7ED] p-6 rounded-2xl border-t-4 border-t-orange-500 border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-orange-100/50 rounded-full blur-xl group-hover:bg-orange-200/50 transition-colors duration-500" />
+          <div className="relative z-10 flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[11px] font-black text-orange-600/80 uppercase tracking-widest">Total Amount</h3>
+            <div className="w-5 h-5 flex items-center justify-center font-bold text-orange-600">₹</div>
           </div>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Total Amount</p>
-            <p className="text-xl font-semibold text-success">₹ {totalAmount.toLocaleString('en-IN')}</p>
+          <div className="relative z-10 mt-2">
+            <div className="text-3xl font-black text-orange-950">₹ {totalAmount.toLocaleString('en-IN')}</div>
           </div>
-        </Card>
-      </div>
+        </div>
+      </motion.div>
 
       {/* Data Grid */}
-      <Card>
+      <motion.div variants={itemVariants} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-muted/50 border-b border-border">
-              <TableRow className="hover:bg-transparent">
+          <table className="min-w-full">
+            <thead className="bg-slate-50/50 border-b border-border">
+              <tr>
                 {activeTab === 'Site Postpaid' ? (
                   <>
-                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Site No</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Site Name</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Date Range</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Services</TableHead>
+                    <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Site No</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Site Name</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Date Range</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Services</th>
                   </>
                 ) : (
                   <>
-                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Rad ID</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Name</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Date Range</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">Specialization</TableHead>
+                    <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Rad ID</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Name</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Date Range</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Specialization</th>
                   </>
                 )}
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-right">Total Study</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-right">Total Amount</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-center">Payment Status</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-center">{activeTab === 'Site Postpaid' ? 'Service Status' : 'Status'}</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredData.map((row: any, idx: number) => (
-                <TableRow key={row.id || idx} className="hover:bg-muted/30 transition-colors border-b border-border group">
-                  <TableCell className="py-3 font-mono text-muted-foreground text-xs">{activeTab === 'Site Postpaid' ? row.siteNo : row.radId}</TableCell>
-                  <TableCell className="py-3 font-medium text-primary text-sm">{activeTab === 'Site Postpaid' ? row.siteName : row.name}</TableCell>
-                  <TableCell className="py-3">
-                    <div className="text-xs font-medium text-foreground">{row.fromDate}</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">to {row.toDate}</div>
-                  </TableCell>
-                  <TableCell className="py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase border ${row.services === 'Postpaid' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-success/10 text-success border-success/20'}`}>
-                      {activeTab === 'Site Postpaid' ? row.services : row.specialization}
-                    </span>
-                  </TableCell>
-                  <TableCell className="py-3 text-right font-medium text-foreground">{row.totalStudy}</TableCell>
-                  <TableCell className="py-3 text-right font-semibold text-success">₹ {row.totalAmount.toLocaleString('en-IN')}</TableCell>
-                  <TableCell className="py-3 text-center">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked={row.paymentStatus} />
-                      <div className="w-9 h-5 bg-muted border border-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-success peer-checked:border-success"></div>
-                    </label>
-                  </TableCell>
-                  <TableCell className="py-3 text-center">
-                    <span className="text-[10px] font-semibold text-success uppercase">{row.serviceStatus}</span>
-                  </TableCell>
-                  <TableCell className="py-3 text-right">
-                    {user?.role === 'SUPER_ADMIN' && activeTab === 'Site Postpaid' && !row.paymentStatus ? (
-                      <Button onClick={() => handleCollectDues(row.id)} size="sm" className="h-7 px-3 text-[10px] bg-success hover:bg-success/90 text-success-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                        Collect
-                      </Button>
-                    ) : (
-                      <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity" title={activeTab === 'Site Postpaid' ? 'Regenerate Bill Summary' : 'Process Payout'}>
-                        <RefreshCw className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                <th className="px-6 py-4 text-right text-[11px] font-black text-slate-500 uppercase tracking-widest">Total Study</th>
+                <th className="px-6 py-4 text-right text-[11px] font-black text-slate-500 uppercase tracking-widest">Total Amount</th>
+                <th className="px-6 py-4 text-center text-[11px] font-black text-slate-500 uppercase tracking-widest">Payment Status</th>
+                <th className="px-6 py-4 text-center text-[11px] font-black text-slate-500 uppercase tracking-widest">{activeTab === 'Site Postpaid' ? 'Service Status' : 'Status'}</th>
+                <th className="px-6 py-4 text-right text-[11px] font-black text-slate-500 uppercase tracking-widest">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border text-sm">
+              <AnimatePresence>
+                {filteredData.map((row: any, idx: number) => (
+                  <motion.tr 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    key={row.id || idx} 
+                    className="hover:bg-accent/5 hover:-translate-y-[2px] hover:shadow-md hover:z-10 relative bg-card transition-all duration-300 ease-out group"
+                  >
+                    <td className="px-6 py-4 font-black text-slate-500 text-xs tracking-tight">{activeTab === 'Site Postpaid' ? row.siteNo : row.radId}</td>
+                    <td className="px-6 py-4 font-black text-primary flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center mr-3">
+                        {activeTab === 'Site Postpaid' ? <Building2 className="w-4 h-4 text-accent" /> : <UserCircle2 className="w-4 h-4 text-accent" />}
+                      </div>
+                      {activeTab === 'Site Postpaid' ? row.siteName : row.name}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs font-bold text-slate-700">{row.fromDate}</div>
+                      <div className="text-[10px] font-bold text-slate-400 mt-0.5">to {row.toDate}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-[9px] uppercase tracking-widest font-black rounded shadow-sm border ${row.services === 'Postpaid' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                        {activeTab === 'Site Postpaid' ? row.services : row.specialization}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right font-black text-slate-700 text-base">{row.totalStudy}</td>
+                    <td className="px-6 py-4 text-right font-black text-emerald-600 text-base">₹ {row.totalAmount.toLocaleString('en-IN')}</td>
+                    <td className="px-6 py-4 text-center">
+                      <label className="relative inline-flex items-center cursor-pointer hover:opacity-80 transition-opacity">
+                        <input type="checkbox" className="sr-only peer" defaultChecked={row.paymentStatus} />
+                        <div className="w-10 h-5.5 bg-slate-200 border border-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-500 peer-checked:border-emerald-600 shadow-inner"></div>
+                      </label>
+                    </td>
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
+                      <span className="px-2 py-1 inline-flex items-center text-[9px] uppercase tracking-widest font-black rounded-full bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                        {row.serviceStatus}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        {user?.role === 'SUPER_ADMIN' && activeTab === 'Site Postpaid' && !row.paymentStatus ? (
+                          <button onClick={() => handleCollectDues(row.id)} className="text-emerald-700 bg-emerald-50 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg border border-transparent hover:border-emerald-500/20 transition-all text-[11px] font-black uppercase tracking-widest flex items-center">
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Collect
+                          </button>
+                        ) : (
+                          <button title={activeTab === 'Site Postpaid' ? 'Regenerate Bill Summary' : 'Process Payout'} className="text-accent bg-accent/10 hover:bg-accent hover:text-white p-2 rounded-lg border border-transparent hover:border-accent/20 transition-all">
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
               {filteredData.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground text-sm">
-                    No billing records found
-                  </TableCell>
-                </TableRow>
+                <tr>
+                  <td colSpan={9} className="text-center py-16">
+                    <div className="flex flex-col items-center justify-center text-slate-400">
+                      <FileText className="w-12 h-12 mb-3 text-slate-300" />
+                      <p className="text-sm font-bold">No billing records found</p>
+                      <p className="text-xs font-semibold mt-1">Try adjusting your filters or date range</p>
+                    </div>
+                  </td>
+                </tr>
               )}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
-      </Card>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

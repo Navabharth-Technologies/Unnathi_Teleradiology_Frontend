@@ -109,7 +109,12 @@ export default function AdvancedReporting() {
   }, [accessibleStudies, searchTerm, emergencyFilter, statusFilter, siteFilter, modalityFilter, studyNameFilter, radiologistFilter, patients]);
 
   // Derived options for dropdowns
-  const availableSites = useMemo(() => hospitals.filter(h => accessibleStudies.some(s => s.hospitalId === h.id)), [hospitals, accessibleStudies]);
+  const availableSites = useMemo(() => {
+    if (user?.role === 'SUPER_ADMIN') return hospitals;
+    if (user?.role === 'SITE_ADMIN') return hospitals.filter(h => h.parentSiteId === user.siteId);
+    if (selectedHospitalId) return hospitals.filter(h => h.id === selectedHospitalId);
+    return hospitals.filter(h => accessibleStudies.some(s => s.hospitalId === h.id));
+  }, [hospitals, user, selectedHospitalId, accessibleStudies]);
   const availableModalities = useMemo(() => Array.from(new Set(accessibleStudies.map(s => s.modality))), [accessibleStudies]);
   const availableStudyNames = useMemo(() => Array.from(new Set(accessibleStudies.map(s => s.bodyPart))), [accessibleStudies]);
   const availableRadiologists = useMemo(() => {
@@ -430,8 +435,10 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
             <Button onClick={() => setEmergencyFilter(!emergencyFilter)} className={`text-xs px-4 py-2 rounded-xl font-bold shadow-sm transition-all ${emergencyFilter ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
               Emergency
             </Button>
-            <select className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none transition-colors">
-              <option>Assigned studies</option>
+            <select className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors">
+              <option value="all">Assigned Studies (All)</option>
+              <option value="today">Assigned Today</option>
+              <option value="urgent">Urgent / Emergency</option>
             </select>
           </div>
           
