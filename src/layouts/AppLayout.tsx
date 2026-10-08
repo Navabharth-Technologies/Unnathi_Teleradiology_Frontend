@@ -35,6 +35,8 @@ const ROLE_BADGE: Partial<Record<Role, { bg: string; text: string }>> = {
 
 
 export default function AppLayout() {
+  const { isAuthenticated, currentRole, user, setRole, logout } = useAuthStore();
+  const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationsCleared, setNotificationsCleared] = useState(false);
   const { sites, hospitals, studies, patients } = useMockDb();
