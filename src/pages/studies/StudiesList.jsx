@@ -68,29 +68,31 @@ export default function StudiesList() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto animate-unnathi-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/40 pb-6 relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-accent/5 to-transparent -z-10 rounded-xl blur-xl"></div>
         <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+          <h1 className="text-2xl font-bold text-primary flex items-center gap-2 tracking-tight">
+            <ClipboardList className="w-5 h-5 text-accent" />
             Study Worklist
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage and assign all incoming diagnostic studies
+          <p className="text-sm font-medium text-slate-500 mt-1 pl-7">
+            Manage and assign all incoming diagnostic studies efficiently
           </p>
         </div>
         <div className="flex space-x-3">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-accent transition-colors" />
             <Input
               placeholder="Search by case or accession..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 w-[300px]"
+              className="pl-9 w-[300px] border-border/50 bg-background/50 backdrop-blur-sm focus:border-accent/50 focus:ring-accent/20 transition-all shadow-sm hover:shadow-md"
             />
           </div>
           {currentRole !== "Accountant" && (
-            <Button onClick={() => navigate("/studies/new")}>
+            <Button onClick={() => navigate("/studies/new")} className="bg-accent hover:bg-accent/90 text-white shadow-md shadow-accent/20 transition-all duration-300 hover:shadow-lg hover:shadow-accent/30 hover:-translate-y-0.5">
               <PlusCircle className="w-4 h-4 mr-2" /> Add Study
             </Button>
           )}
@@ -98,33 +100,34 @@ export default function StudiesList() {
       </div>
 
       {/* Data Grid */}
-      <Card>
+      <Card className="border border-border/50 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-background/40 to-background/10 backdrop-blur-sm -z-10 pointer-events-none"></div>
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-muted/50 border-b border-border">
+            <TableHeader className="bg-muted/30 backdrop-blur-md border-b border-border/50">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">
+                <TableHead className="text-xs font-bold text-slate-400 uppercase py-4 tracking-wider">
                   Case No
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">
+                <TableHead className="text-xs font-bold text-slate-400 uppercase py-4 tracking-wider">
                   Patient
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">
+                <TableHead className="text-xs font-bold text-slate-400 uppercase py-4 tracking-wider">
                   Hospital
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">
+                <TableHead className="text-xs font-bold text-slate-400 uppercase py-4 tracking-wider">
                   Modality/Study
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">
+                <TableHead className="text-xs font-bold text-slate-400 uppercase py-4 tracking-wider">
                   Priority
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">
+                <TableHead className="text-xs font-bold text-slate-400 uppercase py-4 tracking-wider">
                   Status
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3">
+                <TableHead className="text-xs font-bold text-slate-400 uppercase py-4 tracking-wider">
                   Date
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase py-3 text-right">
+                <TableHead className="text-xs font-bold text-slate-400 uppercase py-4 tracking-wider text-right">
                   Actions
                 </TableHead>
               </TableRow>
@@ -133,10 +136,10 @@ export default function StudiesList() {
               {filtered.map((study) => (
                 <TableRow
                   key={study.id}
-                  className="hover:bg-muted/30 transition-colors border-b border-border group cursor-pointer"
+                  className="hover:bg-accent/5 transition-all duration-200 border-b border-border/40 group cursor-pointer"
                   onClick={() => navigate(`/viewer/${study.id}`)}
                 >
-                  <TableCell className="py-3 font-medium text-foreground text-sm">
+                  <TableCell className="py-4 font-bold text-foreground text-sm">
                     {study.caseNumber}
                   </TableCell>
                   <TableCell className="py-3 font-medium text-primary text-sm">
