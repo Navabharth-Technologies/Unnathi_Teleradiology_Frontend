@@ -80,9 +80,11 @@ export default function RadiologistsList() {
     setEditItem(r);
   };
 
-  const handleSave = () => {
+  const handleSave = (e?: React.MouseEvent) => {
+    e?.preventDefault();
     if (adding) {
-      const newUserId = 'u' + Date.now();
+      setAdding(false);
+      const newUserId = 'u' + Date.now() + Math.floor(Math.random() * 1000);
       if (form.email && form.password) {
         addUser({
           id: newUserId,
@@ -114,13 +116,13 @@ export default function RadiologistsList() {
         reportingRate: form.reportingRate,
         assignedHospitals: form.assignedHospitals,
         status: form.status,
-        id: 'r' + Date.now(), 
+        id: 'r' + Date.now() + Math.floor(Math.random() * 1000), 
         userId: newUserId, 
         siteId: user?.siteId || null 
       }); 
-      setAdding(false); 
     }
     else if (editItem) { 
+      setEditItem(null);
       // Update User if email/password is provided
       const relatedUser = users.find(u => u.id === editItem.userId);
       if (relatedUser) {
@@ -150,7 +152,6 @@ export default function RadiologistsList() {
         assignedHospitals: form.assignedHospitals,
         status: form.status,
       }); 
-      setEditItem(null); 
     }
   };
 
@@ -388,7 +389,7 @@ export default function RadiologistsList() {
 
             <div className="bg-white py-3 px-5 border-t border-slate-100 flex justify-end gap-4 shrink-0 shadow-sm">
               <Button type="button" variant="outline" onClick={() => { setAdding(false); setEditItem(null); }} className="w-32 border-slate-200 font-bold hover:bg-slate-50">Cancel</Button>
-              <Button type="submit" onClick={handleSave} className="w-40 bg-[#0D2461] hover:bg-[#081840] text-white font-bold shadow-md shadow-[#0D2461]/20">{adding ? 'Onboard Doctor' : 'Save Details'}</Button>
+              <Button type="button" onClick={handleSave} className="w-40 bg-[#0D2461] hover:bg-[#081840] text-white font-bold shadow-md shadow-[#0D2461]/20">{adding ? 'Onboard Doctor' : 'Save Details'}</Button>
             </div>
           </div>
         </div>,
