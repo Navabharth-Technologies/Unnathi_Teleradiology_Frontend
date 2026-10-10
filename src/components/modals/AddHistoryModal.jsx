@@ -154,7 +154,7 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
     <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="bg-[#0D2461] p-4 flex justify-between items-center text-white">
+        <div className="bg-[#0D2461] p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-white">
           <h2 className="font-black text-lg tracking-wide flex items-center">
             Clinical History & Assignment
           </h2>
@@ -452,18 +452,6 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
                                 )?.name === activeHospital.name
                               )
                                 return true;
-                              // ULTIMATE FALLBACK:
-                              // If there's a database mismatch from older versions, just unblock the user.
-                              // Any radiologist that is NOT explicitly a global mock doctor ('Namith' / 'Tejashwini')
-                              // will be allowed to appear in the independent hospital's list.
-                              const isKnownGlobal =
-                                r.name.toLowerCase().includes("namith") ||
-                                r.name.toLowerCase().includes("tejashwini") ||
-                                r.name.toLowerCase().includes("global");
-                              if (!isKnownGlobal) {
-                                return true;
-                              }
-
                               return false;
                             }
                             // For Teleradiology Sites or Unknown hospitals:

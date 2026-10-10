@@ -1,15 +1,16 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../ui/button";
-import { AlertTriangle, X } from "lucide-react";
+import { HelpCircle, X } from "lucide-react";
 
-export function ConfirmDeleteModal({
+export function ConfirmActionModal({
   isOpen,
   onClose,
   onConfirm,
-  title = "Confirm Deletion",
-  message = "Are you sure you want to delete this item? This action cannot be undone.",
+  title = "Confirm Action",
+  message = "Are you sure you want to perform this action?",
   itemName,
+  confirmButtonText = "Confirm",
 }) {
   if (!isOpen) return null;
 
@@ -17,18 +18,18 @@ export function ConfirmDeleteModal({
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[150] animate-in fade-in p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="bg-rose-50 border-b border-rose-100 p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
+        <div className="bg-blue-50 border-b border-blue-100 p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="bg-rose-100 p-2 rounded-full text-rose-600">
-              <AlertTriangle className="w-5 h-5" />
+            <div className="bg-blue-100 p-2 rounded-full text-blue-600">
+              <HelpCircle className="w-5 h-5" />
             </div>
-            <h2 className="text-lg font-black text-rose-900 tracking-tight">
+            <h2 className="text-lg font-black text-blue-900 tracking-tight">
               {title}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-rose-400 hover:text-rose-700 hover:bg-rose-100 transition-colors p-2 rounded-full"
+            className="text-blue-400 hover:text-blue-700 hover:bg-blue-100 transition-colors p-2 rounded-full"
           >
             <X className="w-5 h-5" />
           </button>
@@ -66,9 +67,9 @@ export function ConfirmDeleteModal({
               onConfirm();
               onClose();
             }}
-            className="bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-md shadow-rose-600/20"
+            className="bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-md shadow-blue-600/20"
           >
-            Delete Forever
+            {confirmButtonText}
           </Button>
         </div>
       </div>

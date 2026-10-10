@@ -63,7 +63,7 @@ export default function ReportsGenerator() {
         </div>
       )}
 
-      <div className="flex justify-between items-center bg-[#0D2461] p-4 rounded-xl shadow-sm text-white">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[#0D2461] p-4 rounded-xl shadow-sm text-white">
         <div className="flex items-center space-x-4">
           <div className="p-2 bg-white/10 rounded-lg">
             <BarChart3 className="w-6 h-6 text-white" />
@@ -196,7 +196,7 @@ export default function ReportsGenerator() {
                 {recentExports.map((file) => (
                   <div
                     key={file.id}
-                    className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors group"
+                    className="p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-slate-50 transition-colors group"
                   >
                     <div className="flex items-center space-x-3 overflow-hidden">
                       <div

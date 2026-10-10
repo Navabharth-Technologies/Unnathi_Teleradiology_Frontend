@@ -23,7 +23,7 @@ export default function EmergencyStudies() {
   return (
     <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
       {/* Modern Top Header */}
-      <div className="flex justify-between items-center bg-card p-5 rounded-lg shadow-sm border border-border">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-5 rounded-lg shadow-sm border border-border">
         <div className="flex items-center space-x-6">
           <div className="flex items-center">
             <div className="bg-destructive/10 p-2 rounded-md mr-4 border border-destructive/20">

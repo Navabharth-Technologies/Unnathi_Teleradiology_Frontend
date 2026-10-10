@@ -106,7 +106,7 @@ const Verification = () => {
         <div className="lg:col-span-2">
           {selectedReport ? (
             <div className="bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col h-full min-h-[600px]">
-              <div className="bg-gray-50 border-b p-4 flex justify-between items-center">
+              <div className="bg-gray-50 border-b p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                   <h2 className="font-bold text-lg text-gray-900">
                     Report Preview: {patient?.name || "Unknown"}

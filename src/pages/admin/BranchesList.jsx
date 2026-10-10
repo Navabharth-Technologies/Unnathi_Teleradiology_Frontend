@@ -91,7 +91,7 @@ export default function BranchesList() {
   return (
     <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
       {/* Modern Top Header */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center space-x-6">
           <div>
             <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">
@@ -109,7 +109,7 @@ export default function BranchesList() {
               placeholder="Search branches..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-10 w-[300px] h-10 text-sm bg-slate-50 text-slate-900 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] transition-all shadow-inner"
+              className="pr-10 w-full md:w-[300px] h-10 text-sm bg-slate-50 text-slate-900 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] transition-all shadow-inner"
             />
           </div>
           <Button

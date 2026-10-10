@@ -87,7 +87,7 @@ export default function RadiologistWorklist() {
               placeholder="Search by case or modality..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 w-[300px]"
+              className="pl-9 w-full md:w-[300px]"
             />
           </div>
           {user?.role !== "RADIOLOGIST" ? (

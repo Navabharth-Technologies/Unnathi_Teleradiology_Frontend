@@ -297,7 +297,7 @@ export default function SiteList() {
         return (
           <div className="flex flex-col h-[70vh] -mx-5 -mb-5 bg-slate-50">
             {/* Header Stats */}
-            <div className="bg-white border-b border-slate-200 p-4 flex justify-between items-center text-xs font-bold shrink-0 shadow-sm z-20">
+            <div className="bg-white border-b border-slate-200 p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs font-bold shrink-0 shadow-sm z-20">
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2 text-slate-600">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></div>{" "}
@@ -756,7 +756,7 @@ export default function SiteList() {
   return (
     <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
       {/* Modern Top Header */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center space-x-6">
           <div>
             <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">

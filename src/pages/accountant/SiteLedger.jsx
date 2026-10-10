@@ -185,7 +185,7 @@ export default function SiteLedger() {
     <>
       <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
         {/* Modern Top Header */}
-        <div className="flex justify-between items-center bg-card p-5 rounded-2xl shadow-sm border border-border">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-5 rounded-2xl shadow-sm border border-border">
           <div className="flex items-center space-x-6">
             <div className="p-3 bg-blue-500/10 rounded-xl text-blue-500 border border-blue-500/20 shadow-inner">
               <FileText className="w-6 h-6" />
@@ -234,7 +234,7 @@ export default function SiteLedger() {
                 placeholder="Search site, email, mob..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-[250px] h-11 rounded-xl bg-background border-border focus:border-accent focus:ring-accent/20 text-sm font-bold shadow-inner transition-all"
+                className="pl-9 w-full md:w-[250px] h-11 rounded-xl bg-background border-border focus:border-accent focus:ring-accent/20 text-sm font-bold shadow-inner transition-all"
               />
             </div>
           </div>

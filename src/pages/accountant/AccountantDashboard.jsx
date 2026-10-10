@@ -99,7 +99,7 @@ export default function AccountantDashboard() {
   return (
     <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
       {/* Modern Top Header */}
-      <div className="flex justify-between items-center bg-card p-5 rounded-2xl shadow-sm border border-border">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-5 rounded-2xl shadow-sm border border-border">
         <div className="flex items-center space-x-6">
           <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500 border border-emerald-500/20">
             <TrendingUp className="w-6 h-6" />
@@ -123,7 +123,7 @@ export default function AccountantDashboard() {
 
       {/* Premium Widgets */}
       <div
-        className="grid grid-cols-1 md:grid-cols-5 gap-4 animate-unnathi-slide-up"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 animate-unnathi-slide-up"
         style={{ animationDelay: "100ms" }}
       >
         {/* Total Revenue */}

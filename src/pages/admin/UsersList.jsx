@@ -150,6 +150,8 @@ export default function UsersList() {
           ? currentUser.hospitalId || undefined
           : undefined,
       siteId: undefined,
+      password: "",
+      loginMode: "Password",
     });
     setAdding(true);
   };
@@ -412,7 +414,7 @@ export default function UsersList() {
         createPortal(
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-card w-full max-w-md rounded-lg shadow-level-3 border border-border">
-              <div className="p-5 border-b border-border flex justify-between items-center bg-muted/30 rounded-t-lg">
+              <div className="p-5 border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-muted/30 rounded-t-lg">
                 <h2 className="text-lg font-semibold text-primary">
                   User Details
                 </h2>
@@ -481,8 +483,8 @@ export default function UsersList() {
       {(adding || editItem) &&
         createPortal(
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-card w-full max-w-md rounded-lg shadow-level-3 border border-border flex flex-col max-h-[90vh]">
-              <div className="p-5 border-b border-border flex justify-between items-center bg-muted/30 rounded-t-lg">
+            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="bg-card w-full max-w-md rounded-lg shadow-level-3 border border-border flex flex-col max-h-[90vh]">
+              <div className="p-5 border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-muted/30 rounded-t-lg">
                 <h2 className="text-lg font-semibold text-primary">
                   {adding ? "Add New User" : "Edit User Settings"}
                 </h2>
@@ -518,8 +520,25 @@ export default function UsersList() {
                       setForm({ ...form, email: e.target.value })
                     }
                     placeholder="e.g. doctor@hospital.com"
+                    required
                   />
                 </div>
+                {adding && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase">
+                      Password
+                    </label>
+                    <Input
+                      type="password"
+                      value={form.password || ""}
+                      onChange={(e) =>
+                        setForm({ ...form, password: e.target.value })
+                      }
+                      placeholder="Enter password"
+                      required
+                    />
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-muted-foreground uppercase">
@@ -596,21 +615,18 @@ export default function UsersList() {
                 </div>
               </div>
               <div className="p-5 border-t border-border flex justify-end gap-3 bg-muted/30 rounded-b-lg">
-                <Button
-                  variant="outline"
-                  onClick={() => {
+                  <Button type="button" variant="outline" onClick={() => {
                     setAdding(false);
                     setEditItem(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleSave}>
-                  {adding ? "Create User" : "Save Changes"}
-                </Button>
-              </div>
-            </div>
-          </div>,
+                  }}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {adding ? "Create User" : "Save Changes"}
+                  </Button>
+                </div>
+              </form>
+            </div>,
           document.body,
         )}
 
@@ -619,7 +635,7 @@ export default function UsersList() {
         createPortal(
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-card w-full max-w-sm rounded-lg shadow-level-3 border border-border">
-              <div className="p-5 border-b border-border flex justify-between items-center bg-muted/30 rounded-t-lg">
+              <div className="p-5 border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-muted/30 rounded-t-lg">
                 <h2 className="text-lg font-semibold text-primary">
                   Reset Password
                 </h2>

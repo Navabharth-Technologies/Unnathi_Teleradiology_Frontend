@@ -342,7 +342,7 @@ export default function GlobalBilling() {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto animate-unnathi-fade-in">
-      <div className="flex justify-between items-center mb-8 bg-card p-5 rounded-2xl shadow-sm border border-border">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-card p-5 rounded-2xl shadow-sm border border-border">
         <div>
           <h1 className="text-2xl font-black text-primary tracking-tight">
             {user?.role === "SUPER_ADMIN"
@@ -432,7 +432,7 @@ export default function GlobalBilling() {
         className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden animate-unnathi-slide-up"
         style={{ animationDelay: "100ms" }}
       >
-        <div className="p-5 border-b border-border bg-slate-50/50 flex justify-between items-center">
+        <div className="p-5 border-b border-border bg-slate-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h2 className="text-lg font-black text-primary">
             Organizational Ledger
           </h2>

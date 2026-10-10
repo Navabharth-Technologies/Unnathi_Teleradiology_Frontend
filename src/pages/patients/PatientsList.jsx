@@ -64,7 +64,7 @@ export default function PatientsList() {
               placeholder="Search by Name or UHID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 w-[300px]"
+              className="pl-9 w-full md:w-[300px]"
             />
           </div>
           <Button onClick={() => navigate("/patients/new")} variant="default">
@@ -161,7 +161,7 @@ export default function PatientsList() {
       {editItem && (
         <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
           <div className="bg-card w-full max-w-md rounded-lg shadow-level-3 border border-border flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-4 duration-300">
-            <div className="p-5 border-b border-border flex justify-between items-center bg-muted/30 rounded-t-lg">
+            <div className="p-5 border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-muted/30 rounded-t-lg">
               <h2 className="text-lg font-semibold text-primary">
                 Edit Patient
               </h2>
@@ -247,7 +247,7 @@ export default function PatientsList() {
       {viewItem && (
         <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
           <div className="bg-card w-full max-w-md rounded-lg shadow-level-3 border border-border flex flex-col animate-in slide-in-from-bottom-4 duration-300">
-            <div className="p-5 border-b border-border flex justify-between items-center bg-muted/30 rounded-t-lg">
+            <div className="p-5 border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-muted/30 rounded-t-lg">
               <h2 className="text-lg font-semibold text-primary">
                 Patient Details
               </h2>

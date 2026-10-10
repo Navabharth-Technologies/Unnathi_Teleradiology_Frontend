@@ -37,7 +37,7 @@ export default function StaffDashboard() {
   return (
     <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
       {/* Modern Top Header */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center space-x-6">
           <div>
             <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">

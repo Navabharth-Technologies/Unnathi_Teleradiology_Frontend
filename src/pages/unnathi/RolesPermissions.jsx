@@ -156,7 +156,7 @@ export default function RolesPermissions() {
       </div>
 
       <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden animate-unnathi-slide-up">
-        <div className="p-4 border-b border-border flex justify-between items-center bg-slate-50/30">
+        <div className="p-4 border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50/30">
           <div className="relative w-72 group">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent transition-colors" />
             <input

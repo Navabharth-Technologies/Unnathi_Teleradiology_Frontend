@@ -359,7 +359,7 @@ export default function Utilities() {
       {activeModal && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
           <div className="bg-card w-full max-w-lg rounded-lg shadow-level-3 border border-border flex flex-col animate-in slide-in-from-bottom-4 duration-300">
-            <div className="flex justify-between items-center p-5 border-b border-border bg-muted/30 rounded-t-lg">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-5 border-b border-border bg-muted/30 rounded-t-lg">
               <h2 className="text-lg font-semibold text-primary">
                 {activeModal}
               </h2>

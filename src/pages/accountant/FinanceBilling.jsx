@@ -12,6 +12,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useAuthStore } from "../../store/useAuthStore";
+import { ConfirmActionModal } from "../../components/modals/ConfirmActionModal";
 import { motion, AnimatePresence } from "framer-motion";
 
 const containerVariants = {
@@ -42,6 +43,7 @@ export default function FinanceBilling() {
   const [activeTab, setActiveTab] = useState("Site Postpaid");
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [isLastMonth, setIsLastMonth] = useState(false);
+  const [confirmModalState, setConfirmModalState] = useState({ isOpen: false, hospitalId: null });
 
   // Filter entities (sites + hospitals) based on role/access
   const allEntities = [...hospitals];
@@ -194,14 +196,14 @@ export default function FinanceBilling() {
   };
 
   const handleCollectDues = (hospitalId) => {
-    if (
-      confirm(
-        "Are you sure you want to mark these studies as paid for the Super Admin?",
-      )
-    ) {
+    setConfirmModalState({ isOpen: true, hospitalId });
+  };
+
+  const confirmCollectDues = () => {
+    if (confirmModalState.hospitalId) {
       const unbilledStudies = studies.filter(
         (s) =>
-          s.hospitalId === hospitalId &&
+          s.hospitalId === confirmModalState.hospitalId &&
           ["Final", "Verified", "Dispatched"].includes(s.reportingStatus) &&
           s.superAdminPaymentStatus !== "Paid",
       );
@@ -545,6 +547,15 @@ export default function FinanceBilling() {
           </table>
         </div>
       </motion.div>
+
+      <ConfirmActionModal
+        isOpen={confirmModalState.isOpen}
+        onClose={() => setConfirmModalState({ isOpen: false, hospitalId: null })}
+        onConfirm={confirmCollectDues}
+        title="Mark as Paid"
+        message="Are you sure you want to mark these studies as paid for the Super Admin? This action cannot be undone."
+        confirmButtonText="Mark as Paid"
+      />
     </motion.div>
   );
 }

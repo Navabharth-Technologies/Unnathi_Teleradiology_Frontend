@@ -19,6 +19,8 @@ import {
   Wrench,
   MonitorDot,
   Settings,
+  Menu,
+  X
 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -61,6 +63,7 @@ export default function AppLayout() {
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationsCleared, setNotificationsCleared] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { sites, hospitals, studies, patients } = useMockDb();
 
   // Generate real notifications based on data
@@ -143,6 +146,10 @@ export default function AppLayout() {
     link.href = faviconUrl;
     document.getElementsByTagName("head")[0].appendChild(link);
   }, [user, sites, hospitals, siteName]);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname, location.search]);
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
@@ -245,8 +252,8 @@ export default function AppLayout() {
       case "HOSPITAL_ADMIN": {
         const hospital = useMockDb
           .getState()
-          .hospitals.find((h) => h.id === user?.hospitalId);
-        if (hospital?.organizationType === "COMPANY_MANAGED") {
+          .hospitals.find((h) => h.id === user?.hospitalId || h.Id === user?.hospitalId);
+        if (hospital?.organizationType === "COMPANY_MANAGED" || hospital?.OrganizationType === "COMPANY_MANAGED") {
           return [
             { label: "DICOM Receive", path: "/dicom-receive", icon: FileImage },
             { label: "Studies Dashboard", path: "/studies", icon: FileSearch },
@@ -339,6 +346,19 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen flex bg-[#F8FAFC] relative overflow-hidden font-sans">
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-[#0A1A2A]/50 backdrop-blur-sm z-40 md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* ── Soft Clinical Ambient Background ── */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-[#F8FAFC]">
         <ParticleBackground />
@@ -419,31 +439,36 @@ export default function AppLayout() {
 
       {/* ── Premium Clinical Sidebar ────────────────────────────────────────── */}
       <motion.aside
-        initial={{ x: -250 }}
-        animate={{ x: 0 }}
-        transition={{
-          duration: 0.5,
-          type: "spring",
-          stiffness: 200,
-          damping: 25,
-        }}
-        className="w-[280px] flex flex-col shrink-0 bg-gradient-to-b from-[#102A43] to-[#0A1A2A] text-white shadow-[10px_0_30px_rgba(16,42,67,0.15)] z-30 relative group"
+        initial={false}
+        className={cn(
+          "w-[280px] flex flex-col shrink-0 bg-gradient-to-b from-[#102A43] to-[#0A1A2A] text-white shadow-[10px_0_30px_rgba(16,42,67,0.15)] z-50 fixed inset-y-0 left-0 group md:relative",
+          "md:translate-x-0 transition-transform duration-300",
+          !isMobileMenuOpen ? "-translate-x-full" : "translate-x-0"
+        )}
       >
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none" />
 
         {/* Logo Area */}
-        <div className="flex flex-col items-center justify-center pt-8 pb-6 px-6 border-b border-white/10 relative z-10">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            transition={{ type: "spring" }}
-          >
-            <img
-              src={currentLogo}
-              alt={siteName}
-              className="w-48 object-contain"
-              style={{ maxHeight: "50px" }}
-            />
-          </motion.div>
+        <div className="flex flex-col items-center justify-center pt-8 pb-6 px-6 border-b border-white/10 relative z-10 flex-shrink-0 min-h-[120px]">
+          <div className="flex items-center justify-between w-full md:justify-center">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring" }}
+            >
+              <img
+                src={currentLogo}
+                alt={siteName}
+                className="w-48 object-contain"
+                style={{ maxHeight: "50px" }}
+              />
+            </motion.div>
+            <button 
+              className="md:hidden text-white/70 hover:text-white"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
         </div>
 
         {/* Role indicator */}
@@ -527,12 +552,18 @@ export default function AppLayout() {
       {/* ── Main Content Area ───────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-20">
         {/* Bright Clean Header */}
-        <header className="h-[76px] bg-white/90 backdrop-blur-xl shrink-0 flex items-center justify-between px-8 border-b border-[#E2E8F0] shadow-sm relative z-20">
+        <header className="h-[76px] bg-white/90 backdrop-blur-xl shrink-0 flex items-center justify-between px-4 md:px-8 border-b border-[#E2E8F0] shadow-sm relative z-20">
           {/* Context / Role */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center gap-3 bg-[#F8FAFC] border border-[#E2E8F0] px-4 py-1.5 rounded-full shadow-inner">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 rounded-lg text-[#64748B] hover:bg-[#F1F5F9] transition-colors"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+            <div className="flex items-center gap-2 md:gap-3 bg-[#F8FAFC] border border-[#E2E8F0] px-3 md:px-4 py-1.5 rounded-full shadow-inner">
               <div className="w-2 h-2 rounded-full bg-[#10A878] shadow-[0_0_8px_rgba(16,168,120,0.5)]" />
-              <span className="font-bold text-[11px] text-[#334155] uppercase tracking-widest">
+              <span className="font-bold text-[10px] md:text-[11px] text-[#334155] uppercase tracking-widest truncate max-w-[100px] md:max-w-none">
                 {currentRole.replace("_", " ")}
               </span>
 
@@ -553,7 +584,7 @@ export default function AppLayout() {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-3 md:space-x-6">
             {/* Notification */}
             <div className="relative">
               <button
@@ -575,7 +606,7 @@ export default function AppLayout() {
                     transition={{ duration: 0.15 }}
                     className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-[#E2E8F0] overflow-hidden z-50"
                   >
-                    <div className="p-4 border-b border-[#E2E8F0] flex justify-between items-center bg-[#F8FAFC]">
+                    <div className="p-4 border-b border-[#E2E8F0] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[#F8FAFC]">
                       <h3 className="font-black text-[#102A43] text-sm">
                         Notifications
                       </h3>
@@ -631,7 +662,7 @@ export default function AppLayout() {
             </div>
 
             {/* Header Profile & Logout */}
-            <div className="flex items-center space-x-4 pl-6 border-l border-[#E2E8F0]">
+            <div className="flex items-center space-x-2 md:space-x-4 pl-3 md:pl-6 border-l border-[#E2E8F0]">
               <div className="hidden sm:flex flex-col items-end leading-tight">
                 <p className="text-[13px] font-black text-[#102A43]">
                   {user?.name}

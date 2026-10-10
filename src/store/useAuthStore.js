@@ -27,7 +27,7 @@ export const useAuthStore = create()(
         set({ selectedHospitalId: hospitalId }),
     }),
     {
-      name: "auth-storage", // name of the item in the storage (must be unique)
+      name: "auth-storage-v2", // bumped to clear capitalized cached objects
     },
   ),
 );

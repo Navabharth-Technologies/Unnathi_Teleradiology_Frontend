@@ -127,7 +127,7 @@ export default function ReportPreview() {
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-unnathi-fade-in pb-12 print:p-0 print:m-0 print:max-w-none">
       {/* Action Header - Hidden during printing */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100 print:hidden">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 print:hidden">
         <Button
           variant="ghost"
           onClick={() => navigate("/verification")}

@@ -32,14 +32,14 @@ const SitesList = () => {
   // Strict scoping based on role
   const scopedSites = sites.filter((c) => {
     if (user?.role === "SUPER_ADMIN") return true;
-    if (user?.role === "SITE_ADMIN") return c.id === user.siteId;
+    if (user?.role === "SITE_ADMIN") return (c.id || c.Id) === (user.siteId || user.SiteId);
     return false;
   });
 
   const filteredSites = scopedSites.filter(
     (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.code.toLowerCase().includes(searchTerm.toLowerCase()),
+      (c.name || c.Name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.code || c.Code || "").toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -104,23 +104,23 @@ const SitesList = () => {
             <tbody className="divide-y divide-border stagger-children">
               {filteredSites.map((company) => (
                 <tr
-                  key={company.id}
+                  key={company.id || company.Id}
                   className="animate-unnathi-fade-in hover:bg-accent/5 hover:-translate-y-[2px] hover:shadow-md hover:z-10 relative bg-card transition-all duration-300 ease-out group"
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-black text-primary uppercase tracking-widest">
-                      {company.code}
+                      {company.code || company.Code}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">
-                    {company.name}
+                    {company.name || company.Name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-bold text-primary">
-                      {company.contactPerson}
+                      {company.contactPerson || company.ContactPerson}
                     </div>
                     <div className="text-xs font-medium text-slate-400 mt-0.5">
-                      {company.email}
+                      {company.email || company.Email}
                     </div>
                   </td>
 
@@ -132,7 +132,7 @@ const SitesList = () => {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(company.id)}
+                      onClick={() => handleDelete(company.id || company.Id)}
                       className="text-slate-400 hover:text-destructive hover:bg-destructive/10 p-2 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />

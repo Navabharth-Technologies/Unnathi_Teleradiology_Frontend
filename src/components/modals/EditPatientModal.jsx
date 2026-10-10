@@ -32,7 +32,7 @@ export function EditPatientModal({ isOpen, onClose, patient }) {
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-[#1E2328] rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-slate-700">
-        <div className="flex justify-between items-center p-4 border-b border-slate-700 bg-slate-800/50">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-4 border-b border-slate-700 bg-slate-800/50">
           <h2 className="text-lg font-bold text-white">Edit Patient Details</h2>
           <button
             onClick={onClose}

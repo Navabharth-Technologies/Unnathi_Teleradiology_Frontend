@@ -88,7 +88,7 @@ export default function StudiesList() {
               placeholder="Search by case or accession..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 w-[300px] border-border/50 bg-background/50 backdrop-blur-sm focus:border-accent/50 focus:ring-accent/20 transition-all shadow-sm hover:shadow-md"
+              className="pl-9 w-full md:w-[300px] border-border/50 bg-background/50 backdrop-blur-sm focus:border-accent/50 focus:ring-accent/20 transition-all shadow-sm hover:shadow-md"
             />
           </div>
           {currentRole !== "Accountant" && (

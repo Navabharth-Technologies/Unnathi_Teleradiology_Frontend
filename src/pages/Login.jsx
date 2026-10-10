@@ -46,7 +46,7 @@ export default function Login() {
     setLoading(true);
     try {
       let user = users.find(
-        (u) => u.email.trim().toLowerCase() === email.trim().toLowerCase(),
+        (u) => (u.email || u.Email || "").trim().toLowerCase() === email.trim().toLowerCase(),
       );
       if (!user) {
         const res = await fetch("http://localhost:5000/api/users").catch(
@@ -54,9 +54,11 @@ export default function Login() {
         );
         if (res) {
           const freshUsers = await res.json();
-          user = freshUsers.find(
-            (u) => u.email.trim().toLowerCase() === email.trim().toLowerCase(),
-          );
+          if (Array.isArray(freshUsers)) {
+            user = freshUsers.find(
+              (u) => (u.email || u.Email || "").trim().toLowerCase() === email.trim().toLowerCase(),
+            );
+          }
         }
       }
       console.log("Login attempt:", { email, password, foundUser: user });
@@ -93,16 +95,16 @@ export default function Login() {
         } else {
           alert(`Invalid credentials: User ${email} not found in database.`);
         }
-      } else if (user.password && user.password.trim() !== password.trim()) {
+      } else if ((user.password || user.Password) && (user.password || user.Password).trim() !== password.trim()) {
         alert(`Invalid credentials: Password mismatch.`);
       } else {
         login({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          hospitalId: user.hospitalId,
-          siteId: user.siteId,
+          id: user.id || user.Id,
+          name: user.name || user.Name,
+          email: user.email || user.Email,
+          role: user.role || user.Role,
+          hospitalId: user.hospitalId || user.HospitalId,
+          siteId: user.siteId || user.SiteId,
         });
       }
     } catch (err) {

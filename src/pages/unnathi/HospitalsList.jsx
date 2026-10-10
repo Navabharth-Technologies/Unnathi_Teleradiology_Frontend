@@ -58,22 +58,22 @@ const HospitalsList = () => {
   const scopedHospitals = hospitals.filter((h) => {
     if (user?.role === "SUPER_ADMIN") {
       if (typeFilter === "independent") {
-        return h.organizationType === "UNNATHI_MANAGED";
+        return (h.organizationType || h.OrganizationType) === "UNNATHI_MANAGED";
       } else if (typeFilter === "company") {
-        return h.organizationType === "COMPANY_MANAGED";
+        return (h.organizationType || h.OrganizationType) === "COMPANY_MANAGED";
       }
       return true;
     }
     if (user?.role === "SITE_ADMIN") {
-      return h.parentSiteId === user.siteId;
+      return (h.parentSiteId || h.ParentSiteId) === (user.siteId || user.SiteId);
     }
     return false;
   });
 
   const filteredHospitals = scopedHospitals.filter(
     (h) =>
-      h.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      h.code.toLowerCase().includes(searchTerm.toLowerCase()),
+      (h.name || h.Name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (h.code || h.Code || "").toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const handleOpenDashboard = (hospitalId) => {
@@ -132,12 +132,12 @@ const HospitalsList = () => {
             <h1 className="text-3xl font-black tracking-tight text-[#0F172A] flex items-center gap-3">
               {typeFilter === "company"
                 ? "Company Hospitals"
-                : "Independent Hospitals"}
+                : "Teleradiology Hospitals"}
             </h1>
             <p className="text-[#64748B] mt-1 font-medium text-sm">
               {typeFilter === "company"
                 ? "Manage hospitals operating under Teleradiology Companies"
-                : "Manage independent hospitals in the system"}
+                : "Manage hospitals created by the teleradiology site"}
             </p>
           </div>
         </motion.div>
@@ -241,11 +241,11 @@ const HospitalsList = () => {
                 ) : (
                   filteredHospitals.map((hospital, index) => {
                     const company = sites.find(
-                      (c) => c.id === hospital.parentSiteId,
+                      (c) => (c.id || c.Id) === (hospital.parentSiteId || hospital.ParentSiteId),
                     );
                     return (
                       <motion.tr
-                        key={hospital.id}
+                        key={hospital.id || hospital.Id}
                         custom={index}
                         variants={rowVariants}
                         initial="hidden"
@@ -253,50 +253,50 @@ const HospitalsList = () => {
                         exit="exit"
                         className="group relative transition-colors duration-200 hover:bg-[#F8FAFC] hover:shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] z-0 hover:z-10"
                       >
-                        {/* Hover accent line */}
-                        <td className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-[#2563EB] to-[#0F8B8D] opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {/* Hover accent line (hidden on mobile) */}
+                        <td className="hidden md:block absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-[#2563EB] to-[#0F8B8D] opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td data-label="Hospital" className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-[#E2E8F0]/50 border border-[#E2E8F0] flex items-center justify-center shrink-0">
                               <HeartPulse className="w-4 h-4 text-[#64748B]" />
                             </div>
                             <div>
                               <div className="text-sm font-bold text-[#0F172A] group-hover:text-[#2563EB] transition-colors">
-                                {hospital.name}
+                                {hospital.name || hospital.Name}
                               </div>
                               <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mt-0.5">
-                                {hospital.code}
+                                {hospital.code || hospital.Code}
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td data-label="Type" className="px-6 py-4 whitespace-nowrap">
                           <span className="px-2.5 py-1 inline-flex text-[10px] font-bold uppercase tracking-widest rounded-md bg-[#0F8B8D]/10 text-[#0F8B8D] border border-[#0F8B8D]/20">
-                            {hospital.organizationType.replace("_", " ")}
+                            {(hospital.organizationType || hospital.OrganizationType || "").replace("_", " ")}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {hospital.organizationType === "COMPANY_MANAGED" ? (
+                        <td data-label="Parent Org" className="px-6 py-4 whitespace-nowrap text-sm md:text-left text-right flex justify-end md:table-cell">
+                          {(hospital.organizationType || hospital.OrganizationType) === "COMPANY_MANAGED" ? (
                             <div className="flex items-center gap-2 text-[#475569]">
                               <Building2 className="w-3.5 h-3.5 opacity-60" />
                               <span className="font-semibold">
-                                {company?.name || "Unknown Company"}
+                                {company?.name || company?.Name || "Unknown Company"}
                               </span>
                             </div>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#94A3B8] bg-[#F1F5F9] px-2 py-0.5 rounded-md">
-                              Independent
+                              Teleradiology Site
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <td data-label="Actions" className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-2">
                             <motion.button
-                              onClick={() => handleOpenDashboard(hospital.id)}
+                              onClick={() => handleOpenDashboard(hospital.id || hospital.Id)}
                               whileHover={{ scale: 1.05, y: -1 }}
                               whileTap={{ scale: 0.95 }}
-                              className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-[#2563EB] hover:text-white bg-[#2563EB]/10 hover:bg-[#2563EB] px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 transition-all text-xs font-bold"
+                              className="md:opacity-0 opacity-100 group-hover:opacity-100 focus:opacity-100 text-[#2563EB] hover:text-white bg-[#2563EB]/10 hover:bg-[#2563EB] px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 transition-all text-xs font-bold"
                             >
                               <ExternalLink className="w-3.5 h-3.5" /> Open
                             </motion.button>

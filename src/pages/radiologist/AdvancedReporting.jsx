@@ -363,7 +363,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
         />
 
         <motion.div
-          className="absolute top-[40%] left-[60%] w-[300px] h-[300px] bg-[#8B5CF6]/10 rounded-full blur-[100px]"
+          className="absolute top-[40%] left-[60%] w-full md:w-[300px] h-[300px] bg-[#8B5CF6]/10 rounded-full blur-[100px]"
           animate={{ x: [0, -30, 0], y: [0, 50, 0], scale: [1, 1.1, 1] }}
           transition={{
             duration: 12,
@@ -413,22 +413,22 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
         {/* Top Header / Filter Bar */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col space-y-4">
           {/* Date & Status Pills */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center space-x-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center space-x-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 overflow-x-auto scrollbar-hide">
               {["Today", "Yesterday", "Month", "All"].map((date) => (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   key={date}
                   onClick={() => setDateFilter(date)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${dateFilter === date ? "bg-gradient-to-r from-[#1FC8D0] to-[#2563EB] shadow-[0_4px_12px_rgba(31,200,208,0.3)] text-white border border-transparent" : "text-slate-500 hover:text-slate-800"}`}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 whitespace-nowrap ${dateFilter === date ? "bg-gradient-to-r from-[#1FC8D0] to-[#2563EB] shadow-[0_4px_12px_rgba(31,200,208,0.3)] text-white border border-transparent" : "text-slate-500 hover:text-slate-800"}`}
                 >
                   {date}
                 </motion.button>
               ))}
             </div>
 
-            <div className="flex items-center space-x-2 overflow-x-auto p-2 -m-2 scrollbar-hide">
+            <div className="flex items-center space-x-2 overflow-x-auto p-2 -m-2 scrollbar-hide w-full md:w-auto">
               {[
                 {
                   id: "All",
@@ -509,11 +509,11 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
           </div>
 
           {/* Secondary Search Bar */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-center gap-3">
             <select
               value={siteFilter}
               onChange={(e) => setSiteFilter(e.target.value)}
-              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-40"
+              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-40"
             >
               <option value="">Select Site Names</option>
               {availableSites.map((s) => (
@@ -522,7 +522,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                 </option>
               ))}
             </select>
-            <div className="relative flex-1 min-w-[250px]">
+            <div className="relative w-full sm:col-span-2 md:w-auto md:flex-1 md:min-w-full md:w-[250px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
@@ -535,7 +535,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
             <select
               value={modalityFilter}
               onChange={(e) => setModalityFilter(e.target.value)}
-              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-32"
+              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-32"
             >
               <option value="">Modality</option>
               {availableModalities.map((m) => (
@@ -547,7 +547,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
             <select
               value={studyNameFilter}
               onChange={(e) => setStudyNameFilter(e.target.value)}
-              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-48"
+              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-48"
             >
               <option value="">Select Study Name</option>
               {availableStudyNames.map((n) => (
@@ -556,40 +556,42 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                 </option>
               ))}
             </select>
-            <select
-              value={radiologistFilter}
-              onChange={(e) => setRadiologistFilter(e.target.value)}
-              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-40"
-            >
-              <option value="">Select Radiologist</option>
-              {availableRadiologists.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
+            <div className="flex gap-2 w-full sm:col-span-2 md:w-auto">
+              <select
+                value={radiologistFilter}
+                onChange={(e) => setRadiologistFilter(e.target.value)}
+                className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors flex-1 md:w-40"
+              >
+                <option value="">Select Radiologist</option>
+                {availableRadiologists.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
 
-            <Button
-              onClick={() => {}}
-              className="bg-[#123B5D] hover:bg-[#0B1F33] text-white text-xs px-5 rounded-xl font-bold transition-colors"
-            >
-              Go
-            </Button>
-            <Button
-              onClick={handleClearFilters}
-              variant="outline"
-              className="text-xs px-4 rounded-xl border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors font-bold"
-            >
-              Clear
-            </Button>
+              <Button
+                onClick={() => {}}
+                className="bg-[#123B5D] hover:bg-[#0B1F33] text-white text-xs px-5 rounded-xl font-bold transition-colors shrink-0"
+              >
+                Go
+              </Button>
+              <Button
+                onClick={handleClearFilters}
+                variant="outline"
+                className="text-xs px-4 rounded-xl border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors font-bold shrink-0"
+              >
+                Clear
+              </Button>
+            </div>
           </div>
 
           {/* Action Bar */}
-          <div className="flex flex-wrap items-center justify-between pt-4 border-t border-slate-100">
-            <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between pt-4 border-t border-slate-100 gap-4">
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
               <Button
                 onClick={() => navigate("/studies/new")}
-                className="bg-[#16A6A8] hover:bg-[#128a8c] text-white text-xs px-4 py-2 rounded-xl font-bold shadow-sm shadow-[#16A6A8]/20 transition-all"
+                className="bg-[#16A6A8] hover:bg-[#128a8c] text-white text-xs px-4 py-2 rounded-xl font-bold shadow-sm shadow-[#16A6A8]/20 transition-all flex-1 md:flex-none"
               >
                 <PlusCircle className="w-4 h-4 mr-1.5" /> Add Study
               </Button>
@@ -598,7 +600,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                   if (fileInputRef.current) fileInputRef.current.click();
                 }}
                 variant="outline"
-                className="border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm"
+                className="border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm flex-1 md:flex-none"
               >
                 {isUploading ? (
                   <RefreshCw className="w-4 h-4 mr-1.5 animate-spin text-[#16A6A8]" />
@@ -617,7 +619,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
               <Button
                 onClick={handleRefresh}
                 variant="outline"
-                className={`border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm ${isRefreshing ? "opacity-70" : ""}`}
+                className={`border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm flex-1 md:flex-none ${isRefreshing ? "opacity-70" : ""}`}
               >
                 <RefreshCw
                   className={`w-4 h-4 mr-1.5 text-slate-400 ${isRefreshing ? "animate-spin" : ""}`}
@@ -626,18 +628,18 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
               </Button>
               <Button
                 onClick={() => setEmergencyFilter(!emergencyFilter)}
-                className={`text-xs px-4 py-2 rounded-xl font-bold shadow-sm transition-all ${emergencyFilter ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"}`}
+                className={`text-xs px-4 py-2 rounded-xl font-bold shadow-sm transition-all flex-1 md:flex-none ${emergencyFilter ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"}`}
               >
                 Emergency
               </Button>
-              <select className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors">
+              <select className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-auto mt-2 md:mt-0">
                 <option value="all">Assigned Studies (All)</option>
                 <option value="today">Assigned Today</option>
                 <option value="urgent">Urgent / Emergency</option>
               </select>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-end">
               <div className="flex items-center space-x-2 bg-[#176B87]/10 px-3 py-1.5 rounded-xl border border-[#176B87]/20">
                 <div className="w-2 h-2 rounded-full bg-[#1FC8D0] animate-pulse"></div>
                 <span className="text-[11px] font-black tracking-widest text-[#176B87] uppercase">

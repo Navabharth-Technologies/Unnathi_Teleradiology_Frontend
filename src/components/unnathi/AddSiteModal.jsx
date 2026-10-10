@@ -676,7 +676,6 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
                   className="w-full h-9 px-3 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B]"
                 >
                   <option>Teleradiology Company</option>
-                  <option>Independent Hospital</option>
                 </select>
               </div>
               <div className="space-y-1.5">
@@ -1001,7 +1000,6 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
                   className="w-full h-9 px-3 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B]"
                 >
                   <option value="Password">Password</option>
-                  <option value="OTP">OTP</option>
                 </select>
               </div>
 

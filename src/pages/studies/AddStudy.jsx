@@ -102,7 +102,7 @@ export default function AddStudy() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-unnathi-fade-in">
-      <div className="flex justify-between items-center bg-card p-5 rounded-2xl border border-border shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-5 rounded-2xl border border-border shadow-sm">
         <div>
           <h1 className="text-2xl font-black text-primary tracking-tight">
             Add New Study

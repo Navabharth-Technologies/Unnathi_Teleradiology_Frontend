@@ -164,7 +164,7 @@ export default function InvoicesList() {
     <>
       <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
         {/* Modern Top Header */}
-        <div className="flex justify-between items-center bg-card p-5 rounded-2xl shadow-sm border border-border">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-5 rounded-2xl shadow-sm border border-border">
           <div className="flex items-center space-x-6">
             <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-500 border border-indigo-500/20">
               <Receipt className="w-6 h-6" />
@@ -295,7 +295,7 @@ export default function InvoicesList() {
                 placeholder="Search Invoice Number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-[250px] h-10 rounded-xl bg-background border-border focus:border-accent focus:ring-accent/20 text-sm font-bold shadow-inner transition-all"
+                className="pl-9 w-full md:w-[250px] h-10 rounded-xl bg-background border-border focus:border-accent focus:ring-accent/20 text-sm font-bold shadow-inner transition-all"
               />
             </div>
           </div>
@@ -504,7 +504,7 @@ export default function InvoicesList() {
       {viewingReceipt && (
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
           <div className="bg-card rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-border max-h-[90vh] flex flex-col">
-            <div className="p-4 bg-slate-50/50 flex justify-between items-center border-b border-border shrink-0">
+            <div className="p-4 bg-slate-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border shrink-0">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
                   <Receipt className="w-5 h-5 text-emerald-500" />

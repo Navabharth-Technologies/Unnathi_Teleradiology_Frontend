@@ -239,7 +239,7 @@ export default function RadiologistsList() {
   return (
     <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
       {/* Modern Top Header */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center space-x-6">
           <div>
             <h1 className="text-2xl font-black text-[#0D2461] tracking-tight">
@@ -257,7 +257,7 @@ export default function RadiologistsList() {
               placeholder="Search doctors, ID or specialization..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-10 w-[300px] h-10 text-sm bg-slate-50 text-slate-900 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] transition-all shadow-inner"
+              className="pr-10 w-full md:w-[300px] h-10 text-sm bg-slate-50 text-slate-900 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] transition-all shadow-inner"
             />
           </div>
           <Button
@@ -637,7 +637,7 @@ export default function RadiologistsList() {
         createPortal(
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-start justify-center z-[100] animate-in fade-in p-4 sm:p-6 overflow-y-auto">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col my-auto animate-in zoom-in-95">
-              <div className="bg-indigo-600 p-5 text-white flex justify-between items-center shrink-0">
+              <div className="bg-indigo-600 p-5 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
                 <h2 className="text-lg font-black tracking-wide">
                   Doctor Profile
                 </h2>

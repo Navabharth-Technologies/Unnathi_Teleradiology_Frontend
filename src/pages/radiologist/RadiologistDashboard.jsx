@@ -43,10 +43,10 @@ export default function RadiologistDashboard() {
     ["Unread", "Pending", "Draft", "Action Needed"].includes(s.reportingStatus),
   ).length;
   const completedCount = myStudies.filter(
-    (s) => s.reportingStatus === "Final",
+    (s) => ["Final", "Verified", "Dispatched"].includes(s.reportingStatus),
   ).length;
   const emergencyCount = myStudies.filter(
-    (s) => s.priority === "Emergency" && s.reportingStatus !== "Final",
+    (s) => s.priority === "Emergency" && !["Final", "Verified", "Dispatched"].includes(s.reportingStatus),
   ).length;
 
   return (
@@ -193,7 +193,7 @@ export default function RadiologistDashboard() {
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 uppercase tracking-widest border border-slate-200">
                         {study.modality}
                       </span>
-                      <span className="text-xs font-semibold text-slate-500 truncate max-w-[300px]">
+                      <span className="text-xs font-semibold text-slate-500 truncate max-w-full md:w-[300px]">
                         {study.studyDescription}
                       </span>
                     </div>

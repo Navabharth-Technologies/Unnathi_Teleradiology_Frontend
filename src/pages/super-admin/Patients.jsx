@@ -59,7 +59,7 @@ const Patients = () => {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-4 border-b">
               <h2 className="text-lg font-bold">Register Patient</h2>
               <button
                 onClick={() => setShowModal(false)}
@@ -134,7 +134,7 @@ const Patients = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="p-4 border-b flex justify-between items-center bg-gray-50/50">
+        <div className="p-4 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/50">
           <div className="relative max-w-sm w-full">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Search className="w-4 h-4 text-gray-400" />
