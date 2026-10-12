@@ -1,10 +1,16 @@
 import React, { useState } from "react";
-import { Save, Server, Globe, Shield, Key, Network } from "lucide-react";
+import { Save, Server, Globe, Shield, Key, Network, CheckCircle2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 
 export default function SystemSettings() {
   const [activeTab, setActiveTab] = useState("general");
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const handleSave = () => {
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3500);
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-unnathi-fade-in w-full max-w-full min-w-0">
@@ -23,11 +29,29 @@ export default function SystemSettings() {
             </p>
           </div>
         </div>
-        <Button className="bg-[#102A43] hover:bg-[#1A3A5A] text-white px-6 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all border border-transparent">
+        <Button
+          onClick={handleSave}
+          className="bg-[#102A43] hover:bg-[#1A3A5A] text-white px-6 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all border border-transparent cursor-pointer active:scale-95"
+        >
           <Save className="w-4 h-4 mr-2" />
           Save Configurations
         </Button>
       </div>
+
+      {saveSuccess && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-emerald-800 text-sm font-bold shadow-sm animate-unnathi-slide-up">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <span>Platform configurations saved and synchronized successfully!</span>
+          </div>
+          <button
+            onClick={() => setSaveSuccess(false)}
+            className="text-emerald-700 hover:text-emerald-900 text-xs uppercase tracking-wider"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full max-w-full min-w-0">
         {/* Navigation Sidebar */}

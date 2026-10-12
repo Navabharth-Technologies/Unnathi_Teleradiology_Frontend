@@ -316,12 +316,10 @@ export default function FinanceBilling() {
           </label>
 
           <Button
-            onClick={() =>
-              alert(
-                "Live search query execution will be available once the backend is integrated.",
-              )
-            }
-            className="flex-1 md:flex-none bg-primary hover:bg-primary-hover shadow-sm text-white px-5 py-2 rounded-lg text-sm font-bold transition-all hover:-translate-y-0.5"
+            onClick={() => {
+              // Filters are reactive in state (selectedFilter, isLastMonth)
+            }}
+            className="flex-1 md:flex-none bg-primary hover:bg-primary-hover shadow-sm text-white px-5 py-2 rounded-lg text-sm font-bold transition-all hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <Search className="w-4 h-4 mr-2" /> Search
           </Button>
