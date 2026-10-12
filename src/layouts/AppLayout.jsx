@@ -242,7 +242,6 @@ export default function AppLayout() {
             icon: IndianRupee,
           },
           { label: "Site Ledger", path: "/finance/ledger", icon: FileText },
-          { label: "Invoices", path: "/finance/billing", icon: IndianRupee },
           { label: "Studies", path: "/studies", icon: FileSearch },
           { label: "Users", path: "/admin/users", icon: Users },
           { label: "Radiologists", path: "/admin/radiologists", icon: Users },
@@ -354,7 +353,7 @@ export default function AppLayout() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 bg-[#0A1A2A]/50 backdrop-blur-sm z-40 md:hidden"
+            className="fixed inset-0 bg-[#0A1A2A]/50 backdrop-blur-sm z-40 lg:hidden"
           />
         )}
       </AnimatePresence>
@@ -441,8 +440,8 @@ export default function AppLayout() {
       <motion.aside
         initial={false}
         className={cn(
-          "w-[280px] flex flex-col shrink-0 bg-gradient-to-b from-[#102A43] to-[#0A1A2A] text-white shadow-[10px_0_30px_rgba(16,42,67,0.15)] z-50 fixed inset-y-0 left-0 group md:relative",
-          "md:translate-x-0 transition-transform duration-300",
+          "w-[280px] flex flex-col shrink-0 bg-gradient-to-b from-[#102A43] to-[#0A1A2A] text-white shadow-[10px_0_30px_rgba(16,42,67,0.15)] z-50 fixed inset-y-0 left-0 group lg:relative",
+          "lg:translate-x-0 transition-transform duration-300",
           !isMobileMenuOpen ? "-translate-x-full" : "translate-x-0"
         )}
       >
@@ -450,7 +449,7 @@ export default function AppLayout() {
 
         {/* Logo Area */}
         <div className="flex flex-col items-center justify-center pt-8 pb-6 px-6 border-b border-white/10 relative z-10 flex-shrink-0 min-h-[120px]">
-          <div className="flex items-center justify-between w-full md:justify-center">
+          <div className="flex items-center justify-between w-full lg:justify-center">
             <motion.div
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring" }}
@@ -463,7 +462,7 @@ export default function AppLayout() {
               />
             </motion.div>
             <button 
-              className="md:hidden text-white/70 hover:text-white"
+              className="lg:hidden text-white/70 hover:text-white"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               <X className="h-6 w-6" />
@@ -552,12 +551,12 @@ export default function AppLayout() {
       {/* ── Main Content Area ───────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-20">
         {/* Bright Clean Header */}
-        <header className="h-[76px] bg-white/90 backdrop-blur-xl shrink-0 flex items-center justify-between px-4 md:px-8 border-b border-[#E2E8F0] shadow-sm relative z-20">
+        <header className="h-[76px] bg-white/90 backdrop-blur-xl shrink-0 flex items-center justify-between px-4 md:px-8 border-b border-[#E2E8F0] shadow-sm relative z-20 w-full max-w-full min-w-0">
           {/* Context / Role */}
           <div className="flex items-center space-x-2 md:space-x-4">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2 rounded-lg text-[#64748B] hover:bg-[#F1F5F9] transition-colors"
+              className="lg:hidden p-2 rounded-lg text-[#64748B] hover:bg-[#F1F5F9] transition-colors"
             >
               <Menu className="h-6 w-6" />
             </button>
@@ -687,9 +686,9 @@ export default function AppLayout() {
         </header>
 
         {/* Page Content Workspace */}
-        <div className="flex-1 overflow-auto bg-transparent relative z-10 custom-scrollbar">
-          <div className="max-w-[1600px] mx-auto w-full h-full">
-            <div className="p-4 md:p-8 min-h-full">
+        <div className="flex-1 overflow-x-hidden overflow-y-auto bg-transparent relative z-10 custom-scrollbar w-full max-w-full min-w-0">
+          <div className="max-w-[1600px] mx-auto w-full max-w-full h-full min-w-0">
+            <div className="p-4 md:p-8 min-h-full w-full max-w-full min-w-0">
               <Outlet />
             </div>
           </div>

@@ -30,11 +30,48 @@
   }
 
   * { @apply border-border outline-ring/50; }
+  
+  html, body {
+    @apply overflow-x-hidden w-full max-w-full m-0 p-0;
+    /* iOS Safari adjustments */
+    -webkit-tap-highlight-color: transparent;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  #root {
+    @apply overflow-x-hidden w-full max-w-full;
+  }
+
   body { 
     @apply bg-background text-foreground; 
     font-family: 'Inter', 'Geist Variable', sans-serif; 
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Override Tailwind min-h-screen for iOS Safari bottom bar issue */
+  .min-h-screen {
+    min-height: 100vh; /* fallback */
+    min-height: 100dvh;
+  }
+  .h-screen {
+    height: 100vh; /* fallback */
+    height: 100dvh;
+  }
+
+  /* Fix iOS native input rendering */
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="password"],
+  select,
+  textarea {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
   }
 }
 
@@ -272,13 +309,13 @@ select:focus-visible {
 }
 
 /* ── Global Responsive Tables for Mobile ── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   table, thead, tbody, th, td, tr {
-    display: block;
+    display: block !important;
   }
   
   thead tr {
-    display: none;
+    display: none !important;
   }
   
   tr {

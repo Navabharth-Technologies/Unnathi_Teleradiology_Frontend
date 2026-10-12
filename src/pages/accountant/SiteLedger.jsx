@@ -36,6 +36,8 @@ export default function SiteLedger() {
     addInvoice,
     updateStudy,
     updateHospital,
+    walletTransactions,
+    addWalletTransaction,
   } = useMockDb();
   const [activeTab, setActiveTab] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
@@ -174,9 +176,28 @@ export default function SiteLedger() {
     if (!addFundsModal || !addFundsData.amount) return;
     const amount = Number(addFundsData.amount);
     if (isNaN(amount) || amount <= 0) return;
-    // Update the hospital's wallet balance
-    const newBalance = (addFundsModal.walletBalance || 0) + amount;
+    // Update the hospital's wallet balance using latest store data
+    const liveHospital = hospitals.find((h) => h.id === addFundsModal.id) || addFundsModal;
+    const currentBal = Number(liveHospital.walletBalance || 0);
+    const newBalance = currentBal + amount;
     updateHospital(addFundsModal.id, { walletBalance: newBalance });
+
+    // Record wallet transaction in MS SQL Server
+    addWalletTransaction({
+      id: "tx_" + Date.now(),
+      hospitalId: addFundsModal.id,
+      siteId: addFundsModal.parentSiteId || null,
+      type: "Recharge",
+      amount: amount,
+      balanceBefore: currentBal,
+      balanceAfter: newBalance,
+      paymentMethod: addFundsData.method || "UPI",
+      referenceId: addFundsData.reference || `REF-${Date.now().toString().slice(-6)}`,
+      remarks: addFundsData.remarks || "Wallet recharge via Site Ledger",
+      status: "Completed",
+      createdAt: new Date().toISOString(),
+    });
+
     setAddFundsModal(null);
     setAddFundsData({ amount: "", method: "UPI", reference: "", remarks: "" });
   };
@@ -200,41 +221,41 @@ export default function SiteLedger() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-6">
-            <div className="flex p-1 bg-background rounded-xl border border-border shadow-inner">
+          <div className="flex flex-wrap items-center gap-4 md:gap-6 w-full max-w-full mt-4 md:mt-0 min-w-0">
+            <div className="flex overflow-x-auto p-1 bg-background rounded-xl border border-border shadow-inner w-full md:w-auto scrollbar-hide min-w-0">
               {["All", "Prepaid", "Postpaid"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex items-center px-6 py-2 text-sm font-black rounded-lg transition-all ${
+                  className={`flex items-center justify-center whitespace-nowrap px-4 py-2 text-sm font-black rounded-lg transition-all flex-1 md:flex-none min-w-0 ${
                     activeTab === tab
                       ? "bg-card text-primary shadow-sm border border-border hover:-translate-y-0.5"
                       : "text-slate-500 hover:text-primary hover:bg-accent/5 border border-transparent"
                   }`}
                 >
                   {tab === "All" && (
-                    <LayoutGrid className="w-4 h-4 mr-2 text-slate-400" />
+                    <LayoutGrid className="w-4 h-4 mr-2 text-slate-400 shrink-0" />
                   )}
                   {tab}
                 </button>
               ))}
             </div>
 
-            <label className="flex items-center space-x-2 text-[11px] font-black uppercase tracking-widest text-slate-600 cursor-pointer hover:text-primary transition-colors bg-background border border-border h-11 px-4 rounded-xl shadow-inner">
+            <label className="flex items-center space-x-2 text-[11px] font-black uppercase tracking-widest text-slate-600 cursor-pointer hover:text-primary transition-colors bg-background border border-border h-11 px-4 rounded-xl shadow-inner shrink-0 max-w-full min-w-0">
               <input
                 type="checkbox"
-                className="rounded text-accent focus:ring-accent w-4 h-4"
+                className="rounded text-accent focus:ring-accent w-4 h-4 shrink-0"
               />
-              <span>Pending Payment</span>
+              <span className="truncate">Pending Payment</span>
             </label>
 
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-accent transition-colors" />
+            <div className="relative group w-full sm:w-[250px] min-w-0 max-w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-accent transition-colors shrink-0" />
               <Input
                 placeholder="Search site, email, mob..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-full md:w-[250px] h-11 rounded-xl bg-background border-border focus:border-accent focus:ring-accent/20 text-sm font-bold shadow-inner transition-all"
+                className="pl-9 w-full h-11 rounded-xl bg-background border-border focus:border-accent focus:ring-accent/20 text-sm font-bold shadow-inner transition-all min-w-0"
               />
             </div>
           </div>
@@ -280,36 +301,41 @@ export default function SiteLedger() {
                   key={centre.id || idx}
                   className="hover:bg-accent/5 transition-all duration-300 border-b border-border group hover:-translate-y-[1px] hover:shadow-sm relative z-0 hover:z-10 bg-card"
                 >
-                  <TableCell className="py-4 px-6 font-mono text-slate-500 font-bold text-xs">
+                  <TableCell data-label="Site No" className="py-4 px-6 font-mono text-slate-500 font-bold text-xs">
                     {(centre.siteNumber || centre.code || "S-1").replace(
                       "S-",
                       "8",
                     ) + Math.floor(Math.random() * 100)}
                   </TableCell>
-                  <TableCell className="py-4 px-4">
-                    <div className="flex items-center space-x-3">
+                  <TableCell data-label="Site Details" className="py-4 px-4">
+                    <div className="flex items-center justify-between md:justify-start space-x-3">
                       <div>
                         <div className="font-black text-primary uppercase text-sm tracking-tight">
                           {centre.name}
                         </div>
                         <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
                           {centre.accountType || "Postpaid"} account
+                          {centre.accountType === "Postpaid" && (
+                            <span className="text-indigo-600 font-bold ml-1">
+                              ({centre.paymentFrequency || "Monthly"})
+                            </span>
+                          )}
                         </div>
                       </div>
                       <button
                         onClick={() => setSiteDetailsModal(centre)}
                         title="View Secure Site Details"
-                        className="text-slate-400 hover:text-accent hover:bg-accent/10 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        className="text-slate-400 hover:text-accent hover:bg-accent/10 p-2 rounded-lg transition-all md:opacity-0 opacity-100 group-hover:opacity-100"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 px-4 text-center">
-                    <div className="flex flex-col items-center justify-center space-y-1">
+                  <TableCell data-label="Payment Status" className="py-4 px-4 text-center">
+                    <div className="flex flex-col md:items-center items-end justify-center space-y-1">
                       {centre.accountType === "Prepaid" ? (
                         <>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block">
                             Wallet Balance
                           </span>
                           <span
@@ -322,7 +348,7 @@ export default function SiteLedger() {
                         </>
                       ) : (
                         <>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block">
                             Due Amount
                           </span>
                           <span
@@ -334,16 +360,16 @@ export default function SiteLedger() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 px-4 text-center">
+                  <TableCell data-label="Billing" className="py-4 px-4 text-center">
                     <button
                       onClick={() => setBillingModal(centre)}
-                      className="inline-flex items-center px-3 py-1.5 border border-indigo-200 text-indigo-600 bg-indigo-50 rounded-lg text-xs font-black hover:bg-indigo-100 hover:border-indigo-300 transition-all shadow-sm"
+                      className="inline-flex items-center px-3 py-1.5 border border-indigo-200 text-indigo-600 bg-indigo-50 rounded-lg text-xs font-black hover:bg-indigo-100 hover:border-indigo-300 transition-all shadow-sm w-full md:w-auto justify-center md:justify-start"
                     >
                       <FileText className="w-3.5 h-3.5 mr-1.5" /> BILLING
                     </button>
                   </TableCell>
-                  <TableCell className="py-4 px-4 text-center">
-                    <div className="flex items-center justify-center space-x-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100 w-fit mx-auto">
+                  <TableCell data-label="Payment Actions" className="py-4 px-4 text-center">
+                    <div className="flex items-center justify-end md:justify-center space-x-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100 w-fit md:mx-auto ml-auto">
                       {/* Sync Button */}
                       <button
                         onClick={() => handleSync(centre.id)}
@@ -380,7 +406,7 @@ export default function SiteLedger() {
 
                       {/* Add Funds Button */}
                       {centre.accountType === "Prepaid" &&
-                        user?.role === "SUPER_ADMIN" && (
+                        ["SUPER_ADMIN", "SITE_ADMIN", "HOSPITAL_ADMIN"].includes(user?.role) && (
                           <button
                             onClick={() => setAddFundsModal(centre)}
                             className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-100 transition-colors"
@@ -391,12 +417,12 @@ export default function SiteLedger() {
                         )}
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 px-4 text-center">
+                  <TableCell data-label="Export" className="py-4 px-4 text-center">
                     <Button
                       variant="ghost"
                       onClick={() => handleDownload(centre.id)}
                       disabled={downloadState[centre.id] === "downloading"}
-                      className="h-8 px-3 text-[10px] font-black rounded-lg text-slate-500 hover:text-accent hover:bg-accent/10 transition-all opacity-0 group-hover:opacity-100"
+                      className="h-8 px-3 text-[10px] font-black rounded-lg text-slate-500 hover:text-accent hover:bg-accent/10 transition-all md:opacity-0 opacity-100 group-hover:opacity-100 w-full md:w-auto"
                     >
                       {downloadState[centre.id] === "downloading" ? (
                         <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -408,8 +434,8 @@ export default function SiteLedger() {
                       Export
                     </Button>
                   </TableCell>
-                  <TableCell className="py-4 px-4 text-center">
-                    <label className="relative inline-flex items-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                  <TableCell data-label="Warning Status" className="py-4 px-4 text-center">
+                    <label className="relative inline-flex items-center cursor-pointer md:opacity-0 opacity-100 group-hover:opacity-100 transition-opacity">
                       <input
                         type="checkbox"
                         className="sr-only peer"
@@ -418,7 +444,7 @@ export default function SiteLedger() {
                       <div className="w-10 h-5 bg-background shadow-inner border border-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-500 peer-checked:border-rose-500"></div>
                     </label>
                   </TableCell>
-                  <TableCell className="py-4 px-6 text-center text-[11px] font-bold text-slate-400 tracking-widest uppercase">
+                  <TableCell data-label="Warning Time" className="py-4 px-6 text-center text-[11px] font-bold text-slate-400 tracking-widest uppercase">
                     Off
                   </TableCell>
                 </TableRow>
@@ -543,180 +569,180 @@ export default function SiteLedger() {
       )}
 
       {/* 2. Billing Modal */}
-      {billingModal && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 max-h-[90vh] overflow-y-auto">
-            <div className="p-6 bg-slate-50/50 flex justify-between items-center border-b border-slate-100">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-indigo-100 rounded-xl">
-                  <FileText className="w-5 h-5 text-indigo-600" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black text-[#0D2461] tracking-tight">
-                    {billingModal.accountType === "Prepaid"
-                      ? "Wallet Overview"
-                      : "Confirm Payment"}
-                  </h2>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                    For {billingModal.name} (
-                    {billingModal.accountType || "Postpaid"})
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setBillingModal(null)}
-                className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {billingModal && (() => {
+        const activeBillingCentre =
+          hospitals.find((h) => h.id === billingModal.id) || billingModal;
+        const billingBreakdown = getBillingBreakdown(activeBillingCentre);
+        const walletBal = Number(activeBillingCentre.walletBalance || 0);
+        const remainingBal = walletBal - billingBreakdown.totalUnbilledAmount;
 
-            <div className="p-6 space-y-5">
-              <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 flex flex-col gap-4">
-                <div className="flex justify-between items-center">
+        return (
+          <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 max-h-[90vh] overflow-y-auto">
+              <div className="p-6 bg-slate-50/50 flex justify-between items-center border-b border-slate-100">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-indigo-100 rounded-xl">
+                    <FileText className="w-5 h-5 text-indigo-600" />
+                  </div>
                   <div>
-                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
-                      Billing Period
-                    </p>
-                    <p className="text-sm font-black text-indigo-900 mt-1">
-                      {format(new Date(), "MMM 01, yyyy")} -{" "}
-                      {format(new Date(), "MMM dd, yyyy")}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
-                      Unbilled Studies
-                    </p>
-                    <p className="text-xl font-black text-indigo-600 mt-1">
-                      {getBillingBreakdown(billingModal).totalUnbilledCount}
+                    <h2 className="text-xl font-black text-[#0D2461] tracking-tight">
+                      {activeBillingCentre.accountType === "Prepaid"
+                        ? "Wallet Overview"
+                        : "Confirm Payment"}
+                    </h2>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                      For {activeBillingCentre.name} (
+                      {activeBillingCentre.accountType || "Postpaid"}
+                      {activeBillingCentre.accountType === "Postpaid" &&
+                        ` - ${activeBillingCentre.paymentFrequency || "Monthly"}`}
+                      )
                     </p>
                   </div>
                 </div>
+                <button
+                  onClick={() => setBillingModal(null)}
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-                <div className="border-t border-indigo-100/50 pt-4">
-                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">
-                    Modality Breakdown (Unbilled)
-                  </p>
-                  <div className="space-y-2">
-                    {Object.entries(
-                      getBillingBreakdown(billingModal).breakdown,
-                    ).map(([mod, data]) => (
-                      <div
-                        key={mod}
-                        className="flex justify-between items-center text-xs font-semibold text-indigo-900 bg-white/60 px-3 py-1.5 rounded-lg border border-indigo-50"
-                      >
-                        <span>
-                          {data.count} {mod} Scans (× ₹{data.commission})
+              <div className="p-6 space-y-5">
+                <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 flex flex-col gap-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                        Billing Period
+                      </p>
+                      <p className="text-sm font-black text-indigo-900 mt-1">
+                        {format(new Date(), "MMM 01, yyyy")} -{" "}
+                        {format(new Date(), "MMM dd, yyyy")}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                        Unbilled Studies
+                      </p>
+                      <p className="text-xl font-black text-indigo-600 mt-1">
+                        {billingBreakdown.totalUnbilledCount}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-indigo-100/50 pt-4">
+                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">
+                      Modality Breakdown (Unbilled)
+                    </p>
+                    <div className="space-y-2">
+                      {Object.entries(billingBreakdown.breakdown).map(
+                        ([mod, data]) => (
+                          <div
+                            key={mod}
+                            className="flex justify-between items-center text-xs font-semibold text-indigo-900 bg-white/60 px-3 py-1.5 rounded-lg border border-indigo-50"
+                          >
+                            <span>
+                              {data.count} {mod} Scans (× ₹{data.commission})
+                            </span>
+                            <span>₹ {data.total}</span>
+                          </div>
+                        ),
+                      )}
+                      {Object.keys(billingBreakdown.breakdown).length === 0 && (
+                        <div className="text-xs font-semibold text-slate-500 italic">
+                          No unbilled studies found.
+                        </div>
+                      )}
+                    </div>
+
+                    {activeBillingCentre.accountType === "Prepaid" ? (
+                      <>
+                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-indigo-100/50">
+                          <span className="text-sm font-black text-slate-600">
+                            Initial Wallet Amount
+                          </span>
+                          <span className="text-sm font-black text-slate-700">
+                            ₹ {walletBal}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-sm font-black text-rose-600">
+                            Auto-Deducted
+                          </span>
+                          <span className="text-sm font-black text-rose-600">
+                            - ₹ {billingBreakdown.totalUnbilledAmount}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-indigo-100/50">
+                          <span className="text-sm font-black text-indigo-900">
+                            Remaining Balance
+                          </span>
+                          <span
+                            className={`text-lg font-black ${remainingBal <= 0 ? "text-rose-600" : "text-emerald-600"}`}
+                          >
+                            ₹ {remainingBal}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-indigo-100/50">
+                        <span className="text-sm font-black text-indigo-900">
+                          Total Due Amount
                         </span>
-                        <span>₹ {data.total}</span>
-                      </div>
-                    ))}
-                    {Object.keys(getBillingBreakdown(billingModal).breakdown)
-                      .length === 0 && (
-                      <div className="text-xs font-semibold text-slate-500 italic">
-                        No unbilled studies found.
+                        <span className="text-lg font-black text-indigo-700">
+                          ₹ {billingBreakdown.totalUnbilledAmount}
+                        </span>
                       </div>
                     )}
                   </div>
+                </div>
 
-                  {billingModal.accountType === "Prepaid" ? (
-                    <>
-                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-indigo-100/50">
-                        <span className="text-sm font-black text-slate-600">
-                          Initial Wallet Amount
-                        </span>
-                        <span className="text-sm font-black text-slate-700">
-                          ₹ {billingModal.walletBalance || 0}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-sm font-black text-rose-600">
-                          Auto-Deducted
-                        </span>
-                        <span className="text-sm font-black text-rose-600">
-                          - ₹{" "}
-                          {
-                            getBillingBreakdown(billingModal)
-                              .totalUnbilledAmount
-                          }
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-indigo-100/50">
-                        <span className="text-sm font-black text-indigo-900">
-                          Remaining Balance
-                        </span>
-                        <span
-                          className={`text-lg font-black ${(billingModal.walletBalance || 0) - getBillingBreakdown(billingModal).totalUnbilledAmount <= 0 ? "text-rose-600" : "text-emerald-600"}`}
-                        >
-                          ₹{" "}
-                          {(billingModal.walletBalance || 0) -
-                            getBillingBreakdown(billingModal)
-                              .totalUnbilledAmount}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-indigo-100/50">
-                      <span className="text-sm font-black text-indigo-900">
-                        Total Due Amount
-                      </span>
-                      <span className="text-lg font-black text-indigo-700">
-                        ₹{" "}
-                        {getBillingBreakdown(billingModal).totalUnbilledAmount}
-                      </span>
-                    </div>
-                  )}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                    Notes (Optional)
+                  </label>
+                  <textarea
+                    className="w-full h-24 p-3 rounded-xl bg-slate-50 border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 text-sm font-semibold resize-none"
+                    placeholder={
+                      activeBillingCentre.accountType === "Prepaid"
+                        ? "Notes about wallet..."
+                        : "Enter any specific notes for this payment confirmation..."
+                    }
+                  />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  Notes (Optional)
-                </label>
-                <textarea
-                  className="w-full h-24 p-3 rounded-xl bg-slate-50 border-slate-200 focus:border-[#00A8CC] focus:ring-[#00A8CC]/20 text-sm font-semibold resize-none"
-                  placeholder={
-                    billingModal.accountType === "Prepaid"
-                      ? "Notes about wallet..."
-                      : "Enter any specific notes for this payment confirmation..."
-                  }
-                />
+              <div className="flex items-center justify-end p-6 border-t border-slate-100 bg-slate-50/50 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setBillingModal(null)}
+                  className="h-11 px-6 rounded-xl font-bold border-slate-200"
+                >
+                  Close
+                </Button>
+                {activeBillingCentre.accountType === "Prepaid" ? (
+                  <Button
+                    onClick={() => {
+                      setAddFundsModal(activeBillingCentre);
+                      setBillingModal(null);
+                    }}
+                    className="h-11 px-8 rounded-xl font-black bg-[#00A8CC] hover:bg-[#0090B0] text-white shadow-md shadow-[#00A8CC]/20"
+                  >
+                    Recharge Wallet
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleConfirmPayment}
+                    disabled={billingBreakdown.totalUnbilledAmount === 0}
+                    className="h-11 px-8 rounded-xl font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20"
+                  >
+                    Confirm Payment Received
+                  </Button>
+                )}
               </div>
             </div>
-
-            <div className="flex items-center justify-end p-6 border-t border-slate-100 bg-slate-50/50 gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setBillingModal(null)}
-                className="h-11 px-6 rounded-xl font-bold border-slate-200"
-              >
-                Close
-              </Button>
-              {billingModal.accountType === "Prepaid" ? (
-                <Button
-                  onClick={() => {
-                    setAddFundsModal(billingModal);
-                    setBillingModal(null);
-                  }}
-                  className="h-11 px-8 rounded-xl font-black bg-[#00A8CC] hover:bg-[#0090B0] text-white shadow-md shadow-[#00A8CC]/20"
-                >
-                  Recharge Wallet
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleConfirmPayment}
-                  disabled={
-                    getBillingBreakdown(billingModal).totalUnbilledAmount === 0
-                  }
-                  className="h-11 px-8 rounded-xl font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20"
-                >
-                  Confirm Payment Received
-                </Button>
-              )}
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 3. Payment Grid Modal */}
       {gridModal && (
@@ -746,47 +772,78 @@ export default function SiteLedger() {
 
             <div className="p-6 overflow-y-auto">
               <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                <Table>
-                  <TableHeader className="bg-slate-50 border-b border-slate-100">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-slate-400 font-black py-3 px-4 text-[10px] tracking-widest uppercase">
-                        Date
-                      </TableHead>
-                      <TableHead className="text-slate-400 font-black py-3 px-4 text-[10px] tracking-widest uppercase">
-                        Transaction ID
-                      </TableHead>
-                      <TableHead className="text-slate-400 font-black py-3 px-4 text-[10px] tracking-widest uppercase text-right">
-                        Amount
-                      </TableHead>
-                      <TableHead className="text-slate-400 font-black py-3 px-4 text-[10px] tracking-widest uppercase text-center">
-                        Status
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {[1, 2, 3].map((i) => (
-                      <TableRow
-                        key={i}
-                        className="hover:bg-slate-50 border-b border-slate-50"
-                      >
-                        <TableCell className="py-3 px-4 text-xs font-bold text-slate-600">
-                          2026-08-0{i}
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-xs font-mono text-slate-500">
-                          TXN-9842{i}A
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-xs text-right font-black text-slate-800">
-                          ₹ {(Math.random() * 50000).toFixed(0)}
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-center">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-emerald-50 text-emerald-600">
-                            Successful
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                {(() => {
+                  const hospitalTxs = (walletTransactions || []).filter(
+                    (tx) => tx.hospitalId === gridModal.id,
+                  );
+                  if (hospitalTxs.length === 0) {
+                    return (
+                      <div className="p-8 text-center text-slate-400 text-xs font-semibold">
+                        No wallet transactions recorded for this centre yet.
+                      </div>
+                    );
+                  }
+                  return (
+                    <Table>
+                      <TableHeader className="bg-slate-50 border-b border-slate-100">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="text-slate-400 font-black py-3 px-4 text-[10px] tracking-widest uppercase">
+                            Date & Time
+                          </TableHead>
+                          <TableHead className="text-slate-400 font-black py-3 px-4 text-[10px] tracking-widest uppercase">
+                            Reference / TX ID
+                          </TableHead>
+                          <TableHead className="text-slate-400 font-black py-3 px-4 text-[10px] tracking-widest uppercase">
+                            Type / Method
+                          </TableHead>
+                          <TableHead className="text-slate-400 font-black py-3 px-4 text-[10px] tracking-widest uppercase text-right">
+                            Amount
+                          </TableHead>
+                          <TableHead className="text-slate-400 font-black py-3 px-4 text-[10px] tracking-widest uppercase text-center">
+                            Status
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {hospitalTxs.map((tx) => (
+                          <TableRow
+                            key={tx.id}
+                            className="hover:bg-slate-50 border-b border-slate-50"
+                          >
+                            <TableCell className="py-3 px-4 text-xs font-bold text-slate-600">
+                              {format(new Date(tx.createdAt), "yyyy-MM-dd HH:mm")}
+                            </TableCell>
+                            <TableCell className="py-3 px-4 text-xs font-mono text-slate-500">
+                              {tx.referenceId || tx.id}
+                            </TableCell>
+                            <TableCell className="py-3 px-4 text-xs font-semibold text-slate-600">
+                              <span className="capitalize">{tx.type || "Recharge"}</span>
+                              {tx.paymentMethod && (
+                                <span className="text-[10px] text-slate-400 ml-1">
+                                  ({tx.paymentMethod})
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-3 px-4 text-xs text-right font-black text-slate-800">
+                              ₹ {tx.amount}
+                            </TableCell>
+                            <TableCell className="py-3 px-4 text-center">
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
+                                  tx.status === "Completed"
+                                    ? "bg-emerald-50 text-emerald-600"
+                                    : "bg-amber-50 text-amber-600"
+                                }`}
+                              >
+                                {tx.status || "Completed"}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  );
+                })()}
               </div>
             </div>
 
@@ -829,6 +886,32 @@ export default function SiteLedger() {
             </div>
 
             <div className="p-6 space-y-4">
+              {/* Balance Summary Card */}
+              {(() => {
+                const live = hospitals.find((h) => h.id === addFundsModal.id) || addFundsModal;
+                const breakdown = getBillingBreakdown(live);
+                const currentBal = Number(live.walletBalance || 0);
+                const netBal = currentBal - breakdown.totalUnbilledAmount;
+                return (
+                  <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-4 space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-500">Current Base Wallet:</span>
+                      <span className="font-black text-slate-700">₹ {currentBal}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-rose-500">Unbilled Scans ({breakdown.totalUnbilledCount}):</span>
+                      <span className="font-black text-rose-600">- ₹ {breakdown.totalUnbilledAmount}</span>
+                    </div>
+                    <div className="pt-2 border-t border-emerald-200/60 flex justify-between items-center text-sm">
+                      <span className="font-black text-emerald-900">Effective Balance:</span>
+                      <span className={`font-black ${netBal <= 0 ? "text-rose-600" : "text-emerald-700"}`}>
+                        ₹ {netBal}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">
                   Amount (₹) *
@@ -849,6 +932,25 @@ export default function SiteLedger() {
                     className="pl-8 h-11 rounded-xl bg-slate-50 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 text-sm font-black"
                     placeholder="0.00"
                   />
+                </div>
+                {/* Quick Add Pills */}
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Quick Add:</span>
+                  {[100, 500, 1000, 2000].map((amt) => (
+                    <button
+                      type="button"
+                      key={amt}
+                      onClick={() =>
+                        setAddFundsData((prev) => ({
+                          ...prev,
+                          amount: String((Number(prev.amount) || 0) + amt),
+                        }))
+                      }
+                      className="text-xs font-black px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 rounded-lg text-slate-600 border border-slate-200 transition-all"
+                    >
+                      +₹{amt}
+                    </button>
+                  ))}
                 </div>
               </div>
 

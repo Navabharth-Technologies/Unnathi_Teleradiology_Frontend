@@ -54,8 +54,8 @@ export default function StudyTemplatesList() {
             study names.
           </p>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="relative group">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full md:w-auto mt-4 md:mt-0">
+          <div className="relative group w-full md:w-auto">
             <Search className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-[#00A8CC] transition-colors" />
             <Input
               placeholder="Search by modality or study name..."
@@ -66,7 +66,7 @@ export default function StudyTemplatesList() {
           </div>
           <Button
             onClick={() => navigate("/utilities/templates/new")}
-            className="bg-[#0D2461] hover:bg-[#081840] text-white h-10 px-5 text-sm font-bold rounded-xl shadow-md"
+            className="bg-[#0D2461] hover:bg-[#081840] text-white h-10 px-5 text-sm font-bold rounded-xl shadow-md w-full sm:w-auto"
           >
             <PlusCircle className="w-4 h-4 mr-2" /> Add Template
           </Button>

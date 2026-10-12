@@ -4,7 +4,7 @@ import { useAuthStore } from "../../store/useAuthStore";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { History, FileText } from "lucide-react";
+import { History, FileText, Wallet, Lock, CheckCircle2, X } from "lucide-react";
 import { format } from "date-fns";
 
 export default function AddStudy() {
@@ -17,6 +17,8 @@ export default function AddStudy() {
     studies,
     templates,
     modalities,
+    updateHospital,
+    addWalletTransaction,
   } = useMockDb();
   const navigate = useNavigate();
 
@@ -52,8 +54,80 @@ export default function AddStudy() {
         new Date(b.studyDate).getTime() - new Date(a.studyDate).getTime(),
     );
 
+  // Quick Recharge Modal State
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [rechargeAmount, setRechargeAmount] = useState("");
+  const [rechargeMethod, setRechargeMethod] = useState("UPI");
+  const [rechargeSuccess, setRechargeSuccess] = useState(false);
+
+  // Active hospital & wallet computation
+  const selectedHospital =
+    hospitals.find((h) => h.id === formData.hospitalId) ||
+    scopedHospitals[0] ||
+    hospitals[0];
+
+  const unbilledStudies = studies.filter(
+    (s) =>
+      s.hospitalId === selectedHospital?.id &&
+      ["Final", "Verified", "Dispatched"].includes(s.reportingStatus) &&
+      s.superAdminPaymentStatus !== "Paid",
+  );
+
+  const totalUnbilledAmount = unbilledStudies.reduce((sum, s) => {
+    const comm =
+      selectedHospital?.modalityCommissions?.[s.modality] ||
+      (s.modality === "MRI"
+        ? 150
+        : s.modality === "CT"
+          ? 100
+          : ["X-Ray", "CR", "DR"].includes(s.modality)
+            ? 30
+            : 50);
+    return sum + comm;
+  }, 0);
+
+  const effectiveBalance =
+    (Number(selectedHospital?.walletBalance) || 0) - totalUnbilledAmount;
+  const isPrepaid = (selectedHospital?.accountType || "Prepaid") === "Prepaid";
+  const isWalletInsufficient = isPrepaid && effectiveBalance <= 0;
+
+  const handleQuickRecharge = async () => {
+    const amt = Number(rechargeAmount);
+    if (isNaN(amt) || amt <= 0 || !selectedHospital) return;
+    const currentBase = Number(selectedHospital.walletBalance || 0);
+    const newBal = currentBase + amt;
+    await updateHospital(selectedHospital.id, { walletBalance: newBal });
+
+    // Record transaction in MS SQL Server
+    addWalletTransaction({
+      id: "tx_" + Date.now(),
+      hospitalId: selectedHospital.id,
+      siteId: selectedHospital.parentSiteId || null,
+      type: "Recharge",
+      amount: amt,
+      balanceBefore: currentBase,
+      balanceAfter: newBal,
+      paymentMethod: rechargeMethod || "UPI",
+      referenceId: `STUDY-TOPUP-${Date.now().toString().slice(-6)}`,
+      remarks: "Quick wallet recharge from Add Study portal",
+      status: "Completed",
+      createdAt: new Date().toISOString(),
+    });
+
+    setRechargeSuccess(true);
+    setTimeout(() => {
+      setShowRechargeModal(false);
+      setRechargeSuccess(false);
+      setRechargeAmount("");
+    }, 1200);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isPrepaid && isWalletInsufficient) {
+      setShowRechargeModal(true);
+      return;
+    }
     const newStudy = {
       ...formData,
       referringPhysician: formData.referringDoctor,
@@ -69,13 +143,19 @@ export default function AddStudy() {
     };
     addStudy(newStudy);
 
-    // Auto-generate invoice based on configured Template pricing
+    // Auto-generate invoice ONLY for Independent hospitals based on configured Template pricing
+    const isIndependentHospital =
+      selectedHospital &&
+      !selectedHospital.parentSiteId &&
+      selectedHospital.organizationType !== "COMPANY_MANAGED";
+
     const matchingTemplate = templates?.find(
       (t) =>
         t.modality === formData.modality &&
         t.studyName === formData.studyDescription.toUpperCase(),
     );
     if (
+      isIndependentHospital &&
       matchingTemplate &&
       matchingTemplate.price &&
       matchingTemplate.price > 0
@@ -282,9 +362,26 @@ export default function AddStudy() {
 
           {user?.role !== "HOSPITAL_ADMIN" && (
             <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                Hospital
-              </label>
+              <div className="flex justify-between items-center">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Hospital
+                </label>
+                {isPrepaid ? (
+                  <span
+                    className={`text-[11px] font-black px-2 py-0.5 rounded-lg border ${
+                      isWalletInsufficient
+                        ? "bg-rose-50 border-rose-200 text-rose-600"
+                        : "bg-emerald-50 border-emerald-200 text-emerald-600"
+                    }`}
+                  >
+                    Wallet: ₹ {effectiveBalance}
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-600">
+                    Postpaid ({selectedHospital?.paymentFrequency || "Monthly"})
+                  </span>
+                )}
+              </div>
               <select
                 className="w-full border border-border rounded-xl p-3 bg-background text-primary font-bold focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition-all shadow-inner"
                 value={formData.hospitalId}
@@ -294,7 +391,7 @@ export default function AddStudy() {
               >
                 {scopedHospitals.map((h) => (
                   <option key={h.id} value={h.id}>
-                    {h.name}
+                    {h.name} ({h.accountType || "Prepaid"})
                   </option>
                 ))}
               </select>
@@ -423,6 +520,33 @@ export default function AddStudy() {
           </div>
         </div>
 
+        {/* Low Wallet Alert Banner */}
+        {isPrepaid && isWalletInsufficient && (
+          <div className="bg-rose-50 border-2 border-rose-200 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 bg-rose-100 rounded-xl text-rose-600">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-rose-900">
+                  Wallet Recharge Mandated for {selectedHospital?.name}
+                </p>
+                <p className="text-xs font-medium text-rose-700 mt-0.5">
+                  Available balance: ₹ {effectiveBalance}. Prepaid sites must have sufficient funds before registering new studies.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setShowRechargeModal(true)}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-5 h-10 rounded-xl shadow-md shadow-rose-600/20"
+            >
+              <Wallet className="w-4 h-4 mr-1.5" />
+              Recharge Wallet
+            </Button>
+          </div>
+        )}
+
         <div className="flex justify-end gap-3 pt-6 border-t border-border">
           <Button
             type="button"
@@ -432,14 +556,157 @@ export default function AddStudy() {
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            className="bg-accent hover:bg-accent-hover text-white font-bold rounded-xl px-8 shadow-sm hover:-translate-y-0.5 transition-all duration-300"
-          >
-            Save Study
-          </Button>
+          {isPrepaid && isWalletInsufficient ? (
+            <Button
+              type="button"
+              onClick={() => setShowRechargeModal(true)}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl px-8 shadow-sm animate-pulse"
+            >
+              <Lock className="w-4 h-4 mr-2" />
+              Recharge to Save Study
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              className="bg-accent hover:bg-accent-hover text-white font-bold rounded-xl px-8 shadow-sm hover:-translate-y-0.5 transition-all duration-300"
+            >
+              Save Study
+            </Button>
+          )}
         </div>
       </form>
+
+      {/* QUICK RECHARGE MODAL */}
+      {showRechargeModal && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  <Wallet className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight">
+                    Recharge Hospital Wallet
+                  </h2>
+                  <p className="text-xs text-white/80 font-bold uppercase tracking-widest mt-0.5">
+                    {selectedHospital?.name} (Prepaid)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRechargeModal(false)}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors text-white/80"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-500">Current Base Wallet:</span>
+                  <span className="font-black text-slate-700">₹ {Number(selectedHospital?.walletBalance) || 0}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-rose-500">Unbilled Scans ({unbilledStudies.length}):</span>
+                  <span className="font-black text-rose-600">- ₹ {totalUnbilledAmount}</span>
+                </div>
+                <div className="pt-2 border-t border-emerald-200/60 flex justify-between items-center text-sm">
+                  <span className="font-black text-emerald-950">Available Balance:</span>
+                  <span className={`font-black ${effectiveBalance <= 0 ? "text-rose-600" : "text-emerald-700"}`}>
+                    ₹ {effectiveBalance}
+                  </span>
+                </div>
+              </div>
+
+              {rechargeSuccess ? (
+                <div className="bg-emerald-100 border border-emerald-300 text-emerald-800 p-4 rounded-2xl text-center font-bold text-sm flex items-center justify-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <span>Wallet recharged successfully! Unlocking study creation...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                      Enter Recharge Amount (₹) *
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <span className="text-slate-500 font-bold">₹</span>
+                      </div>
+                      <Input
+                        type="number"
+                        value={rechargeAmount}
+                        onChange={(e) => setRechargeAmount(e.target.value)}
+                        placeholder="500"
+                        className="pl-9 h-12 text-base font-black bg-slate-50 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Quick Add:</span>
+                      {[100, 500, 1000, 2000].map((amt) => (
+                        <button
+                          type="button"
+                          key={amt}
+                          onClick={() => setRechargeAmount(String((Number(rechargeAmount) || 0) + amt))}
+                          className="text-xs font-black px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 rounded-lg text-slate-600 border border-slate-200 transition-all cursor-pointer"
+                        >
+                          +₹{amt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                      Payment Mode
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {["UPI", "NetBanking", "Card"].map((m) => (
+                        <button
+                          type="button"
+                          key={m}
+                          onClick={() => setRechargeMethod(m)}
+                          className={`h-10 rounded-xl text-xs font-bold border transition-all ${
+                            rechargeMethod === m
+                              ? "border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end p-5 border-t border-slate-100 bg-slate-50/50 gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowRechargeModal(false)}
+                className="h-11 px-5 rounded-xl font-bold border-slate-200 text-slate-600"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleQuickRecharge}
+                disabled={!rechargeAmount || Number(rechargeAmount) <= 0 || rechargeSuccess}
+                className="h-11 px-7 rounded-xl font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20"
+              >
+                <Wallet className="mr-2 h-4 w-4" />
+                Confirm & Add Funds
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

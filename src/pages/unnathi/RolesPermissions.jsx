@@ -135,8 +135,8 @@ export default function RolesPermissions() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 animate-unnathi-fade-in">
-      <div className="flex justify-between items-end mb-6">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-unnathi-fade-in w-full max-w-full min-w-0">
+      <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-end gap-4 mb-6 w-full max-w-full min-w-0">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-primary flex items-center">
             <Shield className="w-6 h-6 text-accent mr-2" />
@@ -148,16 +148,16 @@ export default function RolesPermissions() {
         </div>
         <button
           onClick={openCreateModal}
-          className="bg-primary hover:bg-primary-hover shadow-sm text-white px-4 py-2 rounded-lg text-sm font-bold transition-all hover:-translate-y-0.5 flex items-center"
+          className="bg-primary hover:bg-primary-hover shadow-sm text-white px-4 py-2 rounded-lg text-sm font-bold transition-all hover:-translate-y-0.5 flex items-center shrink-0"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4 mr-2 shrink-0" />
           Create Custom Role
         </button>
       </div>
 
-      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden animate-unnathi-slide-up">
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden animate-unnathi-slide-up w-full max-w-full min-w-0">
         <div className="p-4 border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50/30">
-          <div className="relative w-72 group">
+          <div className="relative w-full md:w-72 group min-w-0">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent transition-colors" />
             <input
               type="text"
@@ -170,7 +170,8 @@ export default function RolesPermissions() {
           </button>
         </div>
 
-        <table className="min-w-full">
+        <div className="overflow-x-auto w-full">
+          <table className="min-w-full">
           <thead className="bg-slate-50/50 border-b border-border">
             <tr>
               <th className="px-6 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">
@@ -280,7 +281,8 @@ export default function RolesPermissions() {
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {/* Create / Edit Custom Role Modal */}

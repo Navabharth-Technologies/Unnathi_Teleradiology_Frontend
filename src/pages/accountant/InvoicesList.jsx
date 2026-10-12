@@ -60,12 +60,15 @@ export default function InvoicesList() {
       return false;
     // EXCLUDE if an invoice already exists for this study
     if (invoices.some((i) => i.studyId === s.id)) return false;
-    // Scoping
-    if (user?.role === "SUPER_ADMIN") return true;
-    if (user?.role === "SITE_ADMIN") {
-      const h = hospitals.find((h) => h.id === s.hospitalId);
-      return h?.parentSiteId === user.siteId;
+
+    // Invoicing and Accountant Billing structures are strictly for INDEPENDENT hospitals only
+    const hosp = hospitals.find((h) => h.id === s.hospitalId);
+    if (hosp?.parentSiteId || hosp?.organizationType === "COMPANY_MANAGED") {
+      return false;
     }
+
+    // Scoping for Independent hospitals
+    if (user?.role === "SUPER_ADMIN") return true;
     if (user?.hospitalId) return s.hospitalId === user.hospitalId;
     if (selectedHospitalId) return s.hospitalId === selectedHospitalId;
     // Fallback: match hospital names dynamically in case of mock DB mismatches
@@ -82,12 +85,15 @@ export default function InvoicesList() {
       !(i.invoiceNumber || "").toLowerCase().includes(searchTerm.toLowerCase())
     )
       return false;
+
+    // Invoicing is strictly for INDEPENDENT hospitals only
+    const hosp = hospitals.find((h) => h.id === i.hospitalId);
+    if (hosp?.parentSiteId || hosp?.organizationType === "COMPANY_MANAGED") {
+      return false;
+    }
+
     // Scoping
     if (user?.role === "SUPER_ADMIN") return true;
-    if (user?.role === "SITE_ADMIN") {
-      const h = hospitals.find((h) => h.id === i.hospitalId);
-      return h?.parentSiteId === user.siteId;
-    }
     if (user?.hospitalId) return i.hospitalId === user.hospitalId;
     if (selectedHospitalId) return i.hospitalId === selectedHospitalId;
     // Fallback

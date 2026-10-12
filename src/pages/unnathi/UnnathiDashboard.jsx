@@ -102,7 +102,7 @@ const UnnathiDashboard = () => {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="max-w-[1600px] mx-auto space-y-8 pb-12"
+        className="max-w-[1600px] mx-auto space-y-8 pb-12 w-full max-w-full min-w-0"
       >
         <motion.div variants={itemVariants} className="flex flex-col mb-4">
           <h1 className="text-3xl font-black text-[#10263D] tracking-tight flex items-center gap-3">

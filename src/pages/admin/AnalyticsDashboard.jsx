@@ -163,23 +163,23 @@ export default function AnalyticsDashboard() {
             Operational metrics and financial performance
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center gap-2 bg-card p-1 rounded-md border border-border shadow-sm">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4 sm:mt-0 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-card p-2 sm:p-1 rounded-md border border-border shadow-sm w-full sm:w-auto">
             <Input
               type="date"
-              className="h-8 text-sm w-36 border-0 focus-visible:ring-0 shadow-none font-medium"
+              className="h-8 text-sm w-full sm:w-36 border-0 focus-visible:ring-0 shadow-none font-medium"
               defaultValue="2026-08-01"
             />
-            <span className="text-xs text-muted-foreground font-medium px-1">
+            <span className="text-xs text-muted-foreground font-medium px-1 text-center hidden sm:block">
               to
             </span>
             <Input
               type="date"
-              className="h-8 text-sm w-36 border-0 focus-visible:ring-0 shadow-none font-medium"
+              className="h-8 text-sm w-full sm:w-36 border-0 focus-visible:ring-0 shadow-none font-medium"
               defaultValue="2026-09-08"
             />
           </div>
-          <Button variant="outline" className="h-10" onClick={handleExport}>
+          <Button variant="outline" className="h-10 w-full sm:w-auto" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" /> Export
           </Button>
         </div>

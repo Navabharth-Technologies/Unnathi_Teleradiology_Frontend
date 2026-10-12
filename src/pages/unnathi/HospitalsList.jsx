@@ -132,12 +132,12 @@ const HospitalsList = () => {
             <h1 className="text-3xl font-black tracking-tight text-[#0F172A] flex items-center gap-3">
               {typeFilter === "company"
                 ? "Company Hospitals"
-                : "Teleradiology Hospitals"}
+                : "Independent Hospitals"}
             </h1>
             <p className="text-[#64748B] mt-1 font-medium text-sm">
               {typeFilter === "company"
                 ? "Manage hospitals operating under Teleradiology Companies"
-                : "Manage hospitals created by the teleradiology site"}
+                : "Manage independent hospitals using the teleradiology site"}
             </p>
           </div>
         </motion.div>

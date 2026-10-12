@@ -13,6 +13,12 @@ import {
   Zap,
   User,
   Activity,
+  Wallet,
+  CreditCard,
+  Lock,
+  RefreshCw,
+  X,
+  Building2,
 } from "lucide-react";
 import * as dicomParser from "dicom-parser";
 import JSZip from "jszip";
@@ -124,8 +130,27 @@ const MOCK_PATIENTS = [
 
 export default function DicomReceive() {
   const navigate = useNavigate();
-  const { patients, hospitals, addPatient, addStudy } = useMockDb();
+  const {
+    patients,
+    hospitals,
+    studies,
+    addPatient,
+    addStudy,
+    updateHospital,
+    addWalletTransaction,
+  } = useMockDb();
   const { user } = useAuthStore();
+
+  const scopedHospitals = hospitals.filter((h) => {
+    if (user?.role === "SUPER_ADMIN") return true;
+    if (user?.siteId) return h.parentSiteId === user.siteId;
+    if (user?.hospitalId) return h.id === user.hospitalId;
+    return true;
+  });
+
+  const [selectedHospitalId, setSelectedHospitalId] = useState(
+    user?.hospitalId || scopedHospitals[0]?.id || hospitals[0]?.id || "",
+  );
 
   const [stage, setStage] = useState("drop");
   const [dragging, setDragging] = useState(false);
@@ -134,10 +159,76 @@ export default function DicomReceive() {
   const [fileName, setFileName] = useState("");
   const [existingPatientId, setExistingPatientId] = useState(null);
 
+  // Quick Recharge Modal State
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [rechargeAmount, setRechargeAmount] = useState("");
+  const [rechargeMethod, setRechargeMethod] = useState("UPI");
+  const [rechargeSuccess, setRechargeSuccess] = useState(false);
+
   // Editable fields for correction
   const [fields, setFields] = useState(null);
 
-  const defaultHospitalId = user?.hospitalId || hospitals[0]?.id || "";
+  // Active hospital & wallet computation
+  const currentHospital =
+    hospitals.find((h) => h.id === selectedHospitalId) ||
+    scopedHospitals[0] ||
+    hospitals[0];
+
+  const unbilledStudies = studies.filter(
+    (s) =>
+      s.hospitalId === currentHospital?.id &&
+      ["Final", "Verified", "Dispatched"].includes(s.reportingStatus) &&
+      s.superAdminPaymentStatus !== "Paid",
+  );
+
+  const totalUnbilledAmount = unbilledStudies.reduce((sum, s) => {
+    const comm =
+      currentHospital?.modalityCommissions?.[s.modality] ||
+      (s.modality === "MRI"
+        ? 150
+        : s.modality === "CT"
+          ? 100
+          : ["X-Ray", "CR", "DR"].includes(s.modality)
+            ? 30
+            : 50);
+    return sum + comm;
+  }, 0);
+
+  const effectiveBalance =
+    (Number(currentHospital?.walletBalance) || 0) - totalUnbilledAmount;
+  const isPrepaid = (currentHospital?.accountType || "Prepaid") === "Prepaid";
+  const isWalletInsufficient = isPrepaid && effectiveBalance <= 0;
+
+  const handleQuickRecharge = async () => {
+    const amt = Number(rechargeAmount);
+    if (isNaN(amt) || amt <= 0 || !currentHospital) return;
+    const currentBase = Number(currentHospital.walletBalance || 0);
+    const newBal = currentBase + amt;
+    await updateHospital(currentHospital.id, { walletBalance: newBal });
+
+    // Record transaction in MS SQL Server
+    addWalletTransaction({
+      id: "tx_" + Date.now(),
+      hospitalId: currentHospital.id,
+      siteId: currentHospital.parentSiteId || null,
+      type: "Recharge",
+      amount: amt,
+      balanceBefore: currentBase,
+      balanceAfter: newBal,
+      paymentMethod: rechargeMethod || "UPI",
+      referenceId: `DICOM-TOPUP-${Date.now().toString().slice(-6)}`,
+      remarks: "Quick wallet recharge from DICOM Receive portal",
+      status: "Completed",
+      createdAt: new Date().toISOString(),
+    });
+
+    setRechargeSuccess(true);
+    setTimeout(() => {
+      setShowRechargeModal(false);
+      setRechargeSuccess(false);
+      setRechargeAmount("");
+    }, 1200);
+  };
 
   // ─── Parse real DICOM file ───────────────────────────────────────────────
 
@@ -228,13 +319,21 @@ export default function DicomReceive() {
     (e) => {
       e.preventDefault();
       setDragging(false);
+      if (isPrepaid && isWalletInsufficient) {
+        setShowRechargeModal(true);
+        return;
+      }
       const file = e.dataTransfer.files[0];
       if (file) processDicomFile(file);
     },
-    [processDicomFile],
+    [processDicomFile, isPrepaid, isWalletInsufficient],
   );
 
   const handleFileInput = (e) => {
+    if (isPrepaid && isWalletInsufficient) {
+      setShowRechargeModal(true);
+      return;
+    }
     const file = e.target.files?.[0];
     if (file) processDicomFile(file);
   };
@@ -242,6 +341,10 @@ export default function DicomReceive() {
   // ─── Simulate DICOM Push ─────────────────────────────────────────────────
 
   const simulatePush = () => {
+    if (isPrepaid && isWalletInsufficient) {
+      setShowRechargeModal(true);
+      return;
+    }
     const mock =
       MOCK_PATIENTS[Math.floor(Math.random() * MOCK_PATIENTS.length)];
     setFileName("simulated_push.dcm");
@@ -258,6 +361,10 @@ export default function DicomReceive() {
 
   const handleRegister = () => {
     if (!fields) return;
+    if (isPrepaid && isWalletInsufficient) {
+      setShowRechargeModal(true);
+      return;
+    }
     setStage("registering");
 
     setTimeout(() => {
@@ -275,7 +382,7 @@ export default function DicomReceive() {
           phone: "",
           email: "",
           referringDoctor: "",
-          hospitalId: defaultHospitalId,
+          hospitalId: selectedHospitalId || currentHospital?.id,
           registrationDate: new Date().toISOString(),
         };
         addPatient(newPatient);
@@ -289,7 +396,7 @@ export default function DicomReceive() {
         patientId: patId,
         caseNumber: caseNum,
         accessionNumber: fields.accessionNumber,
-        hospitalId: defaultHospitalId,
+        hospitalId: selectedHospitalId || currentHospital?.id,
         modality: fields.modality,
         studyDescription: fields.studyDescription,
         bodyPart: fields.bodyPart,
@@ -328,7 +435,88 @@ export default function DicomReceive() {
             </p>
           </div>
         </div>
+
+        {/* Facility & Wallet Status Bar */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 space-x-2">
+            <Building2 className="w-4 h-4 text-slate-500" />
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Hospital:
+            </span>
+            {user?.role === "HOSPITAL_ADMIN" ? (
+              <span className="text-sm font-black text-slate-800">
+                {currentHospital?.name}
+              </span>
+            ) : (
+              <select
+                value={selectedHospitalId}
+                onChange={(e) => setSelectedHospitalId(e.target.value)}
+                className="bg-transparent text-sm font-black text-slate-800 outline-none cursor-pointer"
+              >
+                {scopedHospitals.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name} ({h.accountType || "Prepaid"})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Account Status Badge */}
+          {isPrepaid ? (
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-black transition-all ${
+                isWalletInsufficient
+                  ? "bg-rose-50 border-rose-200 text-rose-700"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-700"
+              }`}
+            >
+              <Wallet className="w-4 h-4" />
+              <span>Wallet: ₹ {effectiveBalance}</span>
+              <button
+                type="button"
+                onClick={() => setShowRechargeModal(true)}
+                className="ml-1 text-[11px] underline font-bold hover:text-emerald-900 cursor-pointer"
+              >
+                Recharge
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50/70 text-indigo-700 text-xs font-black">
+              <CheckCircle2 className="w-4 h-4 text-indigo-600" />
+              <span>Postpaid ({currentHospital?.paymentFrequency || "Monthly"})</span>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Mandatory Recharge Alert when Prepaid balance is low/negative */}
+      {isPrepaid && isWalletInsufficient && (
+        <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm animate-in fade-in duration-200">
+          <div className="flex items-start space-x-3.5">
+            <div className="p-2.5 bg-rose-100 rounded-xl text-rose-600 mt-0.5 shrink-0">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-rose-900 tracking-tight">
+                Wallet Recharge Mandated for {currentHospital?.name}
+              </h3>
+              <p className="text-xs font-medium text-rose-700 mt-1 leading-relaxed">
+                This hospital has a <strong>Prepaid Account</strong> with an effective available balance of{" "}
+                <span className="font-black text-rose-900">₹ {effectiveBalance}</span>.
+                Platform rules mandate recharging the wallet before starting or uploading DICOM images.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setShowRechargeModal(true)}
+            className="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-6 h-11 rounded-xl shadow-md shadow-rose-600/20 shrink-0"
+          >
+            <Wallet className="mr-2 h-4 w-4" />
+            Recharge Wallet Now
+          </Button>
+        </div>
+      )}
 
       {/* STAGE: DROP ZONE */}
       {stage === "drop" && (
@@ -678,13 +866,23 @@ export default function DicomReceive() {
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                 Review details, then confirm
               </p>
-              <Button
-                className="bg-[#0D2461] hover:bg-[#081840] text-white px-8 h-11 font-black rounded-xl shadow-md shadow-[#0D2461]/20"
-                onClick={handleRegister}
-              >
-                <CheckCircle2 className="mr-2 h-5 w-5" />
-                Register & Add to Worklist
-              </Button>
+              {isPrepaid && isWalletInsufficient ? (
+                <Button
+                  className="bg-rose-600 hover:bg-rose-700 text-white px-8 h-11 font-black rounded-xl shadow-md shadow-rose-600/20 animate-pulse"
+                  onClick={() => setShowRechargeModal(true)}
+                >
+                  <Lock className="mr-2 h-4 w-4" />
+                  Recharge Wallet to Register
+                </Button>
+              ) : (
+                <Button
+                  className="bg-[#0D2461] hover:bg-[#081840] text-white px-8 h-11 font-black rounded-xl shadow-md shadow-[#0D2461]/20"
+                  onClick={handleRegister}
+                >
+                  <CheckCircle2 className="mr-2 h-5 w-5" />
+                  Register & Add to Worklist
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -787,6 +985,138 @@ export default function DicomReceive() {
             >
               <Zap className="mr-2 h-4 w-4" /> Use Simulation Instead
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK RECHARGE MODAL */}
+      {showRechargeModal && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  <Wallet className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight">
+                    Recharge Hospital Wallet
+                  </h2>
+                  <p className="text-xs text-white/80 font-bold uppercase tracking-widest mt-0.5">
+                    {currentHospital?.name} (Prepaid)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowRechargeModal(false)}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors text-white/80"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Wallet Summary */}
+              <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-500">Current Base Wallet:</span>
+                  <span className="font-black text-slate-700">₹ {Number(currentHospital?.walletBalance) || 0}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-rose-500">Unbilled Scans ({unbilledStudies.length}):</span>
+                  <span className="font-black text-rose-600">- ₹ {totalUnbilledAmount}</span>
+                </div>
+                <div className="pt-2 border-t border-emerald-200/60 flex justify-between items-center text-sm">
+                  <span className="font-black text-emerald-950">Available Balance:</span>
+                  <span className={`font-black ${effectiveBalance <= 0 ? "text-rose-600" : "text-emerald-700"}`}>
+                    ₹ {effectiveBalance}
+                  </span>
+                </div>
+              </div>
+
+              {rechargeSuccess ? (
+                <div className="bg-emerald-100 border border-emerald-300 text-emerald-800 p-4 rounded-2xl text-center font-bold text-sm flex items-center justify-center gap-2 animate-in fade-in">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <span>Wallet recharged successfully! Unlocking upload...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                      Enter Recharge Amount (₹) *
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <span className="text-slate-500 font-bold">₹</span>
+                      </div>
+                      <Input
+                        type="number"
+                        value={rechargeAmount}
+                        onChange={(e) => setRechargeAmount(e.target.value)}
+                        placeholder="500"
+                        className="pl-9 h-12 text-base font-black bg-slate-50 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                      />
+                    </div>
+
+                    {/* Quick Amount Pills */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Quick Add:</span>
+                      {[100, 500, 1000, 2000].map((amt) => (
+                        <button
+                          type="button"
+                          key={amt}
+                          onClick={() => setRechargeAmount(String((Number(rechargeAmount) || 0) + amt))}
+                          className="text-xs font-black px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 rounded-lg text-slate-600 border border-slate-200 transition-all cursor-pointer"
+                        >
+                          +₹{amt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Payment Mode */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                      Payment Mode
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {["UPI", "NetBanking", "Card"].map((m) => (
+                        <button
+                          type="button"
+                          key={m}
+                          onClick={() => setRechargeMethod(m)}
+                          className={`h-10 rounded-xl text-xs font-bold border transition-all ${
+                            rechargeMethod === m
+                              ? "border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end p-5 border-t border-slate-100 bg-slate-50/50 gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowRechargeModal(false)}
+                className="h-11 px-5 rounded-xl font-bold border-slate-200 text-slate-600"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleQuickRecharge}
+                disabled={!rechargeAmount || Number(rechargeAmount) <= 0 || rechargeSuccess}
+                className="h-11 px-7 rounded-xl font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20"
+              >
+                <Wallet className="mr-2 h-4 w-4" />
+                Confirm & Add Funds
+              </Button>
+            </div>
           </div>
         </div>
       )}

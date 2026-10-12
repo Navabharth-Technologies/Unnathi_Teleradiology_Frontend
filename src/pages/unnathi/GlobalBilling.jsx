@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useMockDb } from "../../store/useMockDb";
 import { useAuthStore } from "../../store/useAuthStore";
 import {
@@ -22,6 +23,8 @@ export default function GlobalBilling() {
     templates,
     updateHospital,
     updateSite,
+    updateInvoice,
+    updateStudy,
   } = useMockDb();
   const { user } = useAuthStore();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -41,16 +44,62 @@ export default function GlobalBilling() {
     if (paymentData.targetType === "hospital") {
       const hospital = hospitals.find((h) => h.id === paymentData.targetId);
       if (hospital) {
-        updateHospital(hospital.id, {
-          walletBalance: (hospital.walletBalance || 0) + amount,
-        });
+        if (hospital.accountType === "Prepaid") {
+          updateHospital(hospital.id, {
+            walletBalance: (hospital.walletBalance || 0) + amount,
+          });
+        } else {
+          // Postpaid: Apply payment to unpaid invoices and studies
+          let remaining = amount;
+          const unpaidInvoices = invoices.filter(
+            (i) => i.targetId === hospital.id && i.targetType === "hospital" && i.status !== "Paid"
+          );
+          for (const inv of unpaidInvoices) {
+            if (remaining >= inv.amount) {
+              updateInvoice(inv.id, { status: "Paid" });
+              remaining -= inv.amount;
+            } else {
+              break;
+            }
+          }
+          const unbilledStudies = studies.filter(
+            (s) =>
+              s.hospitalId === hospital.id &&
+              ["Final", "Verified", "Dispatched"].includes(s.reportingStatus) &&
+              s.superAdminPaymentStatus !== "Paid",
+          );
+          unbilledStudies.forEach((s) => updateStudy(s.id, { superAdminPaymentStatus: "Paid" }));
+        }
       }
     } else {
       const site = sites.find((s) => s.id === paymentData.targetId);
       if (site) {
-        updateSite(site.id, {
-          walletBalance: (site.walletBalance || 0) + amount,
-        });
+        if (site.accountType === "Prepaid") {
+          updateSite(site.id, {
+            walletBalance: (site.walletBalance || 0) + amount,
+          });
+        } else {
+          // Postpaid: Apply payment to unpaid invoices and studies
+          let remaining = amount;
+          const unpaidInvoices = invoices.filter(
+            (i) => i.targetId === site.id && i.targetType === "site" && i.status !== "Paid"
+          );
+          for (const inv of unpaidInvoices) {
+            if (remaining >= inv.amount) {
+              updateInvoice(inv.id, { status: "Paid" });
+              remaining -= inv.amount;
+            } else {
+              break;
+            }
+          }
+          const unbilledStudies = studies.filter(
+            (s) =>
+              s.siteId === site.id &&
+              ["Final", "Verified", "Dispatched"].includes(s.reportingStatus) &&
+              s.superAdminPaymentStatus !== "Paid",
+          );
+          unbilledStudies.forEach((s) => updateStudy(s.id, { superAdminPaymentStatus: "Paid" }));
+        }
       }
     }
     setShowPaymentModal(false);
@@ -83,42 +132,72 @@ export default function GlobalBilling() {
       let companyTotal = 0;
       let companyUnpaid = 0;
       const hospitalNodes = companyHospitals.map((hospital) => {
-        const hospInvoices = invoices.filter(
-          (inv) => inv.hospitalId === hospital.id,
-        );
         let hospTotal = 0;
         let hospUnpaid = 0;
-        if (user?.role === "SUPER_ADMIN") {
-          // Super Admin sees Unnathi Commission
-          const allCompletedStudies = studies.filter(
-            (s) =>
-              s.hospitalId === hospital.id &&
-              ["Final", "Verified", "Dispatched"].includes(s.reportingStatus),
+
+        // Hospitals created by Teleradiology Company/Site use Commission Collection model (No invoices/templates)
+        const completedStudies = studies.filter(
+          (s) =>
+            s.hospitalId === hospital.id &&
+            ["Final", "Verified", "Dispatched"].includes(s.reportingStatus),
+        );
+
+        completedStudies.forEach((s) => {
+          const comm =
+            hospital.modalityCommissions?.[s.modality] ??
+            (s.modality === "MRI"
+              ? 150
+              : s.modality === "CT"
+                ? 100
+                : ["X-Ray", "CR", "DR"].includes(s.modality)
+                  ? 30
+                  : 50);
+          hospTotal += comm;
+          if (s.superAdminPaymentStatus !== "Paid" && s.paymentStatus !== "Paid") {
+            hospUnpaid += comm;
+          }
+        });
+
+        companyTotal += hospTotal;
+        companyUnpaid += hospUnpaid;
+        return {
+          type: "hospital",
+          data: hospital,
+          total: hospTotal,
+          unpaid: hospUnpaid,
+          invoices: [],
+        };
+      });
+      data.push({
+        type: "company",
+        data: company,
+        total: companyTotal,
+        unpaid: companyUnpaid,
+        children: hospitalNodes,
+      });
+    });
+    // Group Independent Hospitals (Commercial Clients) - strictly Independent hospitals use Invoices & Billing
+    if (user?.role === "SUPER_ADMIN") {
+      const independentHospitals = hospitals.filter(
+        (h) => !h.parentSiteId && (h.organizationType === "UNNATHI_MANAGED" || h.organizationType === "Independent" || !h.organizationType),
+      );
+      if (independentHospitals.length > 0) {
+        let indTotal = 0;
+        let indUnpaid = 0;
+        const hospitalNodes = independentHospitals.map((hospital) => {
+          const hospInvoices = invoices.filter(
+            (inv) => inv.hospitalId === hospital.id,
           );
-          allCompletedStudies.forEach((s) => {
-            const comm =
-              hospital.modalityCommissions?.[s.modality] ||
-              (s.modality === "MRI"
-                ? 150
-                : s.modality === "CT"
-                  ? 100
-                  : ["X-Ray", "CR", "DR"].includes(s.modality)
-                    ? 30
-                    : 50);
-            hospTotal += comm;
-            const inv = invoices.find((i) => i.studyId === s.id);
-            if (!inv || inv.status !== "Paid") hospUnpaid += comm;
-          });
-        } else {
-          // Site Admin sees total hospital revenue
-          hospTotal = hospInvoices.reduce((acc, inv) => acc + inv.amount, 0);
-          hospUnpaid = hospInvoices
+          let hospTotal = hospInvoices.reduce((acc, inv) => acc + inv.amount, 0);
+          let hospUnpaid = hospInvoices
             .filter((i) => i.status !== "Paid")
             .reduce((acc, inv) => acc + inv.amount, 0);
           const unbilledStudies = studies.filter(
             (s) =>
               s.hospitalId === hospital.id &&
-              ["Final", "Verified", "Dispatched"].includes(s.reportingStatus) &&
+              ["Final", "Verified", "Dispatched"].includes(
+                s.reportingStatus,
+              ) &&
               !hospInvoices.some((i) => i.studyId === s.id),
           );
 
@@ -134,88 +213,6 @@ export default function GlobalBilling() {
             hospTotal += price;
             hospUnpaid += price;
           });
-        }
-
-        companyTotal += hospTotal;
-        companyUnpaid += hospUnpaid;
-        return {
-          type: "hospital",
-          data: hospital,
-          total: hospTotal,
-          unpaid: hospUnpaid,
-          invoices: hospInvoices,
-        };
-      });
-      data.push({
-        type: "company",
-        data: company,
-        total: companyTotal,
-        unpaid: companyUnpaid,
-        children: hospitalNodes,
-      });
-    });
-    // Group Independent Hospitals (Unnathi Managed) - ONLY for Super Admin
-    if (user?.role === "SUPER_ADMIN") {
-      const independentHospitals = hospitals.filter(
-        (h) => h.organizationType === "UNNATHI_MANAGED",
-      );
-      if (independentHospitals.length > 0) {
-        let indTotal = 0;
-        let indUnpaid = 0;
-        const hospitalNodes = independentHospitals.map((hospital) => {
-          const hospInvoices = invoices.filter(
-            (inv) => inv.hospitalId === hospital.id,
-          );
-          let hospTotal = 0;
-          let hospUnpaid = 0;
-          if (user?.role === "SUPER_ADMIN") {
-            // Super Admin sees Unnathi Commission
-            const allCompletedStudies = studies.filter(
-              (s) =>
-                s.hospitalId === hospital.id &&
-                ["Final", "Verified", "Dispatched"].includes(s.reportingStatus),
-            );
-            allCompletedStudies.forEach((s) => {
-              const comm =
-                hospital.modalityCommissions?.[s.modality] ||
-                (s.modality === "MRI"
-                  ? 150
-                  : s.modality === "CT"
-                    ? 100
-                    : ["X-Ray", "CR", "DR"].includes(s.modality)
-                      ? 30
-                      : 50);
-              hospTotal += comm;
-              const inv = invoices.find((i) => i.studyId === s.id);
-              if (!inv || inv.status !== "Paid") hospUnpaid += comm;
-            });
-          } else {
-            hospTotal = hospInvoices.reduce((acc, inv) => acc + inv.amount, 0);
-            hospUnpaid = hospInvoices
-              .filter((i) => i.status !== "Paid")
-              .reduce((acc, inv) => acc + inv.amount, 0);
-            const unbilledStudies = studies.filter(
-              (s) =>
-                s.hospitalId === hospital.id &&
-                ["Final", "Verified", "Dispatched"].includes(
-                  s.reportingStatus,
-                ) &&
-                !hospInvoices.some((i) => i.studyId === s.id),
-            );
-
-            unbilledStudies.forEach((s) => {
-              const template = templates.find(
-                (t) =>
-                  t.hospitalId === hospital.id &&
-                  t.modality === s.modality &&
-                  (t.studyName === s.bodyPart ||
-                    t.studyName === s.studyDescription),
-              );
-              const price = template?.price || 500;
-              hospTotal += price;
-              hospUnpaid += price;
-            });
-          }
 
           indTotal += hospTotal;
           indUnpaid += hospUnpaid;
@@ -229,7 +226,7 @@ export default function GlobalBilling() {
         });
         data.push({
           type: "unnathi_managed",
-          name: "Independent Hospitals (Unnathi Managed)",
+          name: "Independent Hospitals (Commercial Billing)",
           total: indTotal,
           unpaid: indUnpaid,
           children: hospitalNodes,
@@ -325,10 +322,20 @@ export default function GlobalBilling() {
             </td>
             <td className="px-6 py-5 whitespace-nowrap text-right">
               {node.type === "hospital" && (
-                <button className="text-accent hover:text-accent-hover hover:bg-accent/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-end ml-auto gap-1.5">
-                  <FileText className="w-4 h-4" />
-                  View Invoices
-                </button>
+                node.data?.parentSiteId ? (
+                  <Link
+                    to="/finance/ledger"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-primary hover:text-primary-hover hover:bg-primary/10 transition-all ml-auto"
+                  >
+                    <Building2 className="w-3.5 h-3.5" />
+                    Commission Ledger
+                  </Link>
+                ) : (
+                  <button className="text-accent hover:text-accent-hover hover:bg-accent/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-end ml-auto gap-1.5">
+                    <FileText className="w-4 h-4" />
+                    View Invoices
+                  </button>
+                )
               )}
             </td>
           </tr>
@@ -381,14 +388,14 @@ export default function GlobalBilling() {
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-accent" />
               <p className="text-[11px] font-black text-white/80 uppercase tracking-widest">
-                Total Network Revenue
+                {user?.role === "SITE_ADMIN" ? "Total Commission Collected" : "Total Network Revenue"}
               </p>
             </div>
             <p className="text-4xl font-black text-white tracking-tight">
               ₹{totalRevenue.toLocaleString("en-IN")}
             </p>
             <p className="text-[11px] font-bold text-accent mt-2 bg-accent/10 inline-block px-2 py-0.5 rounded-full border border-accent/20">
-              +12.5% from last month
+              {user?.role === "SITE_ADMIN" ? "Modality Commission Model" : "+12.5% from last month"}
             </p>
           </div>
         </div>
@@ -399,13 +406,13 @@ export default function GlobalBilling() {
           </div>
           <div className="relative z-10">
             <p className="text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
-              Payments Received
+              {user?.role === "SITE_ADMIN" ? "Commissions Settled" : "Payments Received"}
             </p>
             <p className="text-4xl font-black text-emerald-600 tracking-tight">
               ₹{totalPaid.toLocaleString("en-IN")}
             </p>
             <p className="text-[11px] font-black text-slate-400 mt-2 uppercase tracking-widest">
-              Verified and settled across network
+              {user?.role === "SITE_ADMIN" ? "Settled commission earnings" : "Verified and settled across network"}
             </p>
           </div>
         </div>
@@ -416,13 +423,13 @@ export default function GlobalBilling() {
           </div>
           <div className="relative z-10">
             <p className="text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
-              Total Outstanding
+              {user?.role === "SITE_ADMIN" ? "Outstanding Commission" : "Total Outstanding"}
             </p>
             <p className="text-4xl font-black text-rose-600 tracking-tight">
               ₹{totalUnpaid.toLocaleString("en-IN")}
             </p>
             <p className="text-[11px] font-black text-slate-400 mt-2 uppercase tracking-widest">
-              Pending collection and processing
+              {user?.role === "SITE_ADMIN" ? "Pending commission settlement" : "Pending collection and processing"}
             </p>
           </div>
         </div>
@@ -449,10 +456,10 @@ export default function GlobalBilling() {
                   Organization / Entity
                 </th>
                 <th className="px-6 py-4 text-right text-[11px] font-black text-slate-500 uppercase tracking-widest">
-                  Total Revenue
+                  {user?.role === "SITE_ADMIN" ? "Total Commission" : "Total Revenue"}
                 </th>
                 <th className="px-6 py-4 text-right text-[11px] font-black text-slate-500 uppercase tracking-widest">
-                  Outstanding Amount
+                  {user?.role === "SITE_ADMIN" ? "Outstanding Commission" : "Outstanding Amount"}
                 </th>
                 <th className="px-6 py-4 text-right text-[11px] font-black text-slate-500 uppercase tracking-widest">
                   Actions
@@ -555,23 +562,18 @@ export default function GlobalBilling() {
                   <option value="">-- Select --</option>
                   {paymentData.targetType === "hospital"
                     ? hospitals
-                        .filter((h) => h.accountType === "Prepaid")
                         .map((h) => (
                           <option key={h.id} value={h.id}>
                             {h.name}
                           </option>
                         ))
                     : sites
-                        .filter((s) => s.accountType === "Prepaid")
                         .map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.name}
                           </option>
                         ))}
                 </select>
-                <p className="text-[10px] text-slate-500 font-medium ml-1">
-                  Only prepaid accounts are listed here.
-                </p>
               </div>
 
               <div className="space-y-1.5">

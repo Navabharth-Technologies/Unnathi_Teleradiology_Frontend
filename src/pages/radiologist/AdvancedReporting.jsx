@@ -167,16 +167,23 @@ export default function AdvancedReporting() {
           r.assignedHospitals.some(
             (hid) =>
               hospitals.find((h) => h.id === hid)?.organizationType ===
-              "UNNATHI_MANAGED",
+              "COMPANY_MANAGED",
           )) ||
         (relatedUser?.hospitalId &&
           hospitals.find((h) => h.id === relatedUser.hospitalId)
-            ?.organizationType === "UNNATHI_MANAGED");
-      // If current user is an independent hospital user, they ONLY see their own radiologists
-      if (user?.hospitalId) {
-        return r.assignedHospitals?.includes(user.hospitalId);
+            ?.organizationType === "COMPANY_MANAGED");
+
+      const effectiveHospitalId = user?.hospitalId || selectedHospitalId;
+
+      if (effectiveHospitalId) {
+        const hospital = hospitals.find((h) => h.id === effectiveHospitalId);
+        // If the context is an independent hospital (COMPANY_MANAGED), they should only see their own radiologists
+        if (hospital?.organizationType === "COMPANY_MANAGED") {
+          return r.assignedHospitals?.includes(effectiveHospitalId) || relatedUser?.hospitalId === effectiveHospitalId;
+        }
       }
-      // If current user is Global (Site Admin / Super Admin), they ONLY see Global radiologists
+
+      // If current user is Global (Site Admin / Super Admin) and no independent hospital is selected, they ONLY see Global radiologists
       if (user?.role === "SUPER_ADMIN" || user?.role === "SITE_ADMIN") {
         return !isIndependentRad;
       }
@@ -400,7 +407,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
         ))}
       </div>
 
-      <div className="relative z-10 flex flex-col h-full p-6 space-y-4">
+      <div className="relative z-10 flex flex-col h-full p-4 md:p-6 space-y-4 w-full max-w-full min-w-0">
         {toastMessage && (
           <div className="fixed bottom-4 right-4 bg-[#0F172A] text-white px-5 py-3 rounded-xl shadow-2xl z-50 flex items-center space-x-3 animate-in fade-in slide-in-from-bottom-5 border border-white/10">
             <CheckCircle2 className="w-5 h-5 text-[#1FC8D0]" />
@@ -411,10 +418,10 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
         )}
 
         {/* Top Header / Filter Bar */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col space-y-4 w-full max-w-full min-w-0">
           {/* Date & Status Pills */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center space-x-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full max-w-full min-w-0">
+            <div className="flex items-center space-x-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 overflow-x-auto scrollbar-hide min-w-0 w-full md:w-auto">
               {["Today", "Yesterday", "Month", "All"].map((date) => (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -428,7 +435,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
               ))}
             </div>
 
-            <div className="flex items-center space-x-2 overflow-x-auto p-2 -m-2 scrollbar-hide w-full md:w-auto">
+            <div className="flex items-center space-x-2 overflow-x-auto py-2 scrollbar-hide w-full md:w-auto min-w-0 max-w-full">
               {[
                 {
                   id: "All",
@@ -509,11 +516,11 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
           </div>
 
           {/* Secondary Search Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-center gap-3">
+          <div className="flex flex-col md:flex-row md:flex-wrap items-stretch md:items-center gap-3 w-full max-w-full min-w-0">
             <select
               value={siteFilter}
               onChange={(e) => setSiteFilter(e.target.value)}
-              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-40"
+              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-40 min-w-0"
             >
               <option value="">Select Site Names</option>
               {availableSites.map((s) => (
@@ -522,20 +529,20 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                 </option>
               ))}
             </select>
-            <div className="relative w-full sm:col-span-2 md:w-auto md:flex-1 md:min-w-full md:w-[250px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <div className="relative w-full md:w-auto md:flex-1 min-w-0 max-w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 shrink-0" />
               <input
                 type="text"
                 placeholder="Search Patient ID / Name / Accession No"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="border border-slate-300 rounded-xl pl-9 pr-4 py-2 w-full text-xs font-semibold text-slate-800 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-all placeholder-slate-400"
+                className="border border-slate-300 rounded-xl pl-9 pr-4 py-2 w-full text-xs font-semibold text-slate-800 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-all placeholder-slate-400 min-w-0"
               />
             </div>
             <select
               value={modalityFilter}
               onChange={(e) => setModalityFilter(e.target.value)}
-              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-32"
+              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-32 min-w-0"
             >
               <option value="">Modality</option>
               {availableModalities.map((m) => (
@@ -547,7 +554,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
             <select
               value={studyNameFilter}
               onChange={(e) => setStudyNameFilter(e.target.value)}
-              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-48"
+              className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-48 min-w-0"
             >
               <option value="">Select Study Name</option>
               {availableStudyNames.map((n) => (
@@ -556,11 +563,11 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                 </option>
               ))}
             </select>
-            <div className="flex gap-2 w-full sm:col-span-2 md:w-auto">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full md:w-auto min-w-0 max-w-full">
               <select
                 value={radiologistFilter}
                 onChange={(e) => setRadiologistFilter(e.target.value)}
-                className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors flex-1 md:w-40"
+                className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors flex-1 w-full md:w-40 min-w-0"
               >
                 <option value="">Select Radiologist</option>
                 {availableRadiologists.map((r) => (
@@ -570,28 +577,30 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                 ))}
               </select>
 
-              <Button
-                onClick={() => {}}
-                className="bg-[#123B5D] hover:bg-[#0B1F33] text-white text-xs px-5 rounded-xl font-bold transition-colors shrink-0"
-              >
-                Go
-              </Button>
-              <Button
-                onClick={handleClearFilters}
-                variant="outline"
-                className="text-xs px-4 rounded-xl border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors font-bold shrink-0"
-              >
-                Clear
-              </Button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button
+                  onClick={() => {}}
+                  className="flex-1 md:flex-none bg-[#123B5D] hover:bg-[#0B1F33] text-white text-xs px-5 rounded-xl font-bold transition-colors shrink-0"
+                >
+                  Go
+                </Button>
+                <Button
+                  onClick={handleClearFilters}
+                  variant="outline"
+                  className="flex-1 md:flex-none text-xs px-4 rounded-xl border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors font-bold shrink-0"
+                >
+                  Clear
+                </Button>
+              </div>
             </div>
           </div>
 
           {/* Action Bar */}
           <div className="flex flex-col md:flex-row md:items-center justify-between pt-4 border-t border-slate-100 gap-4">
-            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            <div className="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
               <Button
                 onClick={() => navigate("/studies/new")}
-                className="bg-[#16A6A8] hover:bg-[#128a8c] text-white text-xs px-4 py-2 rounded-xl font-bold shadow-sm shadow-[#16A6A8]/20 transition-all flex-1 md:flex-none"
+                className="bg-[#16A6A8] hover:bg-[#128a8c] text-white text-xs px-4 py-2 rounded-xl font-bold shadow-sm shadow-[#16A6A8]/20 transition-all w-full md:w-auto"
               >
                 <PlusCircle className="w-4 h-4 mr-1.5" /> Add Study
               </Button>
@@ -600,7 +609,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                   if (fileInputRef.current) fileInputRef.current.click();
                 }}
                 variant="outline"
-                className="border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm flex-1 md:flex-none"
+                className="border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm w-full md:w-auto"
               >
                 {isUploading ? (
                   <RefreshCw className="w-4 h-4 mr-1.5 animate-spin text-[#16A6A8]" />
@@ -619,7 +628,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
               <Button
                 onClick={handleRefresh}
                 variant="outline"
-                className={`border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm flex-1 md:flex-none ${isRefreshing ? "opacity-70" : ""}`}
+                className={`border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm w-full md:w-auto ${isRefreshing ? "opacity-70" : ""}`}
               >
                 <RefreshCw
                   className={`w-4 h-4 mr-1.5 text-slate-400 ${isRefreshing ? "animate-spin" : ""}`}
@@ -628,11 +637,11 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
               </Button>
               <Button
                 onClick={() => setEmergencyFilter(!emergencyFilter)}
-                className={`text-xs px-4 py-2 rounded-xl font-bold shadow-sm transition-all flex-1 md:flex-none ${emergencyFilter ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"}`}
+                className={`text-xs px-4 py-2 rounded-xl font-bold shadow-sm transition-all w-full md:w-auto ${emergencyFilter ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"}`}
               >
                 Emergency
               </Button>
-              <select className="border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-auto mt-2 md:mt-0">
+              <select className="col-span-2 md:col-span-1 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-auto">
                 <option value="all">Assigned Studies (All)</option>
                 <option value="today">Assigned Today</option>
                 <option value="urgent">Urgent / Emergency</option>

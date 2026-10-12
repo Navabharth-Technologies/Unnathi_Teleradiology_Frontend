@@ -244,17 +244,17 @@ export default function UsersList() {
             Manage system access, roles, and privileges
           </p>
         </div>
-        <div className="flex space-x-3">
-          <div className="relative group">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+          <div className="relative group w-full sm:w-[260px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search users or roles..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 w-[260px]"
+              className="pl-9 w-full"
             />
           </div>
-          <Button onClick={openAdd}>
+          <Button onClick={openAdd} className="w-full sm:w-auto">
             <PlusCircle className="w-4 h-4 mr-2" /> Add User
           </Button>
         </div>
@@ -511,7 +511,7 @@ export default function UsersList() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">
-                    Email Address
+                    Email Address <span className="text-rose-500">*</span>
                   </label>
                   <Input
                     type="email"
@@ -526,7 +526,7 @@ export default function UsersList() {
                 {adding && (
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-muted-foreground uppercase">
-                      Password
+                      Password <span className="text-rose-500">*</span>
                     </label>
                     <Input
                       type="password"

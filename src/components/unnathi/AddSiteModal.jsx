@@ -5,6 +5,46 @@ import { useAuthStore } from "../../store/useAuthStore";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
+const generateAlphanumericCode = (name) => {
+  if (!name || typeof name !== "string") return "";
+  const cleaned = name.trim();
+  if (!cleaned) return "";
+
+  // Split words by space, underscore, hyphen or camelCase
+  const words = cleaned
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length === 0) return "";
+
+  let prefix = "";
+  if (words.length === 1) {
+    prefix = words[0].slice(0, 3).toUpperCase();
+  } else if (words.length === 2) {
+    const w1 = words[0];
+    const w2 = words[1];
+    if (w1.length <= 2) {
+      prefix = (w1 + w2.slice(0, 1)).toUpperCase();
+    } else {
+      prefix = (w1.slice(0, 2) + w2.slice(0, 1)).toUpperCase();
+    }
+  } else {
+    prefix = words
+      .slice(0, 3)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase();
+  }
+
+  prefix = prefix.replace(/[^A-Z0-9]/g, "");
+  if (!prefix) prefix = "ORG";
+
+  return `${prefix}01`;
+};
+
 export default function AddSiteModal({ isOpen, onClose, initialData }) {
   const { addSite, updateSite, addUser } = useMockDb();
   const { user } = useAuthStore();
@@ -12,6 +52,7 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpInput, setOtpInput] = useState("");
+  const [isCodeManual, setIsCodeManual] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -108,6 +149,7 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
 
   useEffect(() => {
     if (initialData && isOpen) {
+      setIsCodeManual(true);
       const s = initialData.settings || {};
       setFormData({
         name: initialData.name || "",
@@ -168,6 +210,8 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
         footerUrl: s.footerUrl ?? "",
         brochureForNewStudy: s.brochureForNewStudy ?? false,
         accountType: initialData.accountType || "Prepaid",
+        walletBalance: initialData.walletBalance ?? 0,
+        paymentFrequency: initialData.paymentFrequency || "Monthly",
         plan: initialData.subscription?.plan || "Trial",
         billingCycle: initialData.subscription?.billingCycle || "Monthly",
         startDate:
@@ -235,6 +279,7 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
           initialData.reportingWorkflow?.autoLockFinalReport ?? true,
       });
     } else if (isOpen) {
+      setIsCodeManual(false);
       setFormData({
         name: "",
         code: "",
@@ -289,6 +334,8 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
         footerUrl: "",
         brochureForNewStudy: false,
         accountType: "Prepaid",
+        walletBalance: 0,
+        paymentFrequency: "Monthly",
         plan: "Trial",
         billingCycle: "Monthly",
         startDate: new Date().toISOString().split("T")[0],
@@ -353,14 +400,14 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
       const checked = e.target.checked;
       setFormData((prev) => ({ ...prev, [name]: checked }));
     } else {
+      if (name === "code") {
+        setIsCodeManual(true);
+      }
       setFormData((prev) => {
         const nextState = { ...prev, [name]: value };
-        // Auto-generate code if name changes and it's new
-        if (name === "name" && !initialData && !prev.code) {
-          nextState.code = value
-            .substring(0, 7)
-            .toUpperCase()
-            .replace(/\s+/g, "-");
+        // Auto-generate concise alphanumeric code if name changes and code wasn't manually typed
+        if (name === "name" && !initialData && !isCodeManual) {
+          nextState.code = generateAlphanumericCode(value);
         }
         return nextState;
       });
@@ -514,6 +561,8 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
         addressLine2: formData.addressLine2,
         supportedModalities: formData.supportedModalities,
         accountType: formData.accountType,
+        walletBalance: Number(formData.walletBalance) || 0,
+        paymentFrequency: formData.paymentFrequency || "Monthly",
         settings,
         subscription,
         reportingWorkflow,
@@ -546,6 +595,8 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
         addressLine2: formData.addressLine2,
         supportedModalities: formData.supportedModalities,
         accountType: formData.accountType,
+        walletBalance: Number(formData.walletBalance) || 0,
+        paymentFrequency: formData.paymentFrequency || "Monthly",
         settings,
         subscription,
         reportingWorkflow,
@@ -1169,8 +1220,43 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
                   </select>
                 </div>
 
+                {formData.accountType === "Prepaid" && (
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-bold text-slate-700">
+                      Wallet Balance / Recharge (₹)
+                    </label>
+                    <Input
+                      type="number"
+                      name="walletBalance"
+                      value={formData.walletBalance}
+                      onChange={handleChange}
+                      className="h-9 text-[13px] font-bold text-emerald-700 bg-emerald-50/50 border-emerald-200"
+                      placeholder="e.g. 500"
+                    />
+                    <p className="text-[11px] font-semibold text-emerald-600">
+                      Prepaid mandate: Balance is required before starting/uploading DICOM studies.
+                    </p>
+                  </div>
+                )}
+
                 {formData.accountType === "Postpaid" && (
                   <>
+                    <div className="space-y-1.5">
+                      <label className="text-[12px] font-bold text-slate-700">
+                        Payment Frequency <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        name="paymentFrequency"
+                        value={formData.paymentFrequency}
+                        onChange={handleChange}
+                        className="w-full h-9 px-3 border border-slate-200 rounded-md text-[13px] bg-slate-50 outline-none focus:ring-2 focus:ring-[#2C4A6B]/20 focus:border-[#2C4A6B] font-bold text-slate-800"
+                      >
+                        <option value="Daily">Daily</option>
+                        <option value="Weekly">Weekly</option>
+                        <option value="15 Days">15 Days (Fortnightly)</option>
+                        <option value="Monthly">Monthly</option>
+                      </select>
+                    </div>
                     <div className="space-y-1.5">
                       <label className="text-[12px] font-bold text-slate-700">
                         Tax % (Include option)

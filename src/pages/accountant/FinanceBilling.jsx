@@ -218,7 +218,7 @@ export default function FinanceBilling() {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-6 max-w-7xl mx-auto p-8"
+      className="space-y-6 max-w-7xl mx-auto p-4 md:p-8"
     >
       {/* Header */}
       <motion.div
@@ -234,7 +234,7 @@ export default function FinanceBilling() {
           </p>
         </div>
 
-        <div className="flex bg-slate-100 p-1.5 rounded-xl border border-border shadow-inner">
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto bg-slate-100 p-1.5 rounded-xl border border-border shadow-inner">
           {["Site Postpaid", "Radiologist"].map((tab) => (
             <button
               key={tab}
@@ -262,9 +262,9 @@ export default function FinanceBilling() {
       {/* Control Strip */}
       <motion.div
         variants={itemVariants}
-        className="bg-card p-4 rounded-xl border border-border shadow-sm flex flex-wrap items-center gap-4"
+        className="bg-card p-4 rounded-xl border border-border shadow-sm flex flex-col md:flex-row flex-wrap items-stretch md:items-center gap-4"
       >
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative w-full md:flex-1 md:min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <select
             value={selectedFilter}
@@ -288,50 +288,52 @@ export default function FinanceBilling() {
           </select>
         </div>
 
-        <div className="flex items-center space-x-2 bg-card p-1 rounded-md border border-border shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2 bg-card p-1 rounded-md border border-border shadow-sm w-full md:w-auto">
           <input
             type="date"
-            className="h-8 text-sm w-36 border-0 focus-visible:ring-0 shadow-none font-medium bg-transparent outline-none"
+            className="h-8 text-sm w-full sm:w-36 border-0 focus-visible:ring-0 shadow-none font-medium bg-transparent outline-none"
             defaultValue="2026-09-01"
           />
-          <span className="text-xs text-muted-foreground font-medium px-1">
+          <span className="text-xs text-muted-foreground font-medium px-1 hidden sm:inline">
             to
           </span>
           <input
             type="date"
-            className="h-8 text-sm w-36 border-0 focus-visible:ring-0 shadow-none font-medium bg-transparent outline-none"
+            className="h-8 text-sm w-full sm:w-36 border-0 focus-visible:ring-0 shadow-none font-medium bg-transparent outline-none"
             defaultValue="2026-09-08"
           />
         </div>
 
-        <label className="flex items-center space-x-2 text-xs font-black uppercase tracking-widest text-slate-500 cursor-pointer hover:text-primary transition-colors bg-card border border-border py-2 px-4 rounded-lg shadow-sm">
-          <input
-            type="checkbox"
-            checked={isLastMonth}
-            onChange={(e) => setIsLastMonth(e.target.checked)}
-            className="rounded border-slate-300 text-accent focus:ring-accent/50 w-4 h-4 cursor-pointer"
-          />
-          <span>Last Month</span>
-        </label>
+        <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full md:w-auto mt-2 md:mt-0">
+          <label className="flex flex-1 md:flex-none justify-center items-center space-x-2 text-xs font-black uppercase tracking-widest text-slate-500 cursor-pointer hover:text-primary transition-colors bg-card border border-border py-2 px-4 rounded-lg shadow-sm">
+            <input
+              type="checkbox"
+              checked={isLastMonth}
+              onChange={(e) => setIsLastMonth(e.target.checked)}
+              className="rounded border-slate-300 text-accent focus:ring-accent/50 w-4 h-4 cursor-pointer"
+            />
+            <span>Last Month</span>
+          </label>
 
-        <Button
-          onClick={() =>
-            alert(
-              "Live search query execution will be available once the backend is integrated.",
-            )
-          }
-          className="bg-primary hover:bg-primary-hover shadow-sm text-white px-5 py-2 rounded-lg text-sm font-bold transition-all hover:-translate-y-0.5"
-        >
-          <Search className="w-4 h-4 mr-2" /> Search
-        </Button>
+          <Button
+            onClick={() =>
+              alert(
+                "Live search query execution will be available once the backend is integrated.",
+              )
+            }
+            className="flex-1 md:flex-none bg-primary hover:bg-primary-hover shadow-sm text-white px-5 py-2 rounded-lg text-sm font-bold transition-all hover:-translate-y-0.5"
+          >
+            <Search className="w-4 h-4 mr-2" /> Search
+          </Button>
 
-        <Button
-          onClick={handleExport}
-          variant="outline"
-          className="border-border hover:bg-slate-50 text-slate-700 px-5 py-2 rounded-lg text-sm font-bold shadow-sm transition-all"
-        >
-          <Download className="w-4 h-4 mr-2 text-slate-400" /> Export
-        </Button>
+          <Button
+            onClick={handleExport}
+            variant="outline"
+            className="flex-1 md:flex-none w-full md:w-auto border-border hover:bg-slate-50 text-slate-700 px-5 py-2 rounded-lg text-sm font-bold shadow-sm transition-all"
+          >
+            <Download className="w-4 h-4 mr-2 text-slate-400" /> Export
+          </Button>
+        </div>
       </motion.div>
 
       {/* Summary Badges */}
