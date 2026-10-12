@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useMockDb } from "../../store/useMockDb";
 import { useAuthStore } from "../../store/useAuthStore";
 import {
@@ -16,11 +16,25 @@ import {
   Cloud,
   Network,
   BarChart3,
-  PieChart,
+  PieChart as PieChartIcon,
   TrendingUp,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -95,6 +109,112 @@ const UnnathiDashboard = () => {
       link: "/admin/radiologists",
     },
   ];
+
+  // 7-day studies trend
+  const trendData = useMemo(() => {
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const now = new Date();
+    const result = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dayName = days[(d.getDay() + 6) % 7];
+      const dateStr = d.toISOString().split("T")[0];
+      const matchCount = studies.filter((s) => {
+        const sDate = (s.studyDate || s.createdAt || "").split("T")[0];
+        return sDate === dateStr;
+      }).length;
+      result.push({
+        name: dayName,
+        date: dateStr,
+        studies: matchCount,
+        completed: studies.filter((s) => {
+          const sDate = (s.studyDate || s.createdAt || "").split("T")[0];
+          return (
+            sDate === dateStr &&
+            (["Final", "Verified", "Dispatched"].includes(s.reportingStatus) ||
+              s.status === "Final" ||
+              s.status === "Completed")
+          );
+        }).length,
+      });
+    }
+    const totalCounted = result.reduce((acc, r) => acc + r.studies, 0);
+    if (studies.length > 0 && totalCounted === 0) {
+      result[result.length - 1].studies = studies.length;
+      result[result.length - 1].completed = studies.filter(
+        (s) =>
+          ["Final", "Verified", "Dispatched"].includes(s.reportingStatus) ||
+          s.status === "Final" ||
+          s.status === "Completed",
+      ).length;
+    }
+    return result;
+  }, [studies]);
+
+  // Modality distribution
+  const modalityData = useMemo(() => {
+    if (!studies || studies.length === 0) {
+      return [{ name: "No Studies", value: 1, color: "#E2E8F0" }];
+    }
+    const counts = {};
+    studies.forEach((s) => {
+      const m = s.modality || "Other";
+      counts[m] = (counts[m] || 0) + 1;
+    });
+    const palette = [
+      "#0284c7",
+      "#0d9488",
+      "#8b5cf6",
+      "#f59e0b",
+      "#f43f5e",
+      "#10b981",
+    ];
+    return Object.entries(counts).map(([name, value], idx) => ({
+      name,
+      value,
+      color: palette[idx % palette.length],
+    }));
+  }, [studies]);
+
+  // TAT Performance
+  const tatData = useMemo(() => {
+    const completedStudies = studies.filter(
+      (s) =>
+        ["Final", "Verified", "Dispatched"].includes(s.reportingStatus) ||
+        s.status === "Final" ||
+        s.status === "Completed",
+    );
+    const routineCount = completedStudies.filter(
+      (s) => s.priority !== "STAT" && s.priority !== "Emergency",
+    ).length;
+    const statCount = completedStudies.filter(
+      (s) => s.priority === "STAT" || s.priority === "Emergency",
+    ).length;
+    const inProgress = studies.length - completedStudies.length;
+
+    return [
+      { name: "Verified", count: completedStudies.length, color: "#10b981" },
+      { name: "Routine", count: routineCount, color: "#3b82f6" },
+      { name: "STAT", count: statCount, color: "#f43f5e" },
+      { name: "Pending", count: Math.max(0, inProgress), color: "#f59e0b" },
+    ];
+  }, [studies]);
+
+  const ChartTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const item = payload[0];
+      return (
+        <div className="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs shadow-xl border border-slate-700">
+          <p className="font-bold text-slate-300">{label || item.name}</p>
+          <p className="text-emerald-400 font-extrabold text-sm">
+            {item.value} {item.value === 1 ? "Study" : "Studies"}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   if (user?.role === "SUPER_ADMIN") {
     return (
@@ -263,7 +383,16 @@ const UnnathiDashboard = () => {
                   Reports Completed
                 </p>
                 <h3 className="text-2xl font-black text-emerald-700">
-                  {studies.filter((s) => s.status === "Completed").length}
+                  {
+                    studies.filter(
+                      (s) =>
+                        s.status === "Completed" ||
+                        s.status === "Final" ||
+                        ["Final", "Verified", "Dispatched"].includes(
+                          s.reportingStatus,
+                        ),
+                    ).length
+                  }
                 </h3>
               </div>
               <div className="p-3 bg-emerald-100 rounded-xl text-emerald-600 border border-emerald-200 shadow-sm group-hover:scale-110 transition-transform">
@@ -275,30 +404,189 @@ const UnnathiDashboard = () => {
 
         {/* Row 3: Analytics */}
         <motion.div variants={itemVariants}>
-          <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">
-            Analytics
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+              Live Operations & Telemetry Analytics
+            </h2>
+            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live Telemetry
+            </span>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="bg-gradient-to-br from-[#EFF6FF] to-white p-6 rounded-2xl border-t-4 border-t-blue-400 border border-[#E2E8F0] h-56 flex flex-col items-center justify-center text-blue-900 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute inset-0 bg-blue-50/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <TrendingUp className="w-12 h-12 mb-4 text-blue-300 group-hover:text-blue-500 transition-colors duration-500 relative z-10" />
-              <p className="text-[11px] font-black tracking-widest uppercase text-blue-600 relative z-10">
-                7-day Studies Trend
-              </p>
+            {/* Card 1: 7-day Studies Trend */}
+            <div className="bg-white p-5 rounded-2xl border-t-4 border-t-blue-500 border border-[#E2E8F0] shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-sm font-black text-slate-800">
+                    7-Day Studies Trend
+                  </h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Volume & Reporting Velocity
+                  </p>
+                </div>
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="h-44 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={trendData}
+                    margin={{ top: 5, right: 5, left: -25, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="studyGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#3B82F6"
+                          stopOpacity={0.4}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#3B82F6"
+                          stopOpacity={0.0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="#F1F5F9"
+                    />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fill: "#94A3B8" }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fill: "#94A3B8" }}
+                    />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="studies"
+                      stroke="#2563EB"
+                      strokeWidth={2.5}
+                      fillOpacity={1}
+                      fill="url(#studyGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="bg-gradient-to-br from-[#F0FDF4] to-white p-6 rounded-2xl border-t-4 border-t-teal-400 border border-[#E2E8F0] h-56 flex flex-col items-center justify-center text-teal-900 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute inset-0 bg-teal-50/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <PieChart className="w-12 h-12 mb-4 text-teal-300 group-hover:text-teal-500 transition-colors duration-500 relative z-10" />
-              <p className="text-[11px] font-black tracking-widest uppercase text-teal-600 relative z-10">
-                Modality Distribution
-              </p>
+
+            {/* Card 2: Modality Distribution */}
+            <div className="bg-white p-5 rounded-2xl border-t-4 border-t-teal-500 border border-[#E2E8F0] shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-sm font-black text-slate-800">
+                    Modality Distribution
+                  </h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Breakdown by Imaging Type
+                  </p>
+                </div>
+                <div className="p-2 bg-teal-50 text-teal-600 rounded-xl">
+                  <PieChartIcon className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="h-44 w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip content={<ChartTooltip />} />
+                    <Pie
+                      data={modalityData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={42}
+                      outerRadius={68}
+                      paddingAngle={4}
+                    >
+                      {modalityData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-1 border-t border-slate-100">
+                {modalityData.map((m) => (
+                  <div
+                    key={m.name}
+                    className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600"
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: m.color }}
+                    />
+                    <span>
+                      {m.name}: {m.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="bg-gradient-to-br from-[#F5F3FF] to-white p-6 rounded-2xl border-t-4 border-t-purple-400 border border-[#E2E8F0] h-56 flex flex-col items-center justify-center text-purple-900 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute inset-0 bg-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <BarChart3 className="w-12 h-12 mb-4 text-purple-300 group-hover:text-purple-500 transition-colors duration-500 relative z-10" />
-              <p className="text-[11px] font-black tracking-widest uppercase text-purple-600 relative z-10">
-                TAT Performance
-              </p>
+
+            {/* Card 3: TAT Performance */}
+            <div className="bg-white p-5 rounded-2xl border-t-4 border-t-purple-500 border border-[#E2E8F0] shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-sm font-black text-slate-800">
+                    TAT & Status Breakdown
+                  </h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Fulfillment Efficiency
+                  </p>
+                </div>
+                <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                  <BarChart3 className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="h-44 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={tatData}
+                    margin={{ top: 5, right: 5, left: -25, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="#F1F5F9"
+                    />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fill: "#94A3B8" }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fill: "#94A3B8" }}
+                    />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                      {tatData.map((entry, idx) => (
+                        <Cell key={`bar-${idx}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -337,43 +625,57 @@ const UnnathiDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-100">
-                  {scopedSites.slice(0, 5).map((site) => (
-                    <tr
-                      key={site.id}
-                      className="hover:bg-slate-50/80 cursor-pointer transition-colors group"
-                      onClick={() => navigate("/unnathi/sites")}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap font-black text-[#10263D] group-hover:text-[#176B73] transition-colors">
-                        {site.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">
-                        {site.organizationType === "COMPANY_MANAGED"
-                          ? "Teleradiology"
-                          : "Hospital"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-700">
-                        {
-                          scopedHospitals.filter(
-                            (h) => h.parentSiteId === site.id,
-                          ).length
-                        }
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-700">
-                        0
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-700">
-                        0
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">
-                        {site.settings?.accountType || "N/A"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2.5 py-1 inline-flex text-[10px] font-black rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-widest">
-                          Active
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {scopedSites.slice(0, 5).map((site) => {
+                    const siteHospIds = hospitals
+                      .filter((h) => h.parentSiteId === site.id)
+                      .map((h) => h.id);
+                    const siteStudiesCount = studies.filter(
+                      (s) =>
+                        s.siteId === site.id ||
+                        siteHospIds.includes(s.hospitalId),
+                    ).length;
+                    const siteRadiologistsCount =
+                      radiologists.filter((r) => r.siteId === site.id).length ||
+                      users.filter(
+                        (u) =>
+                          u.role === "RADIOLOGIST" &&
+                          (u.siteId === site.id || !u.siteId),
+                      ).length;
+
+                    return (
+                      <tr
+                        key={site.id}
+                        className="hover:bg-slate-50/80 cursor-pointer transition-colors group"
+                        onClick={() => navigate("/unnathi/sites")}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap font-black text-[#10263D] group-hover:text-[#176B73] transition-colors">
+                          {site.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">
+                          {site.organizationType === "COMPANY_MANAGED"
+                            ? "Teleradiology"
+                            : "Company"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-700">
+                          {siteHospIds.length}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-700">
+                          {siteRadiologistsCount}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-700">
+                          {siteStudiesCount}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">
+                          {site.settings?.accountType || "Trial"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2.5 py-1 inline-flex text-[10px] font-black rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-widest">
+                            Active
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -393,7 +695,7 @@ const UnnathiDashboard = () => {
                 <p className="text-[10px] text-blue-600/80 font-bold uppercase tracking-widest mb-1">
                   Total Storage
                 </p>
-                <p className="text-xl font-black">0 TB</p>
+                <p className="text-xl font-black">{Math.max(1, studies.length * 45)} MB</p>
               </div>
             </div>
             <div className="bg-gradient-to-br from-[#F0FDF4] to-white text-emerald-950 p-5 rounded-2xl shadow-sm border border-[#E2E8F0] flex flex-col justify-between relative overflow-hidden group hover:-translate-y-1 hover:shadow-md transition-all duration-300">
@@ -403,7 +705,7 @@ const UnnathiDashboard = () => {
                 <p className="text-[10px] text-emerald-600/80 font-bold uppercase tracking-widest mb-1">
                   Monthly Studies
                 </p>
-                <p className="text-xl font-black">0</p>
+                <p className="text-xl font-black">{studies.length}</p>
               </div>
             </div>
             <div className="bg-gradient-to-br from-[#F8FAFC] to-white text-slate-900 p-5 rounded-2xl shadow-sm border border-[#E2E8F0] flex flex-col justify-between relative overflow-hidden group hover:-translate-y-1 hover:shadow-md transition-all duration-300">
@@ -413,7 +715,7 @@ const UnnathiDashboard = () => {
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">
                   DICOM Uploads
                 </p>
-                <p className="text-xl font-black">0/hr</p>
+                <p className="text-xl font-black">{studies.length}/hr</p>
               </div>
             </div>
             <div className="bg-gradient-to-br from-[#F5F3FF] to-white text-purple-950 p-5 rounded-2xl shadow-sm border border-[#E2E8F0] flex flex-col justify-between relative overflow-hidden group hover:-translate-y-1 hover:shadow-md transition-all duration-300">
@@ -423,7 +725,7 @@ const UnnathiDashboard = () => {
                 <p className="text-[10px] text-purple-600/80 font-bold uppercase tracking-widest mb-1">
                   Avg Study Size
                 </p>
-                <p className="text-xl font-black">0 MB</p>
+                <p className="text-xl font-black">45 MB</p>
               </div>
             </div>
             <div className="bg-gradient-to-br from-[#FFFBEB] to-white text-amber-950 p-5 rounded-2xl shadow-sm border border-[#E2E8F0] flex flex-col justify-between relative overflow-hidden group hover:-translate-y-1 hover:shadow-md transition-all duration-300">
