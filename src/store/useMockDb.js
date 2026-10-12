@@ -32,64 +32,190 @@ const mockModalities = [
 
 import { persist } from "zustand/middleware";
 
-// Function to recover previous localStorage state if current version is empty
-const getRecoveredState = () => {
+// Clear any stale dummy or duplicate localStorage from previous sessions
+if (typeof window !== "undefined" && window.localStorage) {
   try {
-    if (typeof window === "undefined" || !window.localStorage) return null;
-    const current = localStorage.getItem("unnathi-mock-db-v15");
-    if (current) {
-      const parsed = JSON.parse(current);
-      if (
-        (parsed?.state?.sites && parsed.state.sites.length > 0) ||
-        (parsed?.state?.hospitals && parsed.state.hospitals.length > 0)
-      ) {
-        return parsed.state;
-      }
+    for (let i = 0; i <= 20; i++) {
+      window.localStorage.removeItem(`unnathi-mock-db-v${i}`);
     }
-    // Check previous storage keys
-    const previousKeys = [
-      "unnathi-mock-db-v14",
-      "unnathi-mock-db-v13",
-      "unnathi-mock-db-v12",
-      "unnathi-mock-db-v11",
-      "unnathi-mock-db-v10",
-      "unnathi-mock-db-v9",
-      "unnathi-mock-db-v8",
-    ];
-    for (const key of previousKeys) {
-      const prev = localStorage.getItem(key);
-      if (prev) {
-        const parsed = JSON.parse(prev);
-        if (
-          (parsed?.state?.sites && parsed.state.sites.length > 0) ||
-          (parsed?.state?.hospitals && parsed.state.hospitals.length > 0)
-        ) {
-          console.log(`Recovered state from ${key}:`, parsed.state);
-          return parsed.state;
-        }
-      }
-    }
+    window.localStorage.removeItem("unnathi-mock-db");
   } catch (e) {
-    console.error("Error reading localStorage backups:", e);
+    console.warn("Could not clean old localStorage:", e);
   }
-  return null;
-};
+}
 
-const recovered = getRecoveredState();
+// Clean production baseline matching real database
+const initialSites = [
+  {
+    id: "comp_1791789153649",
+    name: "KR_Hospital",
+    code: "KRH01",
+    legalName: "KR",
+    contactPerson: "Admin",
+    email: "kr@unnathi.com",
+    phone: "7418529630",
+    address: "Mysore",
+    city: "Mysore",
+    state: "Karnataka",
+    country: "India",
+    status: "Trial",
+    walletBalance: 0,
+    settings: {
+      adminFullName: "Admin",
+      adminEmail: "kr@unnathi.com",
+      adminMobile: "",
+      adminRole: "SITE_ADMIN",
+      loginMode: "Password",
+      temporaryPassword: "123",
+      mfaEnabled: true,
+      allowedCentres: "All Centres",
+      accountStatus: "Invite Pending",
+      emergency: true,
+      border: true,
+    },
+  },
+];
+
+const initialHospitals = [
+  {
+    id: "hosp_1791789300962",
+    name: "Suyog",
+    code: "SUY01",
+    organizationType: "UNNATHI_MANAGED",
+    parentSiteId: null,
+    accountType: "Postpaid",
+    status: "Active",
+    city: "Mysore",
+    state: "Karnataka",
+    email: "suyog@unnathi.com",
+    phone: "7418529630",
+    modalityCommissions: { CT: 50, MRI: 100 },
+  },
+  {
+    id: "hosp_1791789809438",
+    name: "Abc",
+    code: "ABC01",
+    organizationType: "COMPANY_MANAGED",
+    parentSiteId: "comp_1791789153649",
+    accountType: "Prepaid",
+    walletBalance: 100,
+    status: "Active",
+    email: "abc@unnathi.com",
+    modalityCommissions: { CT: 40, MRI: 26 },
+  },
+];
+
+const initialUsers = [
+  {
+    id: "u_admin",
+    name: "Super Admin",
+    email: "admin@unnathi.com",
+    role: "SUPER_ADMIN",
+    status: "Active",
+    password: "123",
+  },
+  {
+    id: "u_1791789153651",
+    name: "Admin",
+    email: "kr@unnathi.com",
+    phone: "7418529630",
+    role: "SITE_ADMIN",
+    siteId: "comp_1791789153649",
+    status: "Active",
+    password: "123",
+    loginMode: "Password",
+    mfaEnabled: true,
+  },
+  {
+    id: "u_1791789301569",
+    name: "Admin",
+    email: "suyog@unnathi.com",
+    phone: "7418529630",
+    role: "HOSPITAL_ADMIN",
+    hospitalId: "hosp_1791789300962",
+    status: "Invite Pending",
+    password: "123",
+    loginMode: "Password",
+  },
+  {
+    id: "u_1791789809995",
+    name: "Admin",
+    email: "abc@unnathi.com",
+    role: "HOSPITAL_ADMIN",
+    hospitalId: "hosp_1791789809438",
+    status: "Active",
+    password: "123",
+    loginMode: "Password",
+  },
+  {
+    id: "u1791790045060989",
+    name: "Namith",
+    email: "namith@gmail.com",
+    role: "RADIOLOGIST",
+    siteId: "comp_1791789153649",
+    status: "Active",
+  },
+];
+
+const initialRadiologists = [
+  {
+    id: "r1791790045062340",
+    userId: "u1791790045060989",
+    name: "Namith",
+    availability: "Online",
+    assignedHospitals: [],
+    status: "Active",
+  },
+];
+
+const initialPatients = [
+  {
+    id: "p1791790075869",
+    uhid: "20953",
+    name: "JOYTHI DEVI 46Y/F",
+    age: 46,
+    gender: "Female",
+    hospitalId: "hosp_1791789809438",
+    registrationDate: "2026-10-12T07:27:55.870Z",
+  },
+];
+
+const initialStudies = [
+  {
+    id: "st1791790075870",
+    patientId: "p1791790075869",
+    caseNumber: "CAS-DICOM-75870",
+    accessionNumber: "ACC-1791790072641",
+    hospitalId: "hosp_1791789809438",
+    modality: "CT",
+    studyDescription: "CT KUB",
+    bodyPart: "ABDOMEN",
+    priority: "Routine",
+    studyDate: "2026-08-06T00:00:00.000Z",
+    assignedRadiologistId: "r1791790045062340",
+    status: "Final",
+    reportingStatus: "Verified",
+    paymentStatus: "Unpaid",
+    superAdminPaymentStatus: "Pending",
+    tat: "24h",
+    createdAt: "2026-10-12T07:27:55.870Z",
+    updatedAt: "2026-10-12T07:27:55.870Z",
+  },
+];
 
 export const useMockDb = create()(
   persist(
     (set, get) => ({
-      sites: recovered?.sites?.length ? recovered.sites : mockSites,
-      hospitals: recovered?.hospitals?.length ? recovered.hospitals : mockHospitals,
-      users: recovered?.users?.length ? recovered.users : mockUsers,
-      radiologists: recovered?.radiologists?.length ? recovered.radiologists : mockRadiologists,
-      patients: recovered?.patients?.length ? recovered.patients : mockPatients,
-      studies: recovered?.studies?.length ? recovered.studies : mockStudies,
-      invoices: recovered?.invoices?.length ? recovered.invoices : mockInvoices,
-      templates: recovered?.templates?.length ? recovered.templates : mockTemplates,
-      modalities: recovered?.modalities?.length ? recovered.modalities : mockModalities,
-      customRoles: recovered?.customRoles?.length ? recovered.customRoles : [],
+      sites: initialSites,
+      hospitals: initialHospitals,
+      users: initialUsers,
+      radiologists: initialRadiologists,
+      patients: initialPatients,
+      studies: initialStudies,
+      invoices: [],
+      templates: [],
+      modalities: mockModalities,
+      customRoles: [],
       walletTransactions: [],
       postpaidSettlements: [],
 
@@ -125,39 +251,21 @@ export const useMockDb = create()(
 
           const currentState = get();
 
-          // Helper to merge remote data with local data without erasing local records
-          const mergeCollections = (remoteList, localList, entityRoute) => {
-            if (remoteList && remoteList.length > 0) {
-              const remoteMap = new Map(remoteList.map((item) => [item.id, item]));
-              // If local has items not in remote, keep them and push to server
-              localList.forEach((localItem) => {
-                if (localItem?.id && !remoteMap.has(localItem.id)) {
-                  remoteMap.set(localItem.id, localItem);
-                  if (entityRoute) {
-                    axios.post(`${API_URL}/${entityRoute}`, localItem).catch(console.error);
-                  }
-                }
-              });
-              return Array.from(remoteMap.values());
-            } else if (localList && localList.length > 0) {
-              // Remote is empty but local has items -> sync local items to remote database!
-              if (entityRoute) {
-                localList.forEach((item) => {
-                  axios.post(`${API_URL}/${entityRoute}`, item).catch(console.error);
-                });
-              }
-              return localList;
+          // Authoritative sync: Remote DB data takes complete precedence when available
+          const syncCollection = (remoteData, currentData) => {
+            if (Array.isArray(remoteData) && remoteData.length > 0) {
+              return remoteData;
             }
-            return remoteList || localList || [];
+            return currentData || [];
           };
 
           set(() => ({
-            sites: mergeCollections(sitesRes?.data, currentState.sites, "sites"),
-            hospitals: mergeCollections(hospitalsRes?.data, currentState.hospitals, "hospitals"),
-            users: mergeCollections(usersRes?.data, currentState.users, "users"),
-            patients: mergeCollections(patientsRes?.data, currentState.patients, "patients"),
-            studies: mergeCollections(studiesRes?.data, currentState.studies, "studies"),
-            radiologists: mergeCollections(radiologistsRes?.data, currentState.radiologists, "radiologists"),
+            sites: syncCollection(sitesRes?.data, currentState.sites),
+            hospitals: syncCollection(hospitalsRes?.data, currentState.hospitals),
+            users: syncCollection(usersRes?.data, currentState.users),
+            patients: syncCollection(patientsRes?.data, currentState.patients),
+            studies: syncCollection(studiesRes?.data, currentState.studies),
+            radiologists: syncCollection(radiologistsRes?.data, currentState.radiologists),
             invoices: invoicesRes?.data?.length ? invoicesRes.data : currentState.invoices,
             templates: templatesRes?.data?.length ? templatesRes.data : currentState.templates,
             modalities: modalitiesRes?.data?.length ? modalitiesRes.data : currentState.modalities,
@@ -468,7 +576,7 @@ export const useMockDb = create()(
       },
     }),
     {
-      name: "unnathi-mock-db-v15",
+      name: "unnathi-clean-db-v1",
     },
   ),
 );
