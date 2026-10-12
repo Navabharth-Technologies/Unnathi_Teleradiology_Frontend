@@ -38,6 +38,7 @@ export default function AdvancedReporting() {
   // Filter States
   const [dateFilter, setDateFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [assignmentFilter, setAssignmentFilter] = useState("all");
   const [siteFilter, setSiteFilter] = useState("");
   const [modalityFilter, setModalityFilter] = useState("");
   const [studyNameFilter, setStudyNameFilter] = useState("");
@@ -85,43 +86,128 @@ export default function AdvancedReporting() {
   // Filtering
   const filteredStudies = useMemo(() => {
     return accessibleStudies.filter((s) => {
-      // Emergency Filter
-      if (emergencyFilter && s.priority !== "Emergency") return false;
+      // 1. Date Filter: Today, Yesterday, Month, All
+      if (dateFilter !== "All") {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const endOfToday = startOfToday + 86400000;
+        const startOfYesterday = startOfToday - 86400000;
+        const endOfYesterday = startOfToday;
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
 
-      // Status Filter
-      if (statusFilter !== "All") {
-        if (statusFilter === "Active" && s.status !== "Active") return false;
-        if (statusFilter === "New" && s.status !== "New") return false;
-        if (
-          [
-            "Unread",
-            "Pending",
-            "Draft",
-            "Final",
-            "Review",
-            "Action Needed",
-          ].includes(statusFilter)
-        ) {
-          if (s.reportingStatus !== statusFilter) return false;
+        const datesToCheck = [];
+        if (s.studyDate) {
+          const t = new Date(s.studyDate).getTime();
+          if (!isNaN(t)) datesToCheck.push(t);
         }
-        if (statusFilter === "Cancel" && s.status !== "Cancelled") return false;
+        if (s.createdAt) {
+          const t = new Date(s.createdAt).getTime();
+          if (!isNaN(t)) datesToCheck.push(t);
+        }
+        if (s.registrationDate) {
+          const t = new Date(s.registrationDate).getTime();
+          if (!isNaN(t)) datesToCheck.push(t);
+        }
+
+        if (datesToCheck.length === 0) return false;
+
+        if (dateFilter === "Today") {
+          const isTodayMatch = datesToCheck.some((t) => t >= startOfToday && t < endOfToday);
+          if (!isTodayMatch) return false;
+        } else if (dateFilter === "Yesterday") {
+          const isYesterdayMatch = datesToCheck.some((t) => t >= startOfYesterday && t < endOfYesterday);
+          if (!isYesterdayMatch) return false;
+        } else if (dateFilter === "Month") {
+          const thirtyDaysAgo = now.getTime() - 30 * 86400000;
+          const isMonthMatch = datesToCheck.some(
+            (t) => (t >= startOfMonth && t <= now.getTime()) || (t >= thirtyDaysAgo && t <= now.getTime())
+          );
+          if (!isMonthMatch) return false;
+        }
       }
 
-      // Dropdown Filters
+      // 2. Emergency Filter
+      if (emergencyFilter && s.priority !== "Emergency") return false;
+
+      // 3. Assignment Filter
+      if (assignmentFilter === "assigned" && !s.assignedRadiologistId) return false;
+      if (assignmentFilter === "unassigned" && s.assignedRadiologistId) return false;
+      if (assignmentFilter === "urgent" && s.priority !== "Emergency" && s.priority !== "Urgent") return false;
+
+      // 4. Status Filter
+      if (statusFilter !== "All") {
+        if (statusFilter === "Active") {
+          const isFinishedOrCancelled =
+            ["Final", "Verified", "Dispatched", "Cancelled"].includes(s.reportingStatus) ||
+            ["Final", "Completed", "Cancelled"].includes(s.status);
+          if (isFinishedOrCancelled) return false;
+        } else if (statusFilter === "New") {
+          const isNew =
+            s.status === "New" ||
+            s.reportingStatus === "New" ||
+            s.reportingStatus === "Unassigned" ||
+            (!s.assignedRadiologistId && !["Final", "Verified", "Dispatched"].includes(s.reportingStatus));
+          if (!isNew) return false;
+        } else if (statusFilter === "Unread") {
+          const isUnread =
+            s.status === "Unread" ||
+            s.reportingStatus === "Unread" ||
+            (!s.assignedRadiologistId && !["Final", "Verified", "Dispatched"].includes(s.reportingStatus));
+          if (!isUnread) return false;
+        } else if (statusFilter === "Pending") {
+          const isPending =
+            s.status === "Pending" ||
+            s.reportingStatus === "Pending" ||
+            s.reportingStatus === "Assigned" ||
+            s.status === "In Progress";
+          if (!isPending) return false;
+        } else if (statusFilter === "Action Needed") {
+          const isActionNeeded =
+            s.priority === "Emergency" ||
+            s.reportingStatus === "Action Needed" ||
+            s.reportingStatus === "Rejected" ||
+            s.tatBreached === true ||
+            s.status === "Action Needed";
+          if (!isActionNeeded) return false;
+        } else if (statusFilter === "Draft") {
+          const isDraft = s.status === "Draft" || s.reportingStatus === "Draft";
+          if (!isDraft) return false;
+        } else if (statusFilter === "Final") {
+          const isFinal =
+            s.status === "Final" ||
+            s.status === "Completed" ||
+            ["Final", "Verified", "Dispatched"].includes(s.reportingStatus);
+          if (!isFinal) return false;
+        } else if (statusFilter === "Review") {
+          const isReview =
+            s.status === "Review" ||
+            s.reportingStatus === "Review" ||
+            s.reportingStatus === "Under Review";
+          if (!isReview) return false;
+        } else if (statusFilter === "Cancel") {
+          const isCancelled =
+            s.status === "Cancelled" ||
+            s.status === "Cancel" ||
+            s.reportingStatus === "Cancelled";
+          if (!isCancelled) return false;
+        }
+      }
+
+      // 5. Dropdown Filters
       if (siteFilter && s.hospitalId !== siteFilter) return false;
       if (modalityFilter && s.modality !== modalityFilter) return false;
       if (studyNameFilter && s.bodyPart !== studyNameFilter) return false;
       if (radiologistFilter && s.assignedRadiologistId !== radiologistFilter)
         return false;
 
-      // Search Term
+      // 6. Search Term
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
         const p = patients.find((pat) => pat.id === s.patientId);
         const matchesSearch =
-          s.caseNumber.toLowerCase().includes(q) ||
-          s.accessionNumber.toLowerCase().includes(q) ||
-          (p && p.name.toLowerCase().includes(q)) ||
+          s.caseNumber?.toLowerCase().includes(q) ||
+          s.accessionNumber?.toLowerCase().includes(q) ||
+          (p && p.name?.toLowerCase().includes(q)) ||
           (p && p.uhid?.toLowerCase().includes(q));
         if (!matchesSearch) return false;
       }
@@ -131,8 +217,10 @@ export default function AdvancedReporting() {
   }, [
     accessibleStudies,
     searchTerm,
-    emergencyFilter,
+    dateFilter,
     statusFilter,
+    assignmentFilter,
+    emergencyFilter,
     siteFilter,
     modalityFilter,
     studyNameFilter,
@@ -200,6 +288,8 @@ export default function AdvancedReporting() {
     setStatusFilter("All");
     setDateFilter("All");
     setEmergencyFilter(false);
+    setAssignmentFilter("all");
+    showToast("All filters reset successfully.");
   };
 
   const handleRefresh = () => {
@@ -579,15 +669,17 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
 
               <div className="flex gap-2 w-full sm:w-auto">
                 <Button
-                  onClick={() => {}}
-                  className="flex-1 md:flex-none bg-[#123B5D] hover:bg-[#0B1F33] text-white text-xs px-5 rounded-xl font-bold transition-colors shrink-0"
+                  onClick={() => {
+                    showToast(`Filter applied. Showing ${filteredStudies.length} matching studies.`);
+                  }}
+                  className="flex-1 md:flex-none bg-[#123B5D] hover:bg-[#0B1F33] text-white text-xs px-5 rounded-xl font-bold transition-colors shrink-0 cursor-pointer active:scale-95"
                 >
                   Go
                 </Button>
                 <Button
                   onClick={handleClearFilters}
                   variant="outline"
-                  className="flex-1 md:flex-none text-xs px-4 rounded-xl border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors font-bold shrink-0"
+                  className="flex-1 md:flex-none text-xs px-4 rounded-xl border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors font-bold shrink-0 cursor-pointer"
                 >
                   Clear
                 </Button>
@@ -600,7 +692,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
             <div className="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
               <Button
                 onClick={() => navigate("/studies/new")}
-                className="bg-[#16A6A8] hover:bg-[#128a8c] text-white text-xs px-4 py-2 rounded-xl font-bold shadow-sm shadow-[#16A6A8]/20 transition-all w-full md:w-auto"
+                className="bg-[#16A6A8] hover:bg-[#128a8c] text-white text-xs px-4 py-2 rounded-xl font-bold shadow-sm shadow-[#16A6A8]/20 transition-all w-full md:w-auto cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4 mr-1.5" /> Add Study
               </Button>
@@ -609,7 +701,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                   if (fileInputRef.current) fileInputRef.current.click();
                 }}
                 variant="outline"
-                className="border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm w-full md:w-auto"
+                className="border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm w-full md:w-auto cursor-pointer"
               >
                 {isUploading ? (
                   <RefreshCw className="w-4 h-4 mr-1.5 animate-spin text-[#16A6A8]" />
@@ -628,7 +720,7 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
               <Button
                 onClick={handleRefresh}
                 variant="outline"
-                className={`border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm w-full md:w-auto ${isRefreshing ? "opacity-70" : ""}`}
+                className={`border-slate-300 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm w-full md:w-auto cursor-pointer ${isRefreshing ? "opacity-70" : ""}`}
               >
                 <RefreshCw
                   className={`w-4 h-4 mr-1.5 text-slate-400 ${isRefreshing ? "animate-spin" : ""}`}
@@ -637,13 +729,18 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
               </Button>
               <Button
                 onClick={() => setEmergencyFilter(!emergencyFilter)}
-                className={`text-xs px-4 py-2 rounded-xl font-bold shadow-sm transition-all w-full md:w-auto ${emergencyFilter ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"}`}
+                className={`text-xs px-4 py-2 rounded-xl font-bold shadow-sm transition-all w-full md:w-auto cursor-pointer ${emergencyFilter ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"}`}
               >
                 Emergency
               </Button>
-              <select className="col-span-2 md:col-span-1 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-auto">
+              <select
+                value={assignmentFilter}
+                onChange={(e) => setAssignmentFilter(e.target.value)}
+                className="col-span-2 md:col-span-1 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#16A6A8]/20 transition-colors w-full md:w-auto"
+              >
                 <option value="all">Assigned Studies (All)</option>
-                <option value="today">Assigned Today</option>
+                <option value="assigned">Assigned Only</option>
+                <option value="unassigned">Unassigned Only</option>
                 <option value="urgent">Urgent / Emergency</option>
               </select>
             </div>
@@ -997,6 +1094,25 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                 </React.Fragment>
               );
             })}
+            {filteredStudies.length === 0 && (
+              <tr>
+                <td colSpan={11} className="py-16 text-center text-slate-400 font-bold text-sm bg-slate-50/50">
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <Activity className="w-8 h-8 text-slate-300 animate-pulse" />
+                    <p className="text-slate-700 font-extrabold text-sm">No studies found matching the selected filters</p>
+                    <p className="text-xs text-slate-400 font-medium">
+                      Active criteria: Date [{dateFilter}], Status [{statusFilter}]
+                    </p>
+                    <button
+                      onClick={handleClearFilters}
+                      className="mt-2 text-xs font-bold text-[#16A6A8] hover:underline cursor-pointer"
+                    >
+                      Reset all filters
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
