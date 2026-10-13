@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { useMockDb } from "../../store/useMockDb";
 import { useAuthStore } from "../../store/useAuthStore";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
+import * as dicomParser from "dicom-parser";
+import JSZip from "jszip";
 import {
   Search,
   RefreshCw,
@@ -29,8 +31,17 @@ import { motion } from "framer-motion";
 export default function AdvancedReporting() {
   const navigate = useNavigate();
   const { user, selectedHospitalId } = useAuthStore();
-  const { studies, patients, hospitals, radiologists, users, updateStudy } =
-    useMockDb();
+  const {
+    studies,
+    patients,
+    hospitals,
+    radiologists,
+    users,
+    sites,
+    updateStudy,
+    addStudy,
+    addPatient,
+  } = useMockDb();
 
   // Local State
   const [searchTerm, setSearchTerm] = useState("");
@@ -297,20 +308,169 @@ export default function AdvancedReporting() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const handleZipUpload = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setIsUploading(true);
-      setTimeout(() => {
-        setIsUploading(false);
-        showToast("Zip file uploaded successfully!");
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      }, 1500);
+  const handleZipUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      let patientName = "Unknown Patient";
+      let patientUHID = `PAT-${Date.now().toString().slice(-6)}`;
+      let age = 45;
+      let gender = "Female";
+      let modality = "CT";
+      let studyDesc = file.name.replace(/\.[^/.]+$/, "") || "CT Scan";
+      let bodyPart = "BODY";
+      let accessionNo = `ACC-${Date.now().toString().slice(-6)}`;
+      let studyDate = new Date().toISOString();
+
+      try {
+        const zip = new JSZip();
+        const zipContent = await zip.loadAsync(file);
+        let dicomEntry = null;
+
+        for (const relativePath in zipContent.files) {
+          const entry = zipContent.files[relativePath];
+          if (
+            !entry.dir &&
+            (relativePath.toLowerCase().endsWith(".dcm") ||
+              !relativePath.includes("."))
+          ) {
+            dicomEntry = entry;
+            break;
+          }
+        }
+
+        if (dicomEntry) {
+          const buffer = await dicomEntry.async("arraybuffer");
+          const byteArray = new Uint8Array(buffer);
+          const parser = dicomParser.default ?? dicomParser;
+          const ds = parser.parseDicom(byteArray, { untilTag: "00200013" });
+
+          const getTagStr = (tag) => {
+            try {
+              return ds.string(tag) || "";
+            } catch {
+              return "";
+            }
+          };
+
+          const rawName = getTagStr("x00100010");
+          if (rawName) {
+            const parts = rawName.split("^").map((s) => s.trim()).filter(Boolean);
+            patientName = parts.length >= 2 ? `${parts[1]} ${parts[0]}` : parts[0] || rawName;
+          }
+
+          const rawId = getTagStr("x00100020");
+          if (rawId) patientUHID = rawId;
+
+          const rawMod = getTagStr("x00080060");
+          if (rawMod) modality = rawMod;
+
+          const rawDesc = getTagStr("x00081030");
+          if (rawDesc) studyDesc = rawDesc;
+
+          const rawBody = getTagStr("x00180015");
+          if (rawBody) bodyPart = rawBody;
+
+          const rawAcc = getTagStr("x00080050");
+          if (rawAcc) accessionNo = rawAcc;
+
+          const rawSex = getTagStr("x00100040")?.toUpperCase().trim();
+          if (rawSex === "M") gender = "Male";
+          else if (rawSex === "F") gender = "Female";
+
+          const rawAge = getTagStr("x00101010");
+          if (rawAge) {
+            const parsedAge = parseInt(rawAge);
+            if (!isNaN(parsedAge)) age = parsedAge;
+          }
+        } else {
+          // If zip has images/files without .dcm, name patient from zip filename
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ").trim();
+          if (cleanName) {
+            patientName = cleanName.toUpperCase();
+          }
+        }
+      } catch (zipErr) {
+        console.warn("ZIP/DICOM deep parse fallback to file metadata:", zipErr);
+        const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ").trim();
+        if (cleanName) {
+          patientName = cleanName.toUpperCase();
+        }
+      }
+
+      // Determine target hospital context
+      const targetHospitalId =
+        selectedHospitalId ||
+        user?.hospitalId ||
+        availableSites?.[0]?.id ||
+        hospitals?.[0]?.id ||
+        "";
+
+      // Check existing patient or create new
+      let existingPat = patients.find((p) => p.uhid === patientUHID);
+      let patId = existingPat?.id;
+
+      if (!patId) {
+        const newPatient = {
+          id: `p${Date.now()}`,
+          uhid: patientUHID,
+          name: patientName,
+          age: age || 40,
+          gender: gender || "Female",
+          hospitalId: targetHospitalId,
+          registrationDate: new Date().toISOString(),
+        };
+        await addPatient(newPatient);
+        patId = newPatient.id;
+        existingPat = newPatient;
+      }
+
+      // Create new Study
+      const caseNumber = `CAS-ZIP-${Date.now().toString().slice(-5)}`;
+      const newStudy = {
+        id: `st${Date.now()}`,
+        patientId: patId,
+        caseNumber,
+        accessionNumber: accessionNo,
+        hospitalId: targetHospitalId,
+        modality,
+        studyDescription: studyDesc,
+        bodyPart: bodyPart || modality,
+        priority: "Routine",
+        studyDate: new Date().toISOString(),
+        assignedRadiologistId: "",
+        status: "New",
+        reportingStatus: "Pending",
+        paymentStatus: "Unpaid",
+        superAdminPaymentStatus: "Pending",
+        tat: "24h",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await addStudy(newStudy);
+
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setIsUploading(false);
+
+      // Auto-open Clinical History & Assignment modal for this uploaded study
+      setSelectedStudyForHistory(newStudy);
+      setHistoryModalOpen(true);
+      showToast(`Study ${caseNumber} created! Opening Clinical History & Assignment...`);
+    } catch (err) {
+      console.error("Failed to process Zip file:", err);
+      setIsUploading(false);
+      showToast("Error processing Zip file. Please try again.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   const showToast = (message) => {
     setToastMessage(message);
-    setTimeout(() => setToastMessage(""), 3000);
+    setTimeout(() => setToastMessage(""), 4000);
   };
 
   const handleCopyLink = (studyId) => {
