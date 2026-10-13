@@ -19,12 +19,18 @@ import {
   Share2,
   Eye,
   PlusCircle,
+  AlertTriangle,
+  Send,
+  ShieldAlert,
+  Clock,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { AddHistoryModal } from "../../components/modals/AddHistoryModal";
 import { MoreInfoModal } from "../../components/modals/MoreInfoModal";
 import { EditPatientModal } from "../../components/modals/EditPatientModal";
 import { ShareModal } from "../../components/modals/ShareModal";
+import { RequestSuperAdminModal } from "../../components/modals/RequestSuperAdminModal";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -68,6 +74,8 @@ export default function AdvancedReporting() {
   const [selectedPatientForEdit, setSelectedPatientForEdit] = useState(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [selectedStudyForShare, setSelectedStudyForShare] = useState(null);
+  const [superAdminModalOpen, setSuperAdminModalOpen] = useState(false);
+  const [selectedStudyForSuperAdmin, setSelectedStudyForSuperAdmin] = useState(null);
   const fileInputRef = React.useRef(null);
 
   // Derive access list
@@ -1110,33 +1118,117 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                           )}
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center w-full">
                           {["Unread", "Pending"].includes(
                             study.reportingStatus,
                           ) && !study.assignedRadiologistId ? (
-                            <select
-                              onChange={(e) =>
-                                e.target.value &&
-                                handleAssignRadiologist(
-                                  study.id,
-                                  e.target.value,
-                                )
-                              }
-                              className="border border-slate-300 rounded px-2 py-1 text-xs bg-white w-full"
-                              value={study.assignedRadiologistId || ""}
-                            >
-                              <option value="">Select Radiologist</option>
-                              {availableRadiologists.map((r) => (
-                                <option key={r.id} value={r.id}>
-                                  {r.name}
-                                </option>
-                              ))}
-                            </select>
+                            <div className="w-full space-y-1.5">
+                              <select
+                                onChange={(e) =>
+                                  e.target.value &&
+                                  handleAssignRadiologist(
+                                    study.id,
+                                    e.target.value,
+                                  )
+                                }
+                                className="border border-slate-300 rounded px-2 py-1 text-xs bg-white w-full outline-none focus:ring-1 focus:ring-[#16A6A8]"
+                                value={study.assignedRadiologistId || ""}
+                              >
+                                <option value="">Select Radiologist</option>
+                                {(() => {
+                                  const hosp = hospitals.find((h) => h.id === study.hospitalId);
+                                  const isIndep = hosp && (!hosp.parentSiteId && (hosp.organizationType === "UNNATHI_MANAGED" || !hosp.organizationType || hosp.organizationType !== "COMPANY_MANAGED"));
+
+                                  if (isIndep) {
+                                    const internalRads = radiologists.filter((r) => {
+                                      const relatedUser = users.find((u) => u.id === r.userId);
+                                      return r.assignedHospitals?.includes(hosp.id) || relatedUser?.hospitalId === hosp.id;
+                                    });
+                                    const globalRads = radiologists.filter((r) => {
+                                      const relatedUser = users.find((u) => u.id === r.userId);
+                                      const isInternal = r.assignedHospitals?.includes(hosp.id) || relatedUser?.hospitalId === hosp.id;
+                                      const isCompExclusive = r.siteId || (r.assignedHospitals && r.assignedHospitals.some((hid) => hospitals.find((h) => h.id === hid)?.organizationType === "COMPANY_MANAGED"));
+                                      return !isInternal && !isCompExclusive;
+                                    });
+
+                                    return (
+                                      <>
+                                        <optgroup label="Internal Radiologists">
+                                          {internalRads.map((r) => (
+                                            <option key={r.id} value={r.id}>
+                                              {r.name}
+                                            </option>
+                                          ))}
+                                          {internalRads.length === 0 && (
+                                            <option disabled value="">(No internal doc)</option>
+                                          )}
+                                        </optgroup>
+                                        <optgroup label="🌐 Global Radiologists Pool">
+                                          {globalRads.map((r) => (
+                                            <option key={r.id} value={r.id}>
+                                              ★ {r.name} [Global Panel]
+                                            </option>
+                                          ))}
+                                        </optgroup>
+                                      </>
+                                    );
+                                  }
+
+                                  return availableRadiologists.map((r) => (
+                                    <option key={r.id} value={r.id}>
+                                      {r.name}
+                                    </option>
+                                  ));
+                                })()}
+                              </select>
+
+                              {/* Independent Hospital Escalation Indicator / Trigger */}
+                              {(() => {
+                                const hosp = hospitals.find((h) => h.id === study.hospitalId);
+                                const isIndep = hosp && (!hosp.parentSiteId && (hosp.organizationType === "UNNATHI_MANAGED" || !hosp.organizationType || hosp.organizationType !== "COMPANY_MANAGED"));
+
+                                if (!isIndep) return null;
+
+                                if (study?.assignmentRequest?.status === "Pending") {
+                                  return (
+                                    <div className="bg-amber-50 border border-amber-300 rounded px-1.5 py-1 text-[10px] text-amber-800 font-bold flex flex-col items-center">
+                                      <span className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-amber-700">
+                                        <Clock className="w-2.5 h-2.5 animate-spin" />
+                                        Super Admin Req
+                                      </span>
+                                      <span className="text-[9px] font-mono text-amber-900 mt-0.5">
+                                        {study.assignmentRequest.routePreference === "TELERADIOLOGY_COMPANY" ? "→ Teleradiology" : "→ Global Rad"}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedStudyForSuperAdmin(study);
+                                      setSuperAdminModalOpen(true);
+                                    }}
+                                    className="w-full text-[10px] font-bold py-0.5 px-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded shadow-sm flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                                    title="Doctor unavailable / on leave? Request Super Admin to assign"
+                                  >
+                                    <AlertTriangle className="w-2.5 h-2.5" />
+                                    <span>Escalate / Leave</span>
+                                  </button>
+                                );
+                              })()}
+                            </div>
                           ) : (
                             <>
                               <div className="font-bold text-slate-800">
                                 {rad?.name || "Unassigned"}
                               </div>
+                              {study.assignmentRequest?.status === "Assigned" && (
+                                <div className="text-[9px] font-black uppercase text-emerald-600 tracking-wider">
+                                  via Super Admin
+                                </div>
+                              )}
                               <div className="text-[9px] text-slate-400 mt-1">
                                 {assignedTime}
                               </div>
@@ -1313,6 +1405,29 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
           isOpen={shareModalOpen}
           onClose={() => setShareModalOpen(false)}
           study={selectedStudyForShare}
+        />
+      )}
+
+      {selectedStudyForSuperAdmin && (
+        <RequestSuperAdminModal
+          isOpen={superAdminModalOpen}
+          onClose={() => {
+            setSuperAdminModalOpen(false);
+            setSelectedStudyForSuperAdmin(null);
+          }}
+          study={selectedStudyForSuperAdmin}
+          patient={patients.find(
+            (p) => p.id === selectedStudyForSuperAdmin.patientId,
+          )}
+          hospital={hospitals.find(
+            (h) => h.id === selectedStudyForSuperAdmin.hospitalId,
+          )}
+          sites={sites}
+          onSubmit={(payload) => {
+            updateStudy(selectedStudyForSuperAdmin.id, payload);
+            setToastMessage("Escalation request submitted to Super Admin successfully.");
+            setTimeout(() => setToastMessage(""), 4000);
+          }}
         />
       )}
     </div>

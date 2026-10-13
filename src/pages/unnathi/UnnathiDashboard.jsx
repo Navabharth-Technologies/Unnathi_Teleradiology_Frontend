@@ -18,6 +18,9 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   TrendingUp,
+  ShieldAlert,
+  Send,
+  CheckCircle2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -54,9 +57,28 @@ const itemVariants = {
 };
 
 const UnnathiDashboard = () => {
-  const { sites, hospitals, users, radiologists, studies } = useMockDb();
+  const { sites, hospitals, users, radiologists, studies, updateStudy } = useMockDb();
   const { user } = useAuthStore();
   const navigate = useNavigate();
+
+  // Pending emergency / leave assignment requests from Independent Hospitals
+  const pendingRequests = useMemo(() => {
+    return studies.filter((s) => s.assignmentRequest?.status === "Pending");
+  }, [studies]);
+
+  const globalRadiologists = useMemo(() => {
+    return radiologists.filter((r) => {
+      const isCompExclusive =
+        r.siteId ||
+        (r.assignedHospitals &&
+          r.assignedHospitals.some(
+            (hid) =>
+              hospitals.find((h) => h.id === hid)?.organizationType ===
+              "COMPANY_MANAGED"
+          ));
+      return !isCompExclusive;
+    });
+  }, [radiologists, hospitals]);
 
   // Strict scoping based on role
   const scopedSites = sites.filter((c) => {
@@ -233,6 +255,154 @@ const UnnathiDashboard = () => {
             Comprehensive platform telemetry and operations overview
           </p>
         </motion.div>
+
+        {/* Independent Hospital Radiologist Leave / Urgent Escalation Section */}
+        {pendingRequests.length > 0 && (
+          <motion.div
+            variants={itemVariants}
+            className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border-2 border-amber-400 rounded-2xl p-5 shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-amber-500 text-white rounded-xl shadow-md">
+                  <ShieldAlert className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-base font-black text-amber-950 flex items-center gap-2">
+                    Independent Hospital Escalation Requests
+                    <span className="px-2 py-0.5 text-xs font-black bg-rose-500 text-white rounded-full">
+                      {pendingRequests.length} Pending
+                    </span>
+                  </h2>
+                  <p className="text-xs text-amber-800 font-semibold mt-0.5">
+                    Internal doctor unavailable or on leave. Urgent dispatch requested to Global Radiologist or Teleradiology Company.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate("/radiologist/reporting")}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <span>Open Worklist</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pendingRequests.map((study) => {
+                const hosp = hospitals.find((h) => h.id === study.hospitalId);
+                const req = study.assignmentRequest || {};
+                const isTeleradPref = req.routePreference === "TELERADIOLOGY_COMPANY";
+
+                return (
+                  <div
+                    key={study.id}
+                    className="bg-white rounded-xl border border-amber-200/80 p-4 shadow-sm flex flex-col justify-between space-y-3"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md">
+                          {req.urgency || "Urgent"}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-slate-500">
+                          {study.caseNumber}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-black text-slate-900 leading-snug">
+                        {hosp?.name || "Independent Hospital"}
+                      </h3>
+                      <p className="text-xs text-slate-600 font-semibold">
+                        {study.modality} • {study.bodyPart}
+                      </p>
+                      <div className="mt-2 text-[11px] bg-slate-50 p-2 rounded-lg border border-slate-100 text-slate-700">
+                        <span className="font-bold text-amber-800 block">
+                          Reason: {req.reason}
+                        </span>
+                        {req.notes && (
+                          <span className="text-slate-500 block mt-0.5 italic">
+                            "{req.notes}"
+                          </span>
+                        )}
+                        <span className="mt-1 block font-bold text-[#176B73]">
+                          Requested Route:{" "}
+                          {isTeleradPref
+                            ? `Teleradiology Company ${req.targetSiteName ? `(${req.targetSiteName})` : ""}`
+                            : "Direct Global Radiologist"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Quick Assignment Actions for Super Admin */}
+                    <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+                      <div className="text-[10px] font-black uppercase text-slate-400">
+                        Super Admin Routing Action:
+                      </div>
+
+                      {/* Option A: Quick Assign to a Global Radiologist */}
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const radId = e.target.value;
+                            updateStudy(study.id, {
+                              assignedRadiologistId: radId,
+                              reportingStatus: "Pending",
+                              assignedAt: new Date().toISOString(),
+                              assignmentRequest: {
+                                ...req,
+                                status: "Assigned",
+                                resolvedAt: new Date().toISOString(),
+                                resolvedType: "GLOBAL_RADIOLOGIST",
+                              },
+                            });
+                          }
+                        }}
+                        className="w-full h-8 px-2 border border-slate-200 rounded-lg text-xs font-semibold bg-white text-slate-700 outline-none focus:ring-1 focus:ring-amber-500"
+                      >
+                        <option value="">-- Assign to Global Radiologist --</option>
+                        {globalRadiologists.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            ★ {r.name} ({r.specialization || "General"})
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Option B: Route to a Teleradiology Company */}
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const siteId = e.target.value;
+                            updateStudy(study.id, {
+                              siteId: siteId,
+                              assignmentRequest: {
+                                ...req,
+                                status: "Assigned",
+                                resolvedAt: new Date().toISOString(),
+                                resolvedType: "TELERADIOLOGY_COMPANY",
+                                routedSiteId: siteId,
+                              },
+                            });
+                          }
+                        }}
+                        className="w-full h-8 px-2 border border-slate-200 rounded-lg text-xs font-semibold bg-white text-slate-700 outline-none focus:ring-1 focus:ring-amber-500"
+                      >
+                        <option value="">-- Route to Teleradiology Company --</option>
+                        {sites
+                          .filter((s) => s.organizationType === "COMPANY_MANAGED" || !s.organizationType)
+                          .map((site) => (
+                            <option key={site.id} value={site.id}>
+                              🏢 {site.name} {site.city ? `(${site.city})` : ""}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
 
         {/* Row 1: Primary */}
         <motion.div variants={itemVariants}>

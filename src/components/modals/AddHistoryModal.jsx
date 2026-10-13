@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
-import { X, Link2, Plus, Sparkles, Building2 } from "lucide-react";
+import { X, Link2, Plus, Sparkles, Building2, AlertTriangle, Send, ShieldAlert, CheckCircle } from "lucide-react";
 import { useMockDb } from "../../store/useMockDb";
 import { useAuthStore } from "../../store/useAuthStore";
 import { createPortal } from "react-dom";
+import { RequestSuperAdminModal } from "./RequestSuperAdminModal";
 
 const ADDITIONAL_INFO_OPTIONS = [
   "Emergency",
@@ -37,8 +38,10 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
     studies,
     users,
     hospitals,
+    sites,
   } = useMockDb();
   const { currentRole, user } = useAuthStore();
+  const [superAdminModalOpen, setSuperAdminModalOpen] = useState(false);
 
   // Filter available hospitals strictly based on access permissions
   const availableHospitals = useMemo(() => {
@@ -75,6 +78,47 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
     availableHospitals.find((h) => h.id === selectedHospitalId) ||
     hospitals.find((h) => h.id === selectedHospitalId) ||
     resolvedHospital;
+
+  // Strict check if activeHospital is an independent hospital
+  const isIndependentHospital = Boolean(
+    activeHospital &&
+      (!activeHospital.parentSiteId &&
+        (activeHospital.organizationType === "UNNATHI_MANAGED" ||
+          !activeHospital.organizationType ||
+          activeHospital.organizationType !== "COMPANY_MANAGED"))
+  );
+
+  // Split radiologists for Independent Hospital: Internal vs Global Panel
+  const { internalRadiologists, globalRadiologists } = useMemo(() => {
+    if (!isIndependentHospital) {
+      return { internalRadiologists: [], globalRadiologists: radiologists };
+    }
+    const internal = [];
+    const globalPool = [];
+    radiologists.forEach((r) => {
+      const relatedUser = users.find((u) => u.id === r.userId);
+      const isInternal =
+        r.assignedHospitals?.includes(activeHospital?.id) ||
+        relatedUser?.hospitalId === activeHospital?.id;
+      if (isInternal) {
+        internal.push(r);
+      } else {
+        // Global radiologist (not restricted to a company site)
+        const isCompanyExclusive =
+          r.siteId ||
+          (r.assignedHospitals &&
+            r.assignedHospitals.some(
+              (hid) =>
+                hospitals.find((h) => h.id === hid)?.organizationType ===
+                "COMPANY_MANAGED"
+            ));
+        if (!isCompanyExclusive) {
+          globalPool.push(r);
+        }
+      }
+    });
+    return { internalRadiologists: internal, globalRadiologists: globalPool };
+  }, [radiologists, users, hospitals, activeHospital, isIndependentHospital]);
 
   // Patient Editable Fields
   const [patientName, setPatientName] = useState(patient?.name || "");
@@ -637,9 +681,17 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
               {/* Assign Radiologist Dropdown */}
               {currentRole !== "RADIOLOGIST" && (
                 <div className="pt-3 border-t border-slate-100">
-                  <div className="text-center text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">
-                    Assign Radiologist
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="text-xs font-black uppercase tracking-wider text-slate-500">
+                      Assign Radiologist
+                    </div>
+                    {isIndependentHospital && (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Independent Hospital
+                      </span>
+                    )}
                   </div>
+
                   <select
                     className="w-full h-9 px-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800 outline-none focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer"
                     value={selectedRadiologist}
@@ -647,12 +699,78 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
                     onChange={(e) => setSelectedRadiologist(e.target.value)}
                   >
                     <option value="">-- Select Radiologist --</option>
-                    {radiologists.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name} {r.specialization ? `(${r.specialization})` : ""}
-                      </option>
-                    ))}
+                    {isIndependentHospital ? (
+                      <>
+                        <optgroup label="Internal Hospital Radiologists">
+                          {internalRadiologists.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name} {r.specialization ? `(${r.specialization})` : ""}
+                            </option>
+                          ))}
+                          {internalRadiologists.length === 0 && (
+                            <option disabled value="none-internal">
+                              (No internal radiologist configured)
+                            </option>
+                          )}
+                        </optgroup>
+                        <optgroup label="🌐 Global Radiologists Pool (Emergency / Leave Access)">
+                          {globalRadiologists.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              ★ {r.name} {r.specialization ? `(${r.specialization})` : ""} [Global Panel]
+                            </option>
+                          ))}
+                        </optgroup>
+                      </>
+                    ) : (
+                      radiologists.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} {r.specialization ? `(${r.specialization})` : ""}
+                        </option>
+                      ))
+                    )}
                   </select>
+
+                  {/* Independent Hospital Radiologist Unavailable / On Leave Escalation */}
+                  {isIndependentHospital && (
+                    <div className="mt-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-xl">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                          <div>
+                            <div className="text-xs font-black text-amber-900 leading-tight">
+                              Radiologist On Leave or Urgent Same-Day Dispatch?
+                            </div>
+                            <div className="text-[11px] text-amber-700 font-medium mt-0.5 leading-snug">
+                              Need Super Admin to route this case to a Teleradiology company or assign directly to a Global radiologist?
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {study?.assignmentRequest?.status === "Pending" ? (
+                        <div className="mt-2.5 p-2 bg-white rounded-lg border border-amber-200 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1.5 text-amber-800 font-bold">
+                            <Clock className="w-3.5 h-3.5 text-amber-600 animate-spin" />
+                            <span>Escalation Request Sent to Super Admin</span>
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                            {study?.assignmentRequest?.routePreference === "TELERADIOLOGY_COMPANY"
+                              ? "Route: Teleradiology"
+                              : "Route: Global Rad"}
+                          </span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setSuperAdminModalOpen(true)}
+                          className="mt-2.5 w-full py-2 px-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-lg text-xs font-black flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 transition-all"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          Send Request to Super Admin (On Leave / Urgent)
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -679,6 +797,21 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
           </div>
         </form>
       </div>
+
+      {/* Independent Hospital Super Admin Escalation Modal */}
+      {superAdminModalOpen && (
+        <RequestSuperAdminModal
+          isOpen={superAdminModalOpen}
+          onClose={() => setSuperAdminModalOpen(false)}
+          study={study}
+          patient={patient}
+          hospital={activeHospital}
+          sites={sites}
+          onSubmit={(payload) => {
+            updateStudy(study.id, payload);
+          }}
+        />
+      )}
     </div>,
     document.body,
   );
