@@ -1204,49 +1204,6 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }) {
                   </div>
                 )}
 
-                <div className="space-y-1.5 col-span-full">
-                  <label className="text-[12px] font-bold text-slate-700">
-                    Supported Modalities
-                  </label>
-                  <div className="flex flex-wrap gap-4 mt-1">
-                    {["CT", "MRI", "X-Ray", "Ultrasound", "PET"].map((mod) => (
-                      <label
-                        key={mod}
-                        className="flex items-center space-x-2 cursor-pointer group"
-                      >
-                        <div className="relative flex items-center justify-center w-4 h-4">
-                          <input
-                            type="checkbox"
-                            checked={formData.supportedModalities.includes(mod)}
-                            onChange={() => handleModalityToggle(mod)}
-                            className="peer appearance-none w-4 h-4 border-2 border-slate-300 rounded-sm bg-white checked:bg-[#2C4A6B] checked:border-[#2C4A6B] transition-all cursor-pointer"
-                          />
-
-                          <div className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none pb-[1px]">
-                            <svg
-                              width="10"
-                              height="8"
-                              viewBox="0 0 12 10"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M1 5L4.5 8.5L11 1"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </div>
-                        </div>
-                        <span className="text-[13px] text-slate-600 font-medium group-hover:text-slate-900 transition-colors">
-                          {mod}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
                 <div className="space-y-1.5">
                   <label className="text-[12px] font-bold text-slate-700">
                     Assign Verifier (Optional)
@@ -1458,30 +1415,6 @@ export default function AddHospitalModal({ isOpen, onClose, initialData }) {
               </div>
             )}
 
-            {/* Section: FILE UPLOADS */}
-            <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
-              <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">
-                File Uploads
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-end">
-                {renderImageUploadPreview(
-                  "headerUrl",
-                  "Header Image",
-                  "image/*",
-                )}
-                {renderImageUploadPreview(
-                  "footerUrl",
-                  "Footer Image",
-                  "image/*",
-                )}
-                <div className="pl-2 pb-2">
-                  <CheckboxItem
-                    name="brochureForNewStudy"
-                    label="Brochure for New Study"
-                  />
-                </div>
-              </div>
-            </div>
 
             {/* Section: WHITE-LABEL & BRANDING SETTINGS */}
             {!(

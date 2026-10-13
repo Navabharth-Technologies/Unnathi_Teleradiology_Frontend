@@ -1152,49 +1152,6 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
                   className="h-9 text-[13px]"
                 />
               </div>
-              <div className="space-y-1.5 col-span-full">
-                <label className="text-[12px] font-bold text-slate-700">
-                  Supported Modalities
-                </label>
-                <div className="flex flex-wrap gap-4 mt-1">
-                  {["CT", "MRI", "X-Ray", "Ultrasound", "PET"].map((mod) => (
-                    <label
-                      key={mod}
-                      className="flex items-center space-x-2 cursor-pointer group"
-                    >
-                      <div className="relative flex items-center justify-center w-4 h-4">
-                        <input
-                          type="checkbox"
-                          checked={formData.supportedModalities.includes(mod)}
-                          onChange={() => handleModalityToggle(mod)}
-                          className="peer appearance-none w-4 h-4 border-2 border-slate-300 rounded-sm bg-white checked:bg-[#2C4A6B] checked:border-[#2C4A6B] transition-all cursor-pointer"
-                        />
-
-                        <div className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none pb-[1px]">
-                          <svg
-                            width="10"
-                            height="8"
-                            viewBox="0 0 12 10"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M1 5L4.5 8.5L11 1"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                      <span className="text-[13px] text-slate-600 font-medium group-hover:text-slate-900 transition-colors">
-                        {mod}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -1313,40 +1270,6 @@ export default function AddSiteModal({ isOpen, onClose, initialData }) {
             </div>
           )}
 
-          {/* Section: FILE UPLOADS */}
-          <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
-            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">
-              File Uploads
-            </h3>
-            <div className="flex flex-wrap items-center gap-6">
-              <label className="flex items-center space-x-2 px-6 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:text-[#2C4A6B] hover:border-[#2C4A6B] hover:bg-slate-50 transition-colors text-sm font-medium cursor-pointer">
-                <Upload className="w-4 h-4" />
-                <span>{formData.headerUrl ? "Change Header" : "Header"}</span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={(e) => handleFileUpload(e, "headerUrl")}
-                />
-              </label>
-              <label className="flex items-center space-x-2 px-6 py-2 border border-slate-300 border-dashed rounded-md text-slate-500 hover:text-[#2C4A6B] hover:border-[#2C4A6B] hover:bg-slate-50 transition-colors text-sm font-medium cursor-pointer">
-                <Upload className="w-4 h-4" />
-                <span>{formData.footerUrl ? "Change Footer" : "Footer"}</span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={(e) => handleFileUpload(e, "footerUrl")}
-                />
-              </label>
-              <div className="pl-4">
-                <CheckboxItem
-                  name="brochureForNewStudy"
-                  label="Brochure for New Study"
-                />
-              </div>
-            </div>
-          </div>
 
           {/* Hidden submit button to allow enter to submit form */}
           <button type="submit" className="hidden">

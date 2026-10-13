@@ -1441,37 +1441,6 @@ export default function SiteList() {
                       </label>
                     </div>
                   </div>
-
-                  {/* File Uploads */}
-                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <h3 className="text-sm font-black text-slate-800 tracking-wide mb-3 flex items-center gap-2">
-                      <Upload className="w-4 h-4 text-orange-500" /> Print
-                      Collaterals
-                    </h3>
-                    <div className="flex gap-4">
-                      <div className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 hover:bg-[#00A8CC]/5 hover:border-[#00A8CC]/30 transition-all cursor-pointer w-28 group">
-                        <Upload className="w-5 h-5 text-slate-400 mb-1.5 group-hover:text-[#00A8CC] transition-colors" />
-                        <span className="text-[10px] font-bold text-slate-600 group-hover:text-[#00A8CC]">
-                          Letterhead
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 hover:bg-[#00A8CC]/5 hover:border-[#00A8CC]/30 transition-all cursor-pointer w-28 group">
-                        <Upload className="w-5 h-5 text-slate-400 mb-1.5 group-hover:text-[#00A8CC] transition-colors" />
-                        <span className="text-[10px] font-bold text-slate-600 group-hover:text-[#00A8CC]">
-                          Footer Logo
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      <input
-                        type="checkbox"
-                        className="w-3.5 h-3.5 rounded border-slate-300 text-[#00A8CC]"
-                      />
-                      <span className="text-xs font-bold text-slate-700">
-                        Attach Brochure to New Studies
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
 
