@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
@@ -40,10 +40,31 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
   } = useMockDb();
   const { currentRole, user } = useAuthStore();
 
+  // Filter available hospitals strictly based on access permissions
+  const availableHospitals = useMemo(() => {
+    if (user?.role === "SUPER_ADMIN") return hospitals;
+    if (user?.role === "SITE_ADMIN" || user?.siteId) {
+      return hospitals.filter((h) => h.parentSiteId === user.siteId);
+    }
+    if (user?.role === "HOSPITAL_ADMIN" || user?.hospitalId) {
+      return hospitals.filter((h) => h.id === user.hospitalId);
+    }
+    // Context-based fallback for radiologist or staff
+    if (study?.hospitalId) {
+      const studyHospital = hospitals.find((h) => h.id === study.hospitalId);
+      if (studyHospital?.parentSiteId) {
+        return hospitals.filter((h) => h.parentSiteId === studyHospital.parentSiteId);
+      }
+      return [studyHospital].filter(Boolean);
+    }
+    return hospitals;
+  }, [hospitals, user, study]);
+
   const resolvedHospital =
     hospital ||
-    hospitals.find((h) => h.id === study?.hospitalId) ||
-    hospitals.find((h) => h.id === user?.hospitalId);
+    availableHospitals.find((h) => h.id === study?.hospitalId) ||
+    availableHospitals.find((h) => h.id === user?.hospitalId) ||
+    availableHospitals[0];
 
   // Hospital Selection State
   const [selectedHospitalId, setSelectedHospitalId] = useState(
@@ -51,7 +72,9 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
   );
 
   const activeHospital =
-    hospitals.find((h) => h.id === selectedHospitalId) || resolvedHospital;
+    availableHospitals.find((h) => h.id === selectedHospitalId) ||
+    hospitals.find((h) => h.id === selectedHospitalId) ||
+    resolvedHospital;
 
   // Patient Editable Fields
   const [patientName, setPatientName] = useState(patient?.name || "");
@@ -302,7 +325,7 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
                     className="w-full bg-white text-slate-800 border border-slate-300 rounded-lg h-9 text-xs px-3 font-semibold focus:outline-none focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] disabled:bg-slate-50 disabled:text-slate-500 cursor-pointer"
                   >
                     <option value="">-- Select Hospital --</option>
-                    {hospitals.map((h) => (
+                    {availableHospitals.map((h) => (
                       <option key={h.id} value={h.id}>
                         {h.name} {h.city ? `(${h.city})` : ""}
                       </option>
