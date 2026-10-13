@@ -7,6 +7,7 @@ import { useMockDb } from "../../store/useMockDb";
 import { useAuthStore } from "../../store/useAuthStore";
 import { createPortal } from "react-dom";
 import { RequestSuperAdminModal } from "./RequestSuperAdminModal";
+import standardStudiesCatalog from "../../data/standardStudiesCatalog.json";
 
 const ADDITIONAL_INFO_OPTIONS = [
   "Emergency",
@@ -39,6 +40,7 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
     users,
     hospitals,
     sites,
+    templates,
   } = useMockDb();
   const { currentRole, user } = useAuthStore();
   const [superAdminModalOpen, setSuperAdminModalOpen] = useState(false);
@@ -447,12 +449,36 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
                   </label>
                   <Input
                     value={studyDescription}
-                    onChange={(e) => setStudyDescription(e.target.value)}
-                    placeholder="e.g. CT KUB, MRI Brain"
+                    onChange={(e) => setStudyDescription(e.target.value.toUpperCase())}
+                    placeholder="e.g. MRI - BRAIN, CT - CHEST"
+                    list="history-study-catalog"
                     disabled={isFinalized}
                     required
-                    className="bg-white text-slate-800 font-bold border-slate-300 h-9 text-xs focus-visible:ring-[#00A8CC] disabled:bg-slate-50 disabled:text-slate-500"
+                    className="bg-white text-slate-800 font-bold border-slate-300 h-9 text-xs focus-visible:ring-[#00A8CC] disabled:bg-slate-50 disabled:text-slate-500 shadow-inner"
                   />
+                  <datalist id="history-study-catalog">
+                    {/* Hospital custom templates */}
+                    {templates
+                      ?.filter(
+                        (t) =>
+                          t.hospitalId === (selectedHospitalId || study?.hospitalId) &&
+                          t.modality?.toUpperCase() === modality?.toUpperCase() &&
+                          t.isActive,
+                      )
+                      .map((t) => (
+                        <option key={t.id} value={t.studyName}>
+                          {t.studyName} {t.price ? `(₹${t.price})` : ""}
+                        </option>
+                      ))}
+                    {/* Standard Catalog */}
+                    {standardStudiesCatalog
+                      .filter(
+                        (c) => c.modality.toUpperCase() === modality?.toUpperCase(),
+                      )
+                      .map((c, idx) => (
+                        <option key={`cat_${idx}`} value={c.studyName} />
+                      ))}
+                  </datalist>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
@@ -463,7 +489,7 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
                     onChange={(e) => setBodyPart(e.target.value)}
                     placeholder="e.g. Spine, Abdomen, Brain"
                     disabled={isFinalized}
-                    className="bg-white text-slate-800 font-bold border-slate-300 h-9 text-xs focus-visible:ring-[#00A8CC] disabled:bg-slate-50 disabled:text-slate-500"
+                    className="bg-white text-slate-800 font-bold border-slate-300 h-9 text-xs focus-visible:ring-[#00A8CC] disabled:bg-slate-50 disabled:text-slate-500 shadow-inner"
                   />
                 </div>
               </div>
@@ -556,9 +582,19 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
                             type="text"
                             placeholder="New Study Name *"
                             value={newScanDescription}
-                            onChange={(e) => setNewScanDescription(e.target.value)}
-                            className="col-span-2 text-[11px] font-medium border border-slate-300 rounded px-2 py-1 bg-white"
+                            list="new-scan-catalog"
+                            onChange={(e) => setNewScanDescription(e.target.value.toUpperCase())}
+                            className="col-span-2 text-[11px] font-bold border border-slate-300 rounded px-2 py-1 bg-white uppercase"
                           />
+                          <datalist id="new-scan-catalog">
+                            {standardStudiesCatalog
+                              .filter(
+                                (c) => c.modality.toUpperCase() === newScanModality?.toUpperCase(),
+                              )
+                              .map((c, idx) => (
+                                <option key={`new_cat_${idx}`} value={c.studyName} />
+                              ))}
+                          </datalist>
                         </div>
                         <input
                           type="text"

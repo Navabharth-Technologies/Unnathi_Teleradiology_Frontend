@@ -1,0 +1,1170 @@
+[
+  {
+    "modality": "MRI",
+    "studyName": "MRI - ABDOMEN"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - ANKLE JOINT"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BOTH ANKLE JOINT"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BOTH KNEE"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN & MRA"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN & MRV"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - CARDIAC"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - CERVICAL SPINE"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - CERVICAL SPINE WITH WHOLE SPINE SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - CONTRAST STUDY"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - CVJ"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - DORSAL SPINE WITH WHOLE SPINE SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - DORSAL SPINE"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - ELBOW JOINT"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - FISTULOGRAM"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - FOOT"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - HAND"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BOTH HIP JOINT"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - HUMERUS"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - JOINTS"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - LEFT SHOULDER & BRACHEAL PLEXUS"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - KNEE JOINT"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - LUMBAR SPINE"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - LUMBAR SPINE WITH WHOLE SPINE SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - LEG"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - MRA & MRV"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - NECK"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - PELVIS WITH HIP JOINT"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - ORBIT"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - SHOULDER JOINT"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - CAROTID ANGIO"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - STRESS CARDIAC"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - THIGH"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - THORAX"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - TISSUE"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - WRIST JOINT"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - WHOLE SPINE SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - WHOLE BODY SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - T2 BRAIN"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - SPINE SCREENING SINGLE"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - PELVIS"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - PNS"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - MRCP"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN (PLAIN, CONTRAST & SPECTROSCOPY)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - HIP SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN WITH CONTRAST"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - ABDOMEN (PLAIN & CONTRAST)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN WITH ANGIO"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN, MRA & MRV"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - SPINE"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - SOFT TISSUE"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - MRS (PLAIN & CONTRAST)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - SPINE (PLAIN & CONTRAST)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - JOINT (PLAIN & CONTRAST)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - PELVIS (PLAIN & CONTRAST)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - SOFT TISSUE (PLAIN & CONTRAST)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - NECK (PLAIN & CONTRAST)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - KUB"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN, PNS (PLAIN & CONTRAST)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRACHIAL PLEXUS"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - ANGIO"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - MRV"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - MRA"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN (PLAIN)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BREAST"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - LUMBAR SPINE SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - PELVIS SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - SHOULDER SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - TEMPORAL BONE (INNER EAR)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - ABDOMEN WITH MRCP"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - CSF CISTERNOGRAM"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - LEG SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - CERVICAL SPINE SCREENING"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - ABDOMEN & PELVIS PLAIN"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - ABDOMEN & PELVIS (PLAIN & CONTRAST)"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN WITH EPILIPSY PROTOCOL"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN WITH CISS 3D"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - TONGUE"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI BRAIN WITH ORBIT"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - NEUROGRAPHY"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI- CERVICAL SPINE WITH CVJ"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - BRAIN OF PITUITARY"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI- RIGHT HIP"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - LEFT HIP"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - TMJ"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI - FETAL BRAIN"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI BRAIN WITH STROKE PROTOCOL"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI- BOTH BREAST"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI- WHOLE SPINE"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MYASTHENIA GRAVIS PANEL"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "RUBELLA IgG"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "MRI PERIPHERAL ANGIO"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "STOOL FOR MICROSCOPY"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "ANTI INTRINSIC FACTOR ANTIBODY"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "Urine Potassium"
+  },
+  {
+    "modality": "MRI",
+    "studyName": "INNER DOOR HANDLE"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - CAROTID DOPPLER"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - PENILE DOPPLER"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - PIGTAIL PROCEDURE"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG- CRANIUM"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - FOLLICULAR DOPPLER"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - HRUS"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - LOWER LIMB ARTERAL & VENOUS DOPPLER BOTH"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - LOWER LIMB ARTERIAL & VENOUS DOPPLER SINGLE"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - LOWER LIMB ARTERIAL DOPPLER  BOTH"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - LOWER LIMB ARTERIAL DOPPLER SINGLE"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - LOWER LIMB VENOUS DOPPLER BOTH"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - THIGH"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - LOWER LIMB VENOUS DOPPLER SINGLE"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - UPPER LIMB ARTERAL & VENOUS DOPPLER BOTH"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - SURFACE SCAN"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - UPPER LIMB ARTERAL & VENOUS DOPPLER SINGLE"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - BEDSIDE"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - UPPER LIMB ARTERIAL DOPPLER BOTH"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - UPPER LIMB ARTERIAL DOPPLER SINGLE"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - UPPER LIMB VENOUS DOPPLER BOTH"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - UPPER LIMB VENOUS DOPPLER SINGLE"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - SINGLE KNEE JOINT"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - BOTH KNEE JOINT"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - OB SCAN"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - RENAL DOPPLER"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - TRUS"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - ABDOMEN"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - ABDOMEN & PELVIS"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - ANAMOLY"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - ANAMOLY WITH FOETAL ECHO"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - BILATERAL BREAST"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - EARLY OBG"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - FOLLICULAR STUDY"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - GUIDED ASPIRATION"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - GUIDED BIOPSY"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - GUIDED FNAC"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - GUIDED PIGTAIL"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - JOINTS"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - KUB"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - NT SCAN"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - OBG WITH BPP"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - OBG, BPP WITH DOPPLER"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - PELVIS"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - PERINEUM"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - SCROTUM AND TESTIS DOPPLER"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - SINGLE BREAST"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - SMALL PARTS"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - SOFT TISSUE"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - SONOGRAPHY"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - THORAX"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - THYROID"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - GUIDED PLEURAL TAPPING"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - NECK"
+  },
+  {
+    "modality": "USG",
+    "studyName": "USG - SCROTUM"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - ABDOMEN ANGIO"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - ABDOMEN & PELVIS (PLAIN)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - ABDOMEN & PELVIS (CONTRAST)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - ADDITIONAL CUTS"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - ANKLE WITH 3D"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - ARM/HUMERUS"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - BOTH HIP JOINT"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - BRAIN"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - BRAIN & ORBIT"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - BREAST"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - CAROTID ANGIO"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - CEREBRAL AND CAROTID ANGIO"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - CEREBRAL ANGIO"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - CERVICAL SPINE"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - CSF CISTERNOGRAM"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - CYSTENOGRAPHY"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - ELBOW"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - ENTEROGRAPHY"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - FACIAL BONES WITH 3D"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - FOOT"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - GUIDED BIOPSY"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - GUIDED FNAC"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - GUIDED PIGTAIL"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - HAND"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - HEAD"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - HEAD & CONTRAST"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - HEAD & FACIAL 3D"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - HEAD & PNS"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - HRCT THORAX"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - JOINTS"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - KNEE WITH 3D"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - KUB"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - KUB WITH CONTRAST"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - LEG"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - LUMBAR SPINE"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - MANDIBLE WITH 3D"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - NECK (PLAIN)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - NECK (CONTRAST)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - NECK & THORAX (PLAIN)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - NECK & THORAX (CONTRAST)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - NECK, THORAX AND ABDOMEN (PLAIN)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - NECK, THORAX AND ABDOMEN (CONTRAST)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - NECK, THORAX, ABDOMEN & PELVIS (PLAIN)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - NECK, THORAX, ABDOMEN & PELVIS (CONTRAST)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - ORBIT (PLAIN)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - ORBIT (CONTRAST)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - PELVIS"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - PERIPHERAL ANGIO"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - PITUITARY / SELLA"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - PNS"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - PNS, AXIAL & CORONAL"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - PNS CORONAL ONLY"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - PNS (PLAIN & CONTRAST)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - POLYTRAUMA"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - PULMONARY ANGIO"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - SACRUM"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - SCANOGRAM (PELVIS TO TOES)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - SHOULDER"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - SKULL WITH 3D"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - SPINE"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - SPINE PER PART"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - SHOULDER JOINT"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - TEMPORAL BONE (HRCT)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - TEMPORAL BONE WITH 3D"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - THIGH"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - THORACIC SPINE"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - THORAX (CONTRAST)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - THORAX (PLAIN)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - THORAX WITH ABDOMEN (PLAIN)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - THORAX WITH ABDOMEN (CONTRAST)"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - UROGRAM"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - WRIST"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - WRIST WITH 3D"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - WHOLE SPINE SCREENING"
+  },
+  {
+    "modality": "CT",
+    "studyName": "CT - BILATERAL THIGH"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - CERVICAL SPINE LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - LUMBAR SPINE LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY CALCANIUM AXIAL& LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "INTRAVENOUS PYELOGRAM - IVP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - DORSAL SPINE AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - ANKLE JOINT AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - LUMBAR SPINE FLEX & EXT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - DORSAL SPINE LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - THORACIC SPINE LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY -  LEG AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - ANKLE AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - ANKLE MORTIES"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - BARIUM MEAL"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - BARIUM SWALLOW"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - BMFT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - BOTH KNEE AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - BOTH KNEE AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - CERVICAL SPINE AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - CERVICAL SPINE AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - CHEST AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - CHEST LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - CHEST PA"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - CHEST PA & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - ELBOW AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - ELBOW AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - ERRECT ABDOMEN"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - FOOT AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - FOOT AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - FOOT AP, LAT & OBL"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - FOREARM AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - HAND AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - HAND AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - HAND AP, LAT & OBL"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - HSG"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - HUMERUS AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - HUMERUS AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - IVU CONTRAST STUDY"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - JOINT DOUBLE VIEW"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - JOINT SINGLE"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - JOINT THREE VIEWS"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - KNEE AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - KNEE AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - KUB AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - LEG AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - LUMBAR SPINE AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - LUMBAR SPINE AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - MICTURATING URETHROGRAPY"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - NASAL BONE LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - PELVIS WITH BOTH HIPS"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - PNS WATERS VIEW"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - RGU"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - SHOULDER AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - SHOULDER AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - SINOGRAM"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - SKULL LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - SPECIAL PROCEDURE"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - THIGH AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - THIGH AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - THORACIC SPINE AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - THORACIC SPINE AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - WRIST AP"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - WRIST AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY- FOREARM AP & LAT"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - BEDSIDE"
+  },
+  {
+    "modality": "X-RAY",
+    "studyName": "X RAY - SCANOGRAM"
+  }
+]

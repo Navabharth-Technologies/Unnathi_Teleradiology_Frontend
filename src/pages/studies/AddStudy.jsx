@@ -6,6 +6,7 @@ import { Input } from "../../components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { History, FileText, Wallet, Lock, CheckCircle2, X } from "lucide-react";
 import { format } from "date-fns";
+import standardStudiesCatalog from "../../data/standardStudiesCatalog.json";
 
 export default function AddStudy() {
   const { user } = useAuthStore();
@@ -302,13 +303,17 @@ export default function AddStudy() {
               Study Description <span className="text-rose-500">*</span>
             </label>
             {(() => {
-              const availableTemplates =
+              const hospitalTemplates =
                 templates?.filter(
                   (t) =>
                     t.hospitalId === formData.hospitalId &&
                     t.modality === formData.modality &&
                     t.isActive,
                 ) || [];
+              const catalogStudies = standardStudiesCatalog.filter(
+                (c) => c.modality.toUpperCase() === formData.modality?.toUpperCase(),
+              );
+
               return (
                 <>
                   <Input
@@ -319,13 +324,16 @@ export default function AddStudy() {
                       const val = e.target.value.toUpperCase();
                       setFormData({ ...formData, studyDescription: val });
                     }}
-                    placeholder="e.g. MRI Brain with Contrast"
+                    placeholder="e.g. MRI - BRAIN, CT - CHEST"
                     className="h-11 px-3 border-border rounded-xl text-primary font-bold shadow-inner focus:border-accent focus:ring-accent"
                   />
 
                   <datalist id="study-templates">
-                    {availableTemplates.map((t) => (
+                    {hospitalTemplates.map((t) => (
                       <option key={t.id} value={t.studyName} />
+                    ))}
+                    {catalogStudies.map((c, idx) => (
+                      <option key={`cat_${idx}`} value={c.studyName} />
                     ))}
                   </datalist>
                 </>

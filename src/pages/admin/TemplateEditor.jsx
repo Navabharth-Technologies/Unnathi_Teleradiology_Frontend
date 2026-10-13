@@ -1,19 +1,22 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMockDb } from "../../store/useMockDb";
 import { useAuthStore } from "../../store/useAuthStore";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { RichTextEditor } from "../../components/ui/RichTextEditor";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Building2, Sparkles, BookOpen } from "lucide-react";
+import standardStudiesCatalog from "../../data/standardStudiesCatalog.json";
 
 export default function TemplateEditor() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { templates, addTemplate, updateTemplate, hospitals, modalities } =
+  const { templates, addTemplate, updateTemplate, hospitals, modalities, sites } =
     useMockDb();
   const { user } = useAuthStore();
 
+  const [selectedHospitalId, setSelectedHospitalId] = useState("");
   const [modality, setModality] = useState("");
   const [studyName, setStudyName] = useState("");
   const [price, setPrice] = useState("");
@@ -22,29 +25,74 @@ export default function TemplateEditor() {
 
   const isEditing = Boolean(id);
 
+  // Available hospitals scoped by user permissions
+  const availableHospitals = useMemo(() => {
+    if (user?.role === "SUPER_ADMIN") return hospitals;
+    if (user?.role === "SITE_ADMIN") {
+      return hospitals.filter((h) => h.parentSiteId === user?.siteId);
+    }
+    if (user?.hospitalId) {
+      return hospitals.filter((h) => h.id === user.hospitalId);
+    }
+    return hospitals;
+  }, [hospitals, user]);
+
   useEffect(() => {
     if (isEditing && id) {
       const tpl = templates.find((t) => t.id === id);
       if (tpl) {
-        setModality(tpl.modality);
-        setStudyName(tpl.studyName);
-        setPrice(tpl.price || "");
-        setTemplateContent(tpl.templateContent);
-        setIsActive(tpl.isActive);
+        setSelectedHospitalId(tpl.hospitalId || "");
+        setModality(tpl.modality || "");
+        setStudyName(tpl.studyName || "");
+        setPrice(tpl.price !== undefined && tpl.price !== null ? tpl.price : "");
+        setTemplateContent(tpl.templateContent || "");
+        setIsActive(tpl.isActive !== undefined ? tpl.isActive : true);
       } else {
         navigate("/utilities/templates"); // Not found
       }
+    } else {
+      // New template initialization
+      const paramHosp = searchParams.get("hospitalId");
+      if (paramHosp && availableHospitals.some((h) => h.id === paramHosp)) {
+        setSelectedHospitalId(paramHosp);
+      } else if (user?.hospitalId) {
+        setSelectedHospitalId(user.hospitalId);
+      } else if (availableHospitals.length > 0) {
+        setSelectedHospitalId(availableHospitals[0].id);
+      }
     }
-  }, [id, isEditing, templates, navigate]);
+  }, [id, isEditing, templates, navigate, searchParams, availableHospitals, user]);
 
-  const availableModalities = modalities.map((m) => m.name);
+  const availableModalities = useMemo(() => {
+    const list = modalities.map((m) => m.name);
+    ["MRI", "CT", "USG", "X-RAY", "MAMMO"].forEach((m) => {
+      if (!list.includes(m)) list.push(m);
+    });
+    return list;
+  }, [modalities]);
+
+  // Catalog filtered suggestions based on selected modality
+  const catalogSuggestions = useMemo(() => {
+    if (!modality) return standardStudiesCatalog;
+    return standardStudiesCatalog.filter(
+      (s) => s.modality.toUpperCase() === modality.toUpperCase(),
+    );
+  }, [modality]);
 
   const handleSave = (e) => {
     e.preventDefault();
+    if (!studyName.trim()) {
+      alert("Please enter a study name.");
+      return;
+    }
+    const targetHospId =
+      selectedHospitalId || user?.hospitalId || availableHospitals[0]?.id;
+
     if (isEditing && id) {
       updateTemplate(id, {
+        hospitalId: targetHospId,
         modality,
-        studyName,
+        studyName: studyName.trim().toUpperCase(),
         price: price === "" ? undefined : Number(price),
         templateContent,
         isActive,
@@ -53,9 +101,9 @@ export default function TemplateEditor() {
     } else {
       addTemplate({
         id: `tpl_${Date.now()}`,
-        hospitalId: user?.hospitalId || hospitals[0]?.id || "hosp1", // default fallback
-        modality,
-        studyName,
+        hospitalId: targetHospId,
+        modality: modality || "CT",
+        studyName: studyName.trim().toUpperCase(),
         price: price === "" ? undefined : Number(price),
         templateContent,
         isActive,
@@ -113,53 +161,105 @@ export default function TemplateEditor() {
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div className="max-w-[1000px] mx-auto space-y-6">
           {/* Metadata Bar */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                Modality <span className="text-rose-500">*</span>
-              </label>
-              <select
-                required
-                value={modality}
-                onChange={(e) => setModality(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-[#00A8CC]/20 outline-none font-bold text-slate-800 transition-all hover:bg-white"
-              >
-                <option value="" disabled>
-                  Select Modality...
-                </option>
-                {availableModalities.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
+            {/* Row 1: Hospital Assignment */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white rounded-lg border border-slate-200 text-[#0D2461]">
+                  <Building2 className="w-5 h-5 text-[#176B73]" />
+                </div>
+                <div>
+                  <label className="text-xs font-black text-slate-800 uppercase tracking-wider block">
+                    Hospital Assignment & Pricing Scope
+                  </label>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Prices & study names can be customized per hospital or site
+                  </p>
+                </div>
+              </div>
+
+              <div className="w-full sm:w-72">
+                <select
+                  value={selectedHospitalId}
+                  onChange={(e) => setSelectedHospitalId(e.target.value)}
+                  className="w-full h-10 px-3 border border-slate-300 rounded-xl bg-white text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] shadow-sm"
+                >
+                  {availableHospitals.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.name} {h.parentSiteId ? `(Site Child)` : `(Independent)`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Row 2: Modality, Study Name with Catalog Datalist, and Price */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                  Modality <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={modality}
+                  onChange={(e) => setModality(e.target.value)}
+                  className="w-full border border-slate-300 rounded-xl bg-slate-50 p-3 text-xs focus:ring-2 focus:ring-[#00A8CC]/20 outline-none font-bold text-slate-800 transition-all hover:bg-white h-11"
+                >
+                  <option value="" disabled>
+                    Select Modality...
                   </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                Study Name <span className="text-rose-500">*</span>
-              </label>
-              <Input
-                required
-                placeholder="e.g. ABDOMEN AND PELVIS TRIPLE PHASE"
-                value={studyName}
-                onChange={(e) => setStudyName(e.target.value.toUpperCase())}
-                className="h-12 text-sm bg-slate-50 text-slate-900 font-bold border-slate-300 rounded-xl uppercase transition-all hover:bg-white focus:bg-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                Price (₹)
-              </label>
-              <Input
-                type="number"
-                min="0"
-                placeholder="e.g. 1500"
-                value={price}
-                onChange={(e) =>
-                  setPrice(e.target.value === "" ? "" : Number(e.target.value))
-                }
-                className="h-12 text-sm bg-slate-50 text-slate-900 font-bold border-slate-300 rounded-xl transition-all hover:bg-white focus:bg-white"
-              />
+                  {availableModalities.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                    Study Name <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-black text-teal-700 bg-teal-50 px-2 py-0.5 rounded flex items-center gap-1 border border-teal-200">
+                    <Sparkles className="w-2.5 h-2.5" /> 292 Catalog Standard
+                  </span>
+                </div>
+                <Input
+                  required
+                  list="catalog-study-names"
+                  placeholder="e.g. MRI - BRAIN, CT - CHEST..."
+                  value={studyName}
+                  onChange={(e) => setStudyName(e.target.value.toUpperCase())}
+                  className="h-11 text-xs bg-slate-50 text-slate-900 font-bold border-slate-300 rounded-xl uppercase transition-all hover:bg-white focus:bg-white shadow-inner"
+                />
+                <datalist id="catalog-study-names">
+                  {catalogSuggestions.map((s, idx) => (
+                    <option key={idx} value={s.studyName} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                  Hospital Price (₹)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-xs font-black text-slate-400">
+                    ₹
+                  </span>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 1500"
+                    value={price}
+                    onChange={(e) =>
+                      setPrice(e.target.value === "" ? "" : Number(e.target.value))
+                    }
+                    className="h-11 pl-7 text-xs bg-slate-50 text-slate-900 font-bold border-slate-300 rounded-xl transition-all hover:bg-white focus:bg-white shadow-inner"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
