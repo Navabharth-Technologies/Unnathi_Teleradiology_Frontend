@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
-import { X, Link2, Plus, Sparkles, Building2, AlertTriangle, Send, ShieldAlert, CheckCircle } from "lucide-react";
+import { X, Link2, Plus, Sparkles, Building2, AlertTriangle, Send, ShieldAlert, CheckCircle, Upload, Image, FileText } from "lucide-react";
 import { useMockDb } from "../../store/useMockDb";
 import { useAuthStore } from "../../store/useAuthStore";
 import { createPortal } from "react-dom";
@@ -81,7 +81,7 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
     hospitals.find((h) => h.id === selectedHospitalId) ||
     resolvedHospital;
 
-  // Strict check if activeHospital is an independent hospital
+  // Determine if activeHospital is independent vs company-managed
   const isIndependentHospital = Boolean(
     activeHospital &&
       (!activeHospital.parentSiteId &&
@@ -89,6 +89,17 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
           !activeHospital.organizationType ||
           activeHospital.organizationType !== "COMPANY_MANAGED"))
   );
+
+  const isCompanyHospital = !isIndependentHospital;
+
+  // For hospitals created by the teleradiology company, hospital users should NOT assign the radiologist;
+  // Assignment is reserved for the Teleradiology Company Dashboard (SITE_ADMIN) or SUPER_ADMIN.
+  // Independent hospitals can assign (internal/global).
+  const canAssignRadiologist =
+    currentRole !== "RADIOLOGIST" &&
+    (isIndependentHospital ||
+      user?.role === "SITE_ADMIN" ||
+      user?.role === "SUPER_ADMIN");
 
   // Split radiologists for Independent Hospital: Internal vs Global Panel
   const { internalRadiologists, globalRadiologists } = useMemo(() => {
@@ -158,9 +169,17 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
   const [newScanBodyPart, setNewScanBodyPart] = useState("");
 
   // Existing Patient Scans
-  const patientPreviousScans = studies.filter(
-    (s) => s.patientId === (study?.patientId || patient?.id),
-  );
+  const patientPreviousScans = useMemo(() => {
+    const targetPatientId = study?.patientId || patient?.id;
+    if (!targetPatientId) return [];
+    return studies
+      .filter((s) => s.patientId === targetPatientId && s.id !== study?.id)
+      .sort(
+        (a, b) =>
+          new Date(b.studyDate || b.createdAt || 0).getTime() -
+          new Date(a.studyDate || a.createdAt || 0).getTime(),
+      );
+  }, [studies, study?.patientId, study?.id, patient?.id]);
 
   useEffect(() => {
     if (study && isOpen) {
@@ -171,24 +190,78 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
       setModality(study.modality || "CT");
       setStudyDescription(study.studyDescription || "");
       setBodyPart(study.bodyPart || "");
-      setClinicalHistory(study.clinicalHistory || "");
+
+      // Initial history & auto-linking previous history/reports
+      let initialHistory = study.clinicalHistory || "";
+      let initialInfo = study.additionalInfo || [];
+
+      // Automatically link previous history & previous reports if present
+      if (!initialHistory && patientPreviousScans.length > 0) {
+        let autoLinkedText = "";
+        patientPreviousScans.forEach((prev) => {
+          const dateStr = prev.studyDate
+            ? new Date(prev.studyDate).toLocaleDateString()
+            : "Previous";
+          if (prev.clinicalHistory) {
+            autoLinkedText += `[Auto-Linked History - ${prev.modality || "Scan"} (${dateStr})]: ${prev.clinicalHistory}\n`;
+          }
+          if (prev.reportText) {
+            autoLinkedText += `[Auto-Linked Report - ${prev.modality || "Scan"} (${dateStr})]: ${prev.reportText}\n`;
+          }
+        });
+        if (autoLinkedText.trim()) {
+          initialHistory = autoLinkedText.trim();
+          if (!initialInfo.includes("Follow Up")) {
+            initialInfo = [...initialInfo, "Follow Up"];
+          }
+        }
+      }
+
+      setClinicalHistory(initialHistory);
+      setSelectedInfo(initialInfo);
       setRefPhysician(
         study.referringPhysician || patient?.referringDoctor || "",
       );
-      setSelectedInfo(study.additionalInfo || []);
       setSelectedRadiologist(study.assignedRadiologistId || "");
-      setAttachments(() => {
-        const existing = study.attachments || [];
-        if (existing.length === 0 && study.historyAttachment) {
-          return [{ name: "Legacy Attachment", url: study.historyAttachment }];
-        }
-        return existing;
-      });
+
+      // Initial attachments & auto-linking previous attachments/prescriptions
+      const existing = study.attachments || [];
+      if (existing.length === 0 && study.historyAttachment) {
+        existing.push({ name: "Legacy Attachment", url: study.historyAttachment });
+      }
+
+      // Auto-link previous prescriptions/attachments if current study has none
+      if (existing.length === 0 && patientPreviousScans.length > 0) {
+        const autoAttachments = [];
+        patientPreviousScans.forEach((prev) => {
+          if (Array.isArray(prev.attachments) && prev.attachments.length > 0) {
+            prev.attachments.forEach((att) => {
+              if (!autoAttachments.some((a) => a.name === att.name || a.url === att.url)) {
+                autoAttachments.push({
+                  ...att,
+                  name: `[Auto-Linked] ${att.name}`,
+                });
+              }
+            });
+          } else if (prev.historyAttachment) {
+            if (!autoAttachments.some((a) => a.url === prev.historyAttachment)) {
+              autoAttachments.push({
+                name: `[Auto-Linked Prev Prescription] ${prev.modality || "Scan"}`,
+                url: prev.historyAttachment,
+              });
+            }
+          }
+        });
+        setAttachments(autoAttachments.length > 0 ? autoAttachments : existing);
+      } else {
+        setAttachments(existing);
+      }
+
       setIsAddingNewScan(false);
       setNewScanDescription("");
       setNewScanBodyPart("");
     }
-  }, [study, isOpen, patient, resolvedHospital?.id]);
+  }, [study, isOpen, patient, resolvedHospital?.id, patientPreviousScans]);
 
   if (!isOpen || !study) return null;
 
@@ -206,20 +279,18 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
 
   const handleLinkFollowUp = () => {
     if (!patient || !study) return;
-    const previousStudies = studies
-      .filter((s) => s.patientId === patient.id && s.id !== study.id)
-      .sort(
-        (a, b) =>
-          new Date(b.studyDate).getTime() - new Date(a.studyDate).getTime(),
-      );
+    const previousStudies = patientPreviousScans;
 
     if (previousStudies.length > 0) {
       let linkedText = "";
       previousStudies.forEach((prev) => {
+        const dateStr = prev.studyDate
+          ? new Date(prev.studyDate).toLocaleDateString()
+          : "Previous";
         if (prev.clinicalHistory)
-          linkedText += `[Prev History - ${new Date(prev.studyDate).toLocaleDateString()}]: ${prev.clinicalHistory}\n`;
+          linkedText += `[Prev History - ${prev.modality || "Scan"} (${dateStr})]: ${prev.clinicalHistory}\n`;
         if (prev.reportText)
-          linkedText += `[Prev Report - ${new Date(prev.studyDate).toLocaleDateString()}]: ${prev.reportText}\n`;
+          linkedText += `[Prev Report - ${prev.modality || "Scan"} (${dateStr})]: ${prev.reportText}\n`;
       });
       if (linkedText) {
         setClinicalHistory((prev) =>
@@ -653,159 +724,242 @@ export function AddHistoryModal({ isOpen, onClose, study, patient, hospital }) {
                   <Link2 className="w-4 h-4" /> Link Follow Up
                 </Button>
 
-                <div
-                  className={`border-2 border-dashed border-slate-200 rounded-lg p-3 text-center transition-colors flex flex-col items-center justify-center gap-2 ${isFinalized ? "opacity-70 cursor-not-allowed" : "cursor-pointer hover:bg-slate-50"}`}
-                  onClick={() => {
-                    if (isFinalized) return;
-                    const input = document.createElement("input");
-                    input.type = "file";
-                    input.multiple = true;
-                    input.accept = "image/*,.pdf";
-                    input.onchange = (e) => {
-                      const files = e.target.files;
-                      if (files && files.length > 0) {
-                        const newAttachments = Array.from(files).map(
-                          (file) => ({
-                            name: file.name,
-                            url: URL.createObjectURL(file),
-                          }),
-                        );
-                        setAttachments((prev) => [...prev, ...newAttachments]);
-                      }
-                    };
-                    input.click();
-                  }}
-                >
-                  <div className="text-xs font-medium text-slate-500">
-                    Click to attach clinical records
-                  </div>
-                </div>
-
-                {attachments.length > 0 && (
-                  <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
-                    {attachments.map((att, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between bg-emerald-50 border border-emerald-100 rounded p-1.5 text-xs"
-                      >
-                        <span
-                          className="truncate max-w-[150px] font-bold text-emerald-700"
-                          title={att.name}
-                        >
-                          {att.name}
-                        </span>
-                        {!isFinalized && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setAttachments((prev) =>
-                                prev.filter((_, i) => i !== idx),
-                              );
-                            }}
-                            className="text-emerald-600 hover:text-emerald-800 p-1 rounded hover:bg-emerald-200/50 cursor-pointer"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                {/* Auto-linking indicator if previous scans exist */}
+                {patientPreviousScans.length > 0 && (
+                  <div className="p-2 bg-emerald-50/80 border border-emerald-200/80 rounded-lg flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-800">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>{patientPreviousScans.length} Previous Scan(s) Automatically Linked</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleLinkFollowUp}
+                      className="text-[10px] font-black text-emerald-700 hover:text-emerald-900 underline uppercase tracking-wider cursor-pointer"
+                    >
+                      Re-sync
+                    </button>
                   </div>
                 )}
+
+                {/* Prescription & Clinical Images Upload */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                      Prescription & Clinical Images
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      {attachments.length} attached
+                    </span>
+                  </div>
+
+                  <div
+                    className={`border-2 border-dashed border-[#00A8CC]/30 hover:border-[#00A8CC] bg-cyan-50/20 hover:bg-cyan-50/40 rounded-xl p-3 text-center transition-all flex flex-col items-center justify-center gap-1.5 ${isFinalized ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
+                    onClick={() => {
+                      if (isFinalized) return;
+                      const input = document.createElement("input");
+                      input.type = "file";
+                      input.multiple = true;
+                      input.accept = "image/*,.pdf";
+                      input.onchange = (e) => {
+                        const files = e.target.files;
+                        if (files && files.length > 0) {
+                          const newAttachments = Array.from(files).map(
+                            (file) => ({
+                              name: file.name,
+                              url: URL.createObjectURL(file),
+                              type: file.type || (file.name.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? "image" : "document"),
+                            }),
+                          );
+                          setAttachments((prev) => [...prev, ...newAttachments]);
+                        }
+                      };
+                      input.click();
+                    }}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-cyan-100 text-[#00A8CC] flex items-center justify-center shadow-xs">
+                      <Upload className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs font-bold text-slate-700">
+                      Upload Prescription / Clinical Documents
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Accepts JPG, PNG, WEBP, PDF (Auto-linked to report)
+                    </div>
+                  </div>
+
+                  {attachments.length > 0 && (
+                    <div className="grid grid-cols-1 gap-1.5 max-h-[120px] overflow-y-auto pr-1">
+                      {attachments.map((att, idx) => {
+                        const isImg = att.url?.startsWith("data:image") || att.url?.startsWith("blob:") || att.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i);
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between bg-white border border-slate-200 rounded-lg p-2 text-xs shadow-xs hover:border-slate-300 transition-colors"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              {isImg ? (
+                                <img
+                                  src={att.url}
+                                  alt={att.name}
+                                  className="w-7 h-7 rounded object-cover border border-slate-200 shrink-0"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = "none";
+                                  }}
+                                />
+                              ) : (
+                                <FileText className="w-4 h-4 text-cyan-600 shrink-0" />
+                              )}
+                              <span
+                                className="truncate max-w-[170px] font-bold text-slate-700 text-[11px]"
+                                title={att.name}
+                              >
+                                {att.name}
+                              </span>
+                            </div>
+                            {!isFinalized && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setAttachments((prev) =>
+                                    prev.filter((_, i) => i !== idx),
+                                  );
+                                }}
+                                className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 cursor-pointer transition-colors"
+                                title="Remove attachment"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Assign Radiologist Dropdown */}
+              {/* Radiologist Assignment Section */}
               {currentRole !== "RADIOLOGIST" && (
                 <div className="pt-3 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="text-xs font-black uppercase tracking-wider text-slate-500">
-                      Assign Radiologist
+                      Radiologist Assignment
                     </div>
-                    {isIndependentHospital && (
+                    {isIndependentHospital ? (
                       <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                         Independent Hospital
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                        Company Hospital
                       </span>
                     )}
                   </div>
 
-                  <select
-                    className="w-full h-9 px-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800 outline-none focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer"
-                    value={selectedRadiologist}
-                    disabled={isFinalized}
-                    onChange={(e) => setSelectedRadiologist(e.target.value)}
-                  >
-                    <option value="">-- Select Radiologist --</option>
-                    {isIndependentHospital ? (
-                      <>
-                        <optgroup label="Internal Hospital Radiologists">
-                          {internalRadiologists.map((r) => (
+                  {/* If hospital was created by Teleradiology company, hospital users CANNOT assign radiologist */}
+                  {!canAssignRadiologist ? (
+                    <div className="p-3 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 border border-blue-200 rounded-xl space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-blue-900">
+                          Assigned by Teleradiology Company
+                        </span>
+                        {study.assignedRadiologistId ? (
+                          <span className="text-[11px] font-black text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200">
+                            {radiologists.find((r) => r.id === study.assignedRadiologistId)?.name || "Assigned Radiologist"}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                            Awaiting Company Assignment
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-blue-700 font-medium leading-relaxed">
+                        Radiologists for this hospital are assigned directly from the Teleradiology Company Dashboard. Your clinical notes and prescriptions will be visible to the reading doctor immediately.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <select
+                        className="w-full h-9 px-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800 outline-none focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer"
+                        value={selectedRadiologist}
+                        disabled={isFinalized}
+                        onChange={(e) => setSelectedRadiologist(e.target.value)}
+                      >
+                        <option value="">-- Select Radiologist --</option>
+                        {isIndependentHospital ? (
+                          <>
+                            <optgroup label="Internal Hospital Radiologists">
+                              {internalRadiologists.map((r) => (
+                                <option key={r.id} value={r.id}>
+                                  {r.name} {r.specialization ? `(${r.specialization})` : ""}
+                                </option>
+                              ))}
+                              {internalRadiologists.length === 0 && (
+                                <option disabled value="none-internal">
+                                  (No internal radiologist configured)
+                                </option>
+                              )}
+                            </optgroup>
+                            <optgroup label="🌐 Global Radiologists Pool (Emergency / Leave Access)">
+                              {globalRadiologists.map((r) => (
+                                <option key={r.id} value={r.id}>
+                                  ★ {r.name} {r.specialization ? `(${r.specialization})` : ""} [Global Panel]
+                                </option>
+                              ))}
+                            </optgroup>
+                          </>
+                        ) : (
+                          radiologists.map((r) => (
                             <option key={r.id} value={r.id}>
                               {r.name} {r.specialization ? `(${r.specialization})` : ""}
                             </option>
-                          ))}
-                          {internalRadiologists.length === 0 && (
-                            <option disabled value="none-internal">
-                              (No internal radiologist configured)
-                            </option>
+                          ))
+                        )}
+                      </select>
+
+                      {/* Independent Hospital Radiologist Unavailable / On Leave Escalation */}
+                      {isIndependentHospital && (
+                        <div className="mt-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-xl">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start gap-2">
+                              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                              <div>
+                                <div className="text-xs font-black text-amber-900 leading-tight">
+                                  Radiologist On Leave or Urgent Same-Day Dispatch?
+                                </div>
+                                <div className="text-[11px] text-amber-700 font-medium mt-0.5 leading-snug">
+                                  Need Super Admin to route this case to a Teleradiology company or assign directly to a Global radiologist?
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {study?.assignmentRequest?.status === "Pending" ? (
+                            <div className="mt-2.5 p-2 bg-white rounded-lg border border-amber-200 flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-1.5 text-amber-800 font-bold">
+                                <Clock className="w-3.5 h-3.5 text-amber-600 animate-spin" />
+                                <span>Escalation Request Sent to Super Admin</span>
+                              </div>
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                                {study?.assignmentRequest?.routePreference === "TELERADIOLOGY_COMPANY"
+                                  ? "Route: Teleradiology"
+                                  : "Route: Global Rad"}
+                              </span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setSuperAdminModalOpen(true)}
+                              className="mt-2.5 w-full py-2 px-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-lg text-xs font-black flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 transition-all"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              Send Request to Super Admin (On Leave / Urgent)
+                            </button>
                           )}
-                        </optgroup>
-                        <optgroup label="🌐 Global Radiologists Pool (Emergency / Leave Access)">
-                          {globalRadiologists.map((r) => (
-                            <option key={r.id} value={r.id}>
-                              ★ {r.name} {r.specialization ? `(${r.specialization})` : ""} [Global Panel]
-                            </option>
-                          ))}
-                        </optgroup>
-                      </>
-                    ) : (
-                      radiologists.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name} {r.specialization ? `(${r.specialization})` : ""}
-                        </option>
-                      ))
-                    )}
-                  </select>
-
-                  {/* Independent Hospital Radiologist Unavailable / On Leave Escalation */}
-                  {isIndependentHospital && (
-                    <div className="mt-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-xl">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-2">
-                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                          <div>
-                            <div className="text-xs font-black text-amber-900 leading-tight">
-                              Radiologist On Leave or Urgent Same-Day Dispatch?
-                            </div>
-                            <div className="text-[11px] text-amber-700 font-medium mt-0.5 leading-snug">
-                              Need Super Admin to route this case to a Teleradiology company or assign directly to a Global radiologist?
-                            </div>
-                          </div>
                         </div>
-                      </div>
-
-                      {study?.assignmentRequest?.status === "Pending" ? (
-                        <div className="mt-2.5 p-2 bg-white rounded-lg border border-amber-200 flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-1.5 text-amber-800 font-bold">
-                            <Clock className="w-3.5 h-3.5 text-amber-600 animate-spin" />
-                            <span>Escalation Request Sent to Super Admin</span>
-                          </div>
-                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                            {study?.assignmentRequest?.routePreference === "TELERADIOLOGY_COMPANY"
-                              ? "Route: Teleradiology"
-                              : "Route: Global Rad"}
-                          </span>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setSuperAdminModalOpen(true)}
-                          className="mt-2.5 w-full py-2 px-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-lg text-xs font-black flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 transition-all"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          Send Request to Super Admin (On Leave / Urgent)
-                        </button>
                       )}
-                    </div>
+                    </>
                   )}
                 </div>
               )}
