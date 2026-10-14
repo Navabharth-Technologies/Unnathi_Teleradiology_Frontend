@@ -402,7 +402,7 @@ export default function ViewerShell() {
 
                   // 1. Hospital-specific templates
                   const hospitalCustomTemplates = (templates || []).filter((t) => {
-                    if (!t.isActive) return false;
+                    if (t.isActive === false) return false;
                     const tMod = (t.modality || "").toUpperCase().trim();
                     const modMatches = !tMod || tMod === normStudyMod || (normStudyMod === "MR" && tMod === "MRI") || (normStudyMod === "MRI" && tMod === "MR");
                     return t.hospitalId === study.hospitalId && modMatches;
@@ -410,38 +410,53 @@ export default function ViewerShell() {
 
                   // 2. Other configured templates (e.g. from parent company, other hospitals or global/ALL)
                   const otherCustomTemplates = (templates || []).filter((t) => {
-                    if (!t.isActive) return false;
+                    if (t.isActive === false) return false;
                     if (t.hospitalId === study.hospitalId) return false;
                     const tMod = (t.modality || "").toUpperCase().trim();
                     const modMatches = !tMod || tMod === normStudyMod || (normStudyMod === "MR" && tMod === "MRI") || (normStudyMod === "MRI" && tMod === "MR");
                     return modMatches;
                   });
 
-                  // 3. Catalog studies for this modality
-                  const catalogKey = normStudyMod === "MR" ? "MRI" : normStudyMod;
-                  const catalogList = (standardStudiesCatalog && standardStudiesCatalog[catalogKey]) || [];
-                  const catalogTemplates = catalogList
-                    .filter((studyTitle) => {
-                      const titleNorm = studyTitle.toUpperCase().trim();
-                      return !hospitalCustomTemplates.some((t) => (t.studyName || "").toUpperCase().trim() === titleNorm);
+                  // 3. Fallback: Any other custom templates if still none found
+                  const anyOtherCustomTemplates = (templates || []).filter((t) => {
+                    if (t.isActive === false) return false;
+                    return !hospitalCustomTemplates.some((h) => h.id === t.id) && !otherCustomTemplates.some((o) => o.id === t.id);
+                  });
+
+                  // 4. Catalog studies for this modality
+                  // Note: standardStudiesCatalog is an array of objects: [{ modality: "MRI", studyName: "MRI - BRAIN" }, ...]
+                  const catalogKey = (normStudyMod === "MR" || normStudyMod === "MRI") ? "MRI" : normStudyMod;
+                  const rawCatalogArray = Array.isArray(standardStudiesCatalog)
+                    ? standardStudiesCatalog
+                    : (standardStudiesCatalog && typeof standardStudiesCatalog === "object" ? Object.values(standardStudiesCatalog).flat() : []);
+
+                  const matchingCatalogItems = rawCatalogArray.filter((item) => {
+                    const m = (item?.modality || "").toUpperCase().trim();
+                    if (catalogKey === "MRI") return m === "MRI" || m === "MR";
+                    return m === catalogKey;
+                  });
+
+                  const catalogTemplates = (matchingCatalogItems.length > 0 ? matchingCatalogItems : rawCatalogArray.slice(0, 50))
+                    .map((item, idx) => {
+                      const studyTitle = typeof item === "string" ? item : item?.studyName || `Study ${idx + 1}`;
+                      return {
+                        id: `catalog_${idx}_${studyTitle.replace(/\s+/g, "_")}`,
+                        studyName: studyTitle,
+                        isCatalog: true,
+                        templateContent: `<h3><strong>CLINICAL HISTORY:</strong></h3><p>${study.clinicalHistory || "Routine evaluation."}</p><br/><h3><strong>TECHNIQUE:</strong></h3><p>${catalogKey || "Radiological"} scan of ${studyTitle} was performed with appropriate multiplanar sequences.</p><br/><h3><strong>FINDINGS:</strong></h3><p>Normal study within limits for age. No focal acute pathology identified.</p><br/><h3><strong>IMPRESSION:</strong></h3><p>No significant abnormality detected in ${studyTitle}.</p>`,
+                      };
                     })
-                    .map((studyTitle, idx) => ({
-                      id: `catalog_${catalogKey}_${idx}`,
-                      studyName: studyTitle,
-                      isCatalog: true,
-                      templateContent: `<h3><strong>CLINICAL HISTORY:</strong></h3><p>${study.clinicalHistory || "Routine evaluation."}</p><br/><h3><strong>TECHNIQUE:</strong></h3><p>${catalogKey} scan of ${studyTitle} was performed with appropriate multiplanar sequences.</p><br/><h3><strong>FINDINGS:</strong></h3><p>Normal study within limits for age. No focal acute pathology identified.</p><br/><h3><strong>IMPRESSION:</strong></h3><p>No significant abnormality detected in ${studyTitle}.</p>`,
-                    }));
+                    .filter((catTpl) => {
+                      const titleNorm = catTpl.studyName.toUpperCase().trim();
+                      return !hospitalCustomTemplates.some((t) => (t.studyName || "").toUpperCase().trim() === titleNorm);
+                    });
 
                   const handleLoadTemplate = () => {
-                    // Check hospital custom templates first
                     let tpl = hospitalCustomTemplates.find((t) => t.id === selectedTemplateId);
-                    if (!tpl) {
-                      tpl = otherCustomTemplates.find((t) => t.id === selectedTemplateId);
-                    }
-                    if (!tpl) {
-                      tpl = catalogTemplates.find((t) => t.id === selectedTemplateId);
-                    }
-                    if (tpl) {
+                    if (!tpl) tpl = otherCustomTemplates.find((t) => t.id === selectedTemplateId);
+                    if (!tpl) tpl = anyOtherCustomTemplates.find((t) => t.id === selectedTemplateId);
+                    if (!tpl) tpl = catalogTemplates.find((t) => t.id === selectedTemplateId);
+                    if (tpl?.templateContent) {
                       setReportText(tpl.templateContent);
                     }
                   };
@@ -457,6 +472,7 @@ export default function ViewerShell() {
                           // Auto load on select
                           let tpl = hospitalCustomTemplates.find((t) => t.id === val);
                           if (!tpl) tpl = otherCustomTemplates.find((t) => t.id === val);
+                          if (!tpl) tpl = anyOtherCustomTemplates.find((t) => t.id === val);
                           if (!tpl) tpl = catalogTemplates.find((t) => t.id === val);
                           if (tpl?.templateContent) {
                             setReportText(tpl.templateContent);
@@ -480,6 +496,16 @@ export default function ViewerShell() {
                             {otherCustomTemplates.map((t) => (
                               <option key={t.id} value={t.id}>
                                 {t.studyName}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+
+                        {anyOtherCustomTemplates.length > 0 && (
+                          <optgroup label="📂 More Custom Templates">
+                            {anyOtherCustomTemplates.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.studyName} ({t.modality || "All"})
                               </option>
                             ))}
                           </optgroup>
