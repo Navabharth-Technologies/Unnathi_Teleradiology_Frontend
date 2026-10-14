@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { ShareModal } from "../../components/modals/ShareModal";
 import { RichTextEditor } from "../../components/ui/RichTextEditor";
+import standardStudiesCatalog from "../../data/standardStudiesCatalog.json";
 
 export default function ViewerShell() {
   const { id } = useParams();
@@ -51,19 +52,41 @@ export default function ViewerShell() {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
 
   useEffect(() => {
+    if (study) {
+      if (study.reportText && !reportText) {
+        setReportText(study.reportText);
+      }
+      if (study.reportingStatus) {
+        setReportStatus(study.reportingStatus === "Final" ? "Final" : "Draft");
+      }
+    }
+  }, [study?.id]);
+
+  useEffect(() => {
     if (study && templates) {
-      const available = templates.filter(
-        (t) =>
-          t.hospitalId === study.hospitalId &&
-          t.modality === study.modality &&
-          t.isActive,
-      );
-      const match = available.find(
-        (t) =>
-          t.studyName.toUpperCase() === study.studyDescription.toUpperCase(),
-      );
-      if (match) {
-        setSelectedTemplateId(match.id);
+      const normMod = (study.modality || "").toUpperCase().trim();
+      const normStudyDesc = (study.studyDescription || "").toUpperCase().trim();
+
+      // Look for custom template for this hospital
+      const hospTemplates = templates.filter((t) => {
+        if (!t.isActive) return false;
+        const tHosp = t.hospitalId;
+        const tMod = (t.modality || "").toUpperCase().trim();
+        const hospMatches = !tHosp || tHosp === "ALL" || tHosp === study.hospitalId;
+        const modMatches = !tMod || tMod === normMod || (normMod === "MR" && tMod === "MRI") || (normMod === "MRI" && tMod === "MR");
+        return hospMatches && modMatches;
+      });
+
+      const matchedTpl = hospTemplates.find((t) => {
+        const sName = (t.studyName || "").toUpperCase().trim();
+        return sName === normStudyDesc || sName.includes(normStudyDesc) || normStudyDesc.includes(sName);
+      });
+
+      if (matchedTpl) {
+        setSelectedTemplateId(matchedTpl.id);
+        if (!reportText && matchedTpl.templateContent) {
+          setReportText(matchedTpl.templateContent);
+        }
       }
     }
   }, [study, templates]);
@@ -374,39 +397,110 @@ export default function ViewerShell() {
               {/* Left Side: Body part dropdown & Load */}
               <div className="flex items-center space-x-2">
                 {(() => {
-                  const availableTemplates =
-                    templates?.filter(
-                      (t) =>
-                        t.hospitalId === study.hospitalId &&
-                        t.modality === study.modality &&
-                        t.isActive,
-                    ) || [];
+                  const normStudyMod = (study.modality || "").toUpperCase().trim();
+                  const normStudyDesc = (study.studyDescription || "").toUpperCase().trim();
+
+                  // 1. Hospital-specific templates
+                  const hospitalCustomTemplates = (templates || []).filter((t) => {
+                    if (!t.isActive) return false;
+                    const tMod = (t.modality || "").toUpperCase().trim();
+                    const modMatches = !tMod || tMod === normStudyMod || (normStudyMod === "MR" && tMod === "MRI") || (normStudyMod === "MRI" && tMod === "MR");
+                    return t.hospitalId === study.hospitalId && modMatches;
+                  });
+
+                  // 2. Other configured templates (e.g. from parent company, other hospitals or global/ALL)
+                  const otherCustomTemplates = (templates || []).filter((t) => {
+                    if (!t.isActive) return false;
+                    if (t.hospitalId === study.hospitalId) return false;
+                    const tMod = (t.modality || "").toUpperCase().trim();
+                    const modMatches = !tMod || tMod === normStudyMod || (normStudyMod === "MR" && tMod === "MRI") || (normStudyMod === "MRI" && tMod === "MR");
+                    return modMatches;
+                  });
+
+                  // 3. Catalog studies for this modality
+                  const catalogKey = normStudyMod === "MR" ? "MRI" : normStudyMod;
+                  const catalogList = (standardStudiesCatalog && standardStudiesCatalog[catalogKey]) || [];
+                  const catalogTemplates = catalogList
+                    .filter((studyTitle) => {
+                      const titleNorm = studyTitle.toUpperCase().trim();
+                      return !hospitalCustomTemplates.some((t) => (t.studyName || "").toUpperCase().trim() === titleNorm);
+                    })
+                    .map((studyTitle, idx) => ({
+                      id: `catalog_${catalogKey}_${idx}`,
+                      studyName: studyTitle,
+                      isCatalog: true,
+                      templateContent: `<h3><strong>CLINICAL HISTORY:</strong></h3><p>${study.clinicalHistory || "Routine evaluation."}</p><br/><h3><strong>TECHNIQUE:</strong></h3><p>${catalogKey} scan of ${studyTitle} was performed with appropriate multiplanar sequences.</p><br/><h3><strong>FINDINGS:</strong></h3><p>Normal study within limits for age. No focal acute pathology identified.</p><br/><h3><strong>IMPRESSION:</strong></h3><p>No significant abnormality detected in ${studyTitle}.</p>`,
+                    }));
+
                   const handleLoadTemplate = () => {
-                    const tpl = availableTemplates.find(
-                      (t) => t.id === selectedTemplateId,
-                    );
+                    // Check hospital custom templates first
+                    let tpl = hospitalCustomTemplates.find((t) => t.id === selectedTemplateId);
+                    if (!tpl) {
+                      tpl = otherCustomTemplates.find((t) => t.id === selectedTemplateId);
+                    }
+                    if (!tpl) {
+                      tpl = catalogTemplates.find((t) => t.id === selectedTemplateId);
+                    }
                     if (tpl) {
                       setReportText(tpl.templateContent);
                     }
                   };
+
                   return (
                     <>
                       <select
-                        className="text-xs border border-slate-300 rounded p-1.5 text-slate-700 bg-white max-w-[200px] font-semibold truncate"
+                        className="text-xs border border-slate-300 rounded p-1.5 text-slate-700 bg-white max-w-[220px] font-semibold truncate outline-none focus:ring-1 focus:ring-[#00A8CC]"
                         value={selectedTemplateId}
-                        onChange={(e) => setSelectedTemplateId(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedTemplateId(val);
+                          // Auto load on select
+                          let tpl = hospitalCustomTemplates.find((t) => t.id === val);
+                          if (!tpl) tpl = otherCustomTemplates.find((t) => t.id === val);
+                          if (!tpl) tpl = catalogTemplates.find((t) => t.id === val);
+                          if (tpl?.templateContent) {
+                            setReportText(tpl.templateContent);
+                          }
+                        }}
                       >
                         <option value="">Select Template...</option>
-                        {availableTemplates.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.studyName}
-                          </option>
-                        ))}
+
+                        {hospitalCustomTemplates.length > 0 && (
+                          <optgroup label="🏥 Hospital Custom Templates">
+                            {hospitalCustomTemplates.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.studyName}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+
+                        {otherCustomTemplates.length > 0 && (
+                          <optgroup label="📋 All Custom Templates">
+                            {otherCustomTemplates.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.studyName}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+
+                        {catalogTemplates.length > 0 && (
+                          <optgroup label={`⚡ Standard ${catalogKey} Templates (${catalogTemplates.length})`}>
+                            {catalogTemplates.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.studyName}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
                       </select>
+
                       <button
+                        type="button"
                         onClick={handleLoadTemplate}
                         disabled={!selectedTemplateId}
-                        className={`text-xs px-3 py-1.5 rounded font-medium ${selectedTemplateId ? "bg-[#00A8CC] text-white hover:bg-[#008ba8] cursor-pointer shadow-sm" : "bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed"}`}
+                        className={`text-xs px-3 py-1.5 rounded font-bold transition-all ${selectedTemplateId ? "bg-[#00A8CC] text-white hover:bg-[#008ba8] cursor-pointer shadow-sm active:scale-95" : "bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed"}`}
                       >
                         Load
                       </button>
