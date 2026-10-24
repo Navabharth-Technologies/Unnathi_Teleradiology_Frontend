@@ -23,7 +23,9 @@ const addMissingColumns = async () => {
       { name: 'ReportingWorkflow', type: 'NVARCHAR(MAX)' }, // JSON
       { name: 'Branding', type: 'NVARCHAR(MAX)' }, // JSON
       { name: 'ModalityCommissions', type: 'NVARCHAR(MAX)' }, // JSON
-      { name: 'AccountType', type: 'NVARCHAR(100)' }
+      { name: 'AccountType', type: 'NVARCHAR(100)' },
+      { name: 'WalletBalance', type: 'DECIMAL(18,2)' },
+      { name: 'PaymentFrequency', type: 'NVARCHAR(50)' }
     ];
 
     for (const col of hospitalColumns) {
@@ -52,7 +54,8 @@ const addMissingColumns = async () => {
     const companyColumns = [
       { name: 'AdminEmail', type: 'NVARCHAR(255)' },
       { name: 'AdminMobile', type: 'NVARCHAR(100)' },
-      { name: 'AdminFullName', type: 'NVARCHAR(255)' }
+      { name: 'AdminFullName', type: 'NVARCHAR(255)' },
+      { name: 'PaymentFrequency', type: 'NVARCHAR(50)' }
     ];
     for (const col of companyColumns) {
       try {

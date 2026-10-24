@@ -1,10 +1,17 @@
 require('dotenv').config();
 const { sql, connectDB } = require('./db.js');
 connectDB().then(async pool => {
-  const tables = ['AppUser', 'Hospital', 'TeleradiologyCompany'];
-  for (const t of tables) {
-    const res = await pool.request().query(`SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '${t}'`);
-    console.log(t, res.recordset.map(r => r.COLUMN_NAME));
+  const res = await pool.request().query(`SELECT s.Id, s.Modality, s.StudyDescription, s.OrthancStudyId, p.Name as PatientName, LEN(CAST(s.Series AS NVARCHAR(MAX))) as SeriesLen, s.Series FROM Study s LEFT JOIN Patient p ON s.PatientId = p.Id`);
+  for (const row of res.recordset) {
+    console.log({
+      id: row.Id,
+      patient: row.PatientName,
+      modality: row.Modality,
+      desc: row.StudyDescription,
+      orthancId: row.OrthancStudyId,
+      seriesLen: row.SeriesLen,
+      seriesSnippet: row.Series ? String(row.Series).slice(0, 80) : null
+    });
   }
   process.exit(0);
 });
