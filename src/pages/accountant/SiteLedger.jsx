@@ -261,6 +261,54 @@ export default function SiteLedger() {
           </div>
         </div>
 
+        {/* Depleted Wallet Warning Banner for Prepaid Sites */}
+        {(() => {
+          const depletedSites = scopedHospitals.filter((c) => {
+            if (c.accountType !== "Prepaid") return false;
+            const effBal = (c.walletBalance || 0) - getBillingBreakdown(c).totalUnbilledAmount;
+            return effBal <= 0;
+          });
+
+          if (depletedSites.length === 0) return null;
+
+          return (
+            <div className="bg-gradient-to-r from-rose-500/10 via-rose-500/5 to-transparent border-l-4 border-l-rose-500 border border-rose-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm animate-in fade-in duration-300">
+              <div className="flex items-center space-x-3.5">
+                <div className="p-2.5 bg-rose-500 text-white rounded-xl shadow-md shadow-rose-500/20 shrink-0">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-rose-900 tracking-tight flex items-center gap-2">
+                    <span>Prepaid Wallet Balance Depleted</span>
+                    <span className="text-[10px] bg-rose-200 text-rose-800 font-extrabold px-2 py-0.5 rounded-full uppercase">
+                      Action Required
+                    </span>
+                  </h4>
+                  <p className="text-xs text-rose-700/90 font-medium mt-0.5">
+                    {depletedSites.length === 1
+                      ? `${depletedSites[0].name} has a shortage (₹ ${(depletedSites[0].walletBalance || 0) - getBillingBreakdown(depletedSites[0]).totalUnbilledAmount}). Inbound DICOM/ZIP processing will pause if balance is not replenished.`
+                      : `${depletedSites.length} prepaid sites have exhausted their wallet balance and require immediate top-up.`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+                {depletedSites.map((ds) => (
+                  <button
+                    key={ds.id}
+                    type="button"
+                    onClick={() => setAddFundsModal(ds)}
+                    className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-md shadow-rose-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    <span>Recharge {ds.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Premium Data Grid */}
         <div
           className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden animate-unnathi-slide-up"
@@ -334,18 +382,39 @@ export default function SiteLedger() {
                   <TableCell data-label="Payment Status" className="py-4 px-4 text-center">
                     <div className="flex flex-col md:items-center items-end justify-center space-y-1">
                       {centre.accountType === "Prepaid" ? (
-                        <>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block">
-                            Wallet Balance
-                          </span>
-                          <span
-                            className={`text-sm font-black ${(centre.walletBalance || 0) - getBillingBreakdown(centre).totalUnbilledAmount <= 0 ? "text-rose-600" : "text-emerald-600"}`}
-                          >
-                            ₹{" "}
-                            {(centre.walletBalance || 0) -
-                              getBillingBreakdown(centre).totalUnbilledAmount}
-                          </span>
-                        </>
+                        (() => {
+                          const effBal = (centre.walletBalance || 0) - getBillingBreakdown(centre).totalUnbilledAmount;
+                          const isDepleted = effBal <= 0;
+                          return (
+                            <>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block">
+                                Wallet Balance
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`text-sm font-black ${isDepleted ? "text-rose-600 font-extrabold" : "text-emerald-600"}`}
+                                >
+                                  ₹ {effBal}
+                                </span>
+                                {isDepleted && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-700 animate-pulse border border-rose-300">
+                                    Depleted
+                                  </span>
+                                )}
+                              </div>
+                              {isDepleted && (
+                                <button
+                                  type="button"
+                                  onClick={() => setAddFundsModal(centre)}
+                                  className="mt-1 px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1 transition-all hover:scale-105"
+                                  title="Wallet balance is empty or negative. Click to recharge."
+                                >
+                                  <Wallet className="w-3 h-3" /> Recharge Now
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()
                       ) : (
                         <>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block">

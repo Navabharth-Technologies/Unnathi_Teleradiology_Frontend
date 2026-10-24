@@ -644,8 +644,15 @@ export default function RadiologistWorklist() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => navigate("/reporting")}
+                          onClick={() => {
+                            if (["Final", "Verified", "Dispatched"].includes(study.reportingStatus)) {
+                              navigate(`/verification/${study.id}/preview`);
+                            } else {
+                              navigate(`/viewer/${study.id}`);
+                            }
+                          }}
                           className="h-8 px-3 rounded-lg text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5"
+                          title="Open Diagnostic Report"
                         >
                           <FileText className="w-3.5 h-3.5 text-slate-500" />
                           <span>Report</span>

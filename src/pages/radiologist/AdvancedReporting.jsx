@@ -4,6 +4,7 @@ import { useAuthStore } from "../../store/useAuthStore";
 import { format, parse, isValid } from "date-fns";
 import * as dicomParser from "dicom-parser";
 import JSZip from "jszip";
+import { extractDicomArchive } from "../../utils/dicomExtractor";
 import {
   Search,
   RefreshCw,
@@ -33,6 +34,10 @@ import { ShareModal } from "../../components/modals/ShareModal";
 import { RequestSuperAdminModal } from "../../components/modals/RequestSuperAdminModal";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import {
+  downloadStandardReportPDF,
+  downloadStandardReportWord,
+} from "../../utils/reportDownloader";
 
 export default function AdvancedReporting() {
   const navigate = useNavigate();
@@ -44,14 +49,22 @@ export default function AdvancedReporting() {
     radiologists,
     users,
     sites,
+    templates,
     updateStudy,
     addStudy,
     addPatient,
+    updateHospital,
+    addWalletTransaction,
   } = useMockDb();
 
   // Local State
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedSeries, setExpandedSeries] = useState({});
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [rechargeAmount, setRechargeAmount] = useState("");
+  const [rechargeMethod, setRechargeMethod] = useState("UPI");
+  const [rechargeSuccess, setRechargeSuccess] = useState(false);
+  const [blockedHospital, setBlockedHospital] = useState(null);
   // Filter States
   const [dateFilter, setDateFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -267,36 +280,36 @@ export default function AdvancedReporting() {
     [accessibleStudies],
   );
   const availableRadiologists = useMemo(() => {
+    // If a specific site/hospital filter is active, filter radiologists for that hospital
+    const effectiveHospitalId = siteFilter || user?.hospitalId || selectedHospitalId;
+
+    if (effectiveHospitalId) {
+      const hospital = hospitals.find((h) => h.id === effectiveHospitalId);
+      // If the context is an independent hospital (COMPANY_MANAGED), show assigned or internal
+      if (hospital?.organizationType === "COMPANY_MANAGED") {
+        const rads = radiologists.filter((r) => {
+          const relatedUser = users.find((u) => u.id === r.userId);
+          return (
+            r.assignedHospitals?.includes(effectiveHospitalId) ||
+            relatedUser?.hospitalId === effectiveHospitalId
+          );
+        });
+        if (rads.length > 0) return rads;
+      }
+    }
+
+    // By default for Site Admin, Super Admin, and Global reporting, show all active radiologists in the system
+    // Also include any radiologist who has already been assigned to one of the accessible studies
+    const assignedRadIds = new Set(accessibleStudies.map((s) => s.assignedRadiologistId).filter(Boolean));
     return radiologists.filter((r) => {
-      const relatedUser = users.find((u) => u.id === r.userId);
-      const isIndependentRad =
-        (r.assignedHospitals &&
-          r.assignedHospitals.some(
-            (hid) =>
-              hospitals.find((h) => h.id === hid)?.organizationType ===
-              "COMPANY_MANAGED",
-          )) ||
-        (relatedUser?.hospitalId &&
-          hospitals.find((h) => h.id === relatedUser.hospitalId)
-            ?.organizationType === "COMPANY_MANAGED");
-
-      const effectiveHospitalId = user?.hospitalId || selectedHospitalId;
-
-      if (effectiveHospitalId) {
-        const hospital = hospitals.find((h) => h.id === effectiveHospitalId);
-        // If the context is an independent hospital (COMPANY_MANAGED), they should only see their own radiologists
-        if (hospital?.organizationType === "COMPANY_MANAGED") {
-          return r.assignedHospitals?.includes(effectiveHospitalId) || relatedUser?.hospitalId === effectiveHospitalId;
-        }
+      if (assignedRadIds.has(r.id)) return true;
+      if (user?.role === "SITE_ADMIN" && user.siteId) {
+        const relatedUser = users.find((u) => u.id === r.userId);
+        if (r.siteId === user.siteId || relatedUser?.siteId === user.siteId) return true;
       }
-
-      // If current user is Global (Site Admin / Super Admin) and no independent hospital is selected, they ONLY see Global radiologists
-      if (user?.role === "SUPER_ADMIN" || user?.role === "SITE_ADMIN") {
-        return !isIndependentRad;
-      }
-      return true;
+      return r.status !== "Inactive";
     });
-  }, [radiologists, user, users, hospitals]);
+  }, [radiologists, user, users, hospitals, siteFilter, selectedHospitalId, accessibleStudies]);
 
   const handleClearFilters = () => {
     setSearchTerm("");
@@ -316,97 +329,96 @@ export default function AdvancedReporting() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
+  const handleQuickRecharge = async () => {
+    const amt = Number(rechargeAmount);
+    if (isNaN(amt) || amt <= 0 || !blockedHospital) return;
+    const currentBase = Number(blockedHospital.walletBalance || 0);
+    const newBal = currentBase + amt;
+    await updateHospital(blockedHospital.id, { walletBalance: newBal });
+
+    addWalletTransaction({
+      id: "tx_" + Date.now(),
+      hospitalId: blockedHospital.id,
+      siteId: blockedHospital.parentSiteId || null,
+      type: "Recharge",
+      amount: amt,
+      balanceBefore: currentBase,
+      balanceAfter: newBal,
+      paymentMethod: rechargeMethod || "UPI",
+      referenceId: `ZIP-TOPUP-${Date.now().toString().slice(-6)}`,
+      remarks: "Quick wallet recharge from Reporting ZIP upload portal",
+      status: "Completed",
+      createdAt: new Date().toISOString(),
+    });
+
+    setRechargeSuccess(true);
+    setTimeout(() => {
+      setShowRechargeModal(false);
+      setRechargeSuccess(false);
+      setRechargeAmount("");
+      setBlockedHospital(null);
+      showToast("Wallet recharged successfully! You can now upload the ZIP.");
+    }, 1200);
+  };
+
   const handleZipUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
-    try {
-      let patientName = "Unknown Patient";
-      let patientUHID = `PAT-${Date.now().toString().slice(-6)}`;
-      let age = 45;
-      let gender = "Female";
-      let modality = "CT";
-      let studyDesc = file.name.replace(/\.[^/.]+$/, "") || "CT Scan";
-      let bodyPart = "BODY";
-      let accessionNo = `ACC-${Date.now().toString().slice(-6)}`;
-      let studyDate = new Date().toISOString();
+    // Check if hospital is prepaid and has zero or insufficient wallet balance
+    const targetHospital =
+      hospitals.find((h) => h.id === selectedHospitalId) ||
+      hospitals.find((h) => h.id === user?.hospitalId) ||
+      availableSites?.[0] ||
+      hospitals?.[0];
 
-      try {
-        const zip = new JSZip();
-        const zipContent = await zip.loadAsync(file);
-        let dicomEntry = null;
+    if (targetHospital) {
+      const isPrepaid = (targetHospital.accountType || "Prepaid") === "Prepaid";
+      if (isPrepaid) {
+        const unbilledStudies = studies.filter(
+          (s) =>
+            s.hospitalId === targetHospital.id &&
+            ["Final", "Verified", "Dispatched"].includes(s.reportingStatus) &&
+            s.superAdminPaymentStatus !== "Paid",
+        );
+        const totalUnbilledAmount = unbilledStudies.reduce((sum, s) => {
+          const comm =
+            targetHospital.modalityCommissions?.[s.modality] ||
+            (s.modality === "MRI"
+              ? 150
+              : s.modality === "CT"
+                ? 100
+                : ["X-Ray", "CR", "DR"].includes(s.modality)
+                  ? 30
+                  : 50);
+          return sum + comm;
+        }, 0);
+        const effectiveBalance = (Number(targetHospital.walletBalance) || 0) - totalUnbilledAmount;
 
-        for (const relativePath in zipContent.files) {
-          const entry = zipContent.files[relativePath];
-          if (
-            !entry.dir &&
-            (relativePath.toLowerCase().endsWith(".dcm") ||
-              !relativePath.includes("."))
-          ) {
-            dicomEntry = entry;
-            break;
-          }
-        }
-
-        if (dicomEntry) {
-          const buffer = await dicomEntry.async("arraybuffer");
-          const byteArray = new Uint8Array(buffer);
-          const parser = dicomParser.default ?? dicomParser;
-          const ds = parser.parseDicom(byteArray, { untilTag: "00200013" });
-
-          const getTagStr = (tag) => {
-            try {
-              return ds.string(tag) || "";
-            } catch {
-              return "";
-            }
-          };
-
-          const rawName = getTagStr("x00100010");
-          if (rawName) {
-            const parts = rawName.split("^").map((s) => s.trim()).filter(Boolean);
-            patientName = parts.length >= 2 ? `${parts[1]} ${parts[0]}` : parts[0] || rawName;
-          }
-
-          const rawId = getTagStr("x00100020");
-          if (rawId) patientUHID = rawId;
-
-          const rawMod = getTagStr("x00080060");
-          if (rawMod) modality = rawMod;
-
-          const rawDesc = getTagStr("x00081030");
-          if (rawDesc) studyDesc = rawDesc;
-
-          const rawBody = getTagStr("x00180015");
-          if (rawBody) bodyPart = rawBody;
-
-          const rawAcc = getTagStr("x00080050");
-          if (rawAcc) accessionNo = rawAcc;
-
-          const rawSex = getTagStr("x00100040")?.toUpperCase().trim();
-          if (rawSex === "M") gender = "Male";
-          else if (rawSex === "F") gender = "Female";
-
-          const rawAge = getTagStr("x00101010");
-          if (rawAge) {
-            const parsedAge = parseInt(rawAge);
-            if (!isNaN(parsedAge)) age = parsedAge;
-          }
-        } else {
-          // If zip has images/files without .dcm, name patient from zip filename
-          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ").trim();
-          if (cleanName) {
-            patientName = cleanName.toUpperCase();
-          }
-        }
-      } catch (zipErr) {
-        console.warn("ZIP/DICOM deep parse fallback to file metadata:", zipErr);
-        const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ").trim();
-        if (cleanName) {
-          patientName = cleanName.toUpperCase();
+        // Block if balance is 0 or less (shortage even by 1 Rs)
+        if (effectiveBalance <= 0) {
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          setBlockedHospital(targetHospital);
+          setShowRechargeModal(true);
+          return;
         }
       }
+    }
+
+    setIsUploading(true);
+    try {
+      // Extract real images and DICOM metadata from ZIP archive
+      const extracted = await extractDicomArchive(file, JSZip);
+
+      const patientName = extracted.patientName;
+      const patientUHID = extracted.patientUHID;
+      const age = extracted.age;
+      const gender = extracted.gender;
+      const modality = extracted.modality;
+      const studyDesc = extracted.studyDesc;
+      const bodyPart = extracted.bodyPart;
+      const accessionNo = extracted.accessionNo;
+      const seriesList = extracted.seriesList;
 
       // Determine target hospital context
       const targetHospitalId =
@@ -435,7 +447,44 @@ export default function AdvancedReporting() {
         existingPat = newPatient;
       }
 
-      // Create new Study
+      // Push raw DICOM files to local Orthanc PACS if available
+      let orthancStudyId = null;
+      try {
+        const buffersToUpload =
+          extracted.allRawBuffers && extracted.allRawBuffers.length > 0
+            ? extracted.allRawBuffers
+            : (seriesList || []).map((s) => s.rawBuffer).filter(Boolean);
+
+        if (buffersToUpload.length > 0) {
+          for (const buf of buffersToUpload) {
+            try {
+              const resp = await fetch("/orthanc-pacs/instances", {
+                method: "POST",
+                headers: { "Content-Type": "application/dicom" },
+                body: buf,
+              }).catch(() =>
+                fetch("http://localhost:8042/instances", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/dicom" },
+                  body: buf,
+                })
+              );
+              if (resp && resp.ok) {
+                const data = await resp.json();
+                if (data?.ParentStudy) {
+                  orthancStudyId = data.ParentStudy;
+                }
+              }
+            } catch (postErr) {
+              console.warn("Could not post DICOM slice to Orthanc:", postErr);
+            }
+          }
+        }
+      } catch (orthancErr) {
+        console.warn("Orthanc upload encountered an error:", orthancErr);
+      }
+
+      // Create new Study with real extracted series/images attached
       const caseNumber = `CAS-ZIP-${Date.now().toString().slice(-5)}`;
       const newStudy = {
         id: `st${Date.now()}`,
@@ -454,6 +503,9 @@ export default function AdvancedReporting() {
         paymentStatus: "Unpaid",
         superAdminPaymentStatus: "Pending",
         tat: "24h",
+        series: seriesList || [],
+        studyInstanceUID: extracted.studyInstanceUID || undefined,
+        orthancStudyId: orthancStudyId || undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -488,72 +540,33 @@ export default function AdvancedReporting() {
     showToast("Link copied to clipboard!");
   };
 
-  const generateAndDownloadReport = (format, study) => {
-    showToast(`Generating ${format.toUpperCase()} report...`);
-    // Determine the correct branding logo for this study
-    const hospital = hospitals.find((h) => h.id === study.hospitalId);
-    let currentLogo = null;
-    if (hospital?.branding?.logo) {
-      currentLogo = hospital.branding.logo;
-    } else if (hospital?.parentSiteId) {
-      const parentSite = sites.find((s) => s.id === hospital.parentSiteId);
-      if (parentSite?.branding?.logo) currentLogo = parentSite.branding.logo;
-    }
-    setTimeout(async () => {
-      const reportTitle = `Radiology Report - ${study.caseNumber}`;
-      const patientInfo = `Patient Name: ${patients.find((p) => p.id === study.patientId)?.name || "N/A"}
-Modality: ${study.modality}
-Status: ${study.reportingStatus}
-Date: ${new Date(study.createdAt).toLocaleString()}`;
-      const reportBody = `FINDINGS:\nNo significant abnormalities detected in this mock report.\n\nIMPRESSION:\nNormal study.`;
-
+  const generateAndDownloadReport = async (format, study) => {
+    showToast(`Generating standardized ${format.toUpperCase()} report...`);
+    const patient = patients.find((p) => p.id === study.patientId);
+    try {
       if (format === "pdf") {
-        const { jsPDF } = await import("jspdf");
-        const doc = new jsPDF();
-        // Add logo if available
-        if (currentLogo && currentLogo.startsWith("data:image")) {
-          try {
-            // Calculate dimensions to maintain aspect ratio, assuming max height of 20
-            doc.addImage(currentLogo, "PNG", 150, 10, 40, 20, "", "FAST");
-          } catch (e) {
-            console.error("Failed to add logo to PDF", e);
-          }
-        }
-        doc.setFontSize(20);
-        doc.text(reportTitle, 20, 20);
-        doc.setFontSize(12);
-        const splitPatientInfo = doc.splitTextToSize(patientInfo, 170);
-        doc.text(splitPatientInfo, 20, 40);
-        const splitBody = doc.splitTextToSize(reportBody, 170);
-        doc.text(splitBody, 20, 80);
-        doc.save(`Report_${study.caseNumber}.pdf`);
-      } else {
-        // Create an HTML doc that MS Word can read
-        const htmlContent = `
-          <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-          <head><title>${reportTitle}</title></head>
-          <body>
-            ${currentLogo ? `<div style="text-align: right; margin-bottom: 20px;"><img src="${currentLogo}" style="max-height: 60px;" /></div>` : ""}
-            <h2>${reportTitle}</h2>
-            <pre>${patientInfo}</pre>
-            <br/><br/>
-            <pre>${reportBody}</pre>
-          </body>
-          </html>
-        `;
-        const blob = new Blob(["\ufeff", htmlContent], {
-          type: "application/msword",
+        await downloadStandardReportPDF({
+          study,
+          patient,
+          hospitals,
+          sites,
+          radiologists,
+          templates,
         });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `Report_${study.caseNumber}.doc`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+      } else {
+        downloadStandardReportWord({
+          study,
+          patient,
+          hospitals,
+          sites,
+          radiologists,
+          templates,
+        });
       }
-    }, 800);
+    } catch (err) {
+      console.error(`Failed to generate ${format} report:`, err);
+      showToast(`Error generating ${format.toUpperCase()} report.`);
+    }
   };
 
   const toggleSelectStudy = (id) => {
@@ -580,11 +593,14 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
         return "bg-gray-500 text-white";
       case "Pending":
         return "bg-[#F26B50] text-white";
+      case "Critical":
+        return "bg-rose-600 text-white animate-pulse shadow-rose-200";
       case "Final":
         return "bg-[#009688] text-white";
       case "Verified":
-      case "Dispatched":
         return "bg-[#4CAF50] text-white";
+      case "Dispatched":
+        return "bg-[#0D2461] text-white border border-[#0D2461]";
       default:
         return "bg-slate-400 text-white";
     }
@@ -1066,11 +1082,46 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                     </td>
 
                     <td className="py-2 px-2 align-top text-center pt-2.5">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase shadow-sm ${getStatusColor(study.reportingStatus)}`}
-                      >
-                        {study.reportingStatus}
-                      </span>
+                      <div className="inline-flex flex-col items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (study.reportingStatus === "Verified") {
+                              updateStudy(study.id, {
+                                reportingStatus: "Dispatched",
+                                status: "Final",
+                                dispatchedAt: new Date().toISOString(),
+                              });
+                              setToastMessage(`Status for ${study.caseNumber} updated to Dispatched.`);
+                              setTimeout(() => setToastMessage(""), 3500);
+                            } else if (study.reportingStatus === "Dispatched") {
+                              updateStudy(study.id, {
+                                reportingStatus: "Verified",
+                              });
+                              setToastMessage(`Status for ${study.caseNumber} returned to Verified.`);
+                              setTimeout(() => setToastMessage(""), 3500);
+                            }
+                          }}
+                          title={
+                            study.reportingStatus === "Verified"
+                              ? "Click to automatically mark as Dispatched / Sent to user"
+                              : study.reportingStatus === "Dispatched"
+                                ? "Report dispatched to user. Click to toggle back to Verified if needed."
+                                : "Report status"
+                          }
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase shadow-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all ${getStatusColor(study.reportingStatus)}`}
+                        >
+                          <span>{study.reportingStatus}</span>
+                          {study.reportingStatus === "Verified" && (
+                            <Send className="w-2.5 h-2.5 opacity-80" />
+                          )}
+                        </button>
+                        {study.reportingStatus === "Verified" && (
+                          <span className="text-[8px] text-slate-400 font-medium mt-0.5 select-none">
+                            Click to Dispatch
+                          </span>
+                        )}
+                      </div>
                       {study.reportingStatus === "Pending" && rad && (
                         <div className="text-[10px] text-[#F26B50] font-semibold mt-1">
                           {rad.name}
@@ -1079,17 +1130,17 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                     </td>
 
                     <td className="py-2 px-2 align-top">
-                      {["Final", "Verified", "Dispatched"].includes(
+                      {["Final", "Verified", "Dispatched", "Critical"].includes(
                         study.reportingStatus,
-                      ) ? (
+                      ) || study.isCritical || study.reportText ? (
                         <div className="flex flex-col items-center">
-                          <div className="flex space-x-2 mb-1">
+                          <div className="flex space-x-2 mb-1 items-center">
                             <button
                               onClick={() =>
                                 generateAndDownloadReport("pdf", study)
                               }
-                              className="p-1 hover:bg-red-50 text-red-600 rounded bg-white shadow-sm border border-red-100"
-                              title="Download PDF"
+                              className="p-1 hover:bg-red-50 text-red-600 rounded bg-white shadow-sm border border-red-100 transition-colors"
+                              title="Download Standardized PDF Report"
                             >
                               <FileIcon className="w-3.5 h-3.5" />
                             </button>
@@ -1097,13 +1148,13 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
                               onClick={() =>
                                 generateAndDownloadReport("word", study)
                               }
-                              className="p-1 hover:bg-blue-50 text-blue-600 rounded bg-white shadow-sm border border-blue-100"
-                              title="Download Word"
+                              className="p-1 hover:bg-blue-50 text-blue-600 rounded bg-white shadow-sm border border-blue-100 transition-colors"
+                              title="Download Standardized Word Report"
                             >
                               <FileText className="w-3.5 h-3.5" />
                             </button>
-                            <div className="font-bold text-slate-800 ml-1">
-                              {rad?.name}
+                            <div className="font-bold text-slate-800 ml-1 text-xs">
+                              {rad?.name || "Radiologist"}
                             </div>
                           </div>
                           {assignedTime && (
@@ -1405,6 +1456,21 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
           isOpen={shareModalOpen}
           onClose={() => setShareModalOpen(false)}
           study={selectedStudyForShare}
+          patient={patients.find(
+            (p) => p.id === selectedStudyForShare.patientId,
+          )}
+          hospital={hospitals.find(
+            (h) => h.id === selectedStudyForShare.hospitalId,
+          )}
+          onShared={() => {
+            updateStudy(selectedStudyForShare.id, {
+              reportingStatus: "Dispatched",
+              status: "Final",
+              dispatchedAt: new Date().toISOString(),
+            });
+            setToastMessage(`Report for ${selectedStudyForShare.caseNumber} sent to user and status automatically updated to Dispatched.`);
+            setTimeout(() => setToastMessage(""), 4500);
+          }}
         />
       )}
 
@@ -1429,6 +1495,144 @@ Date: ${new Date(study.createdAt).toLocaleString()}`;
             setTimeout(() => setToastMessage(""), 4000);
           }}
         />
+      )}
+
+      {/* QUICK RECHARGE POPUP MODAL FOR PREPAID SHORTAGE */}
+      {showRechargeModal && blockedHospital && (
+        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="p-6 bg-gradient-to-r from-rose-600 to-rose-700 text-white flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  <Wallet className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight">
+                    Wallet Recharge Required
+                  </h2>
+                  <p className="text-xs text-white/90 font-bold uppercase tracking-widest mt-0.5">
+                    {blockedHospital.name} (Prepaid)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRechargeModal(false);
+                  setBlockedHospital(null);
+                }}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors text-white/90"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-500">Current Base Wallet:</span>
+                  <span className="font-black text-slate-700">₹ {Number(blockedHospital.walletBalance) || 0}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-500">Account Type:</span>
+                  <span className="font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded uppercase text-[10px] tracking-wider">
+                    Prepaid
+                  </span>
+                </div>
+                <div className="border-t border-rose-200 pt-2 flex justify-between items-center">
+                  <span className="text-xs font-black text-rose-900">Effective Balance:</span>
+                  <span className="text-base font-black text-rose-600">
+                    ₹ {Number(blockedHospital.walletBalance) || 0} (Shortage)
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                  The prepaid wallet balance has reached zero or is insufficient to cover the required scan commission. Please recharge your wallet before uploading new DICOM or ZIP studies.
+                </p>
+              </div>
+
+              {rechargeSuccess ? (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center space-x-2 text-emerald-700 font-bold text-sm">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  <span>Wallet recharged successfully!</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
+                      Enter Recharge Amount (₹)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₹</span>
+                      <input
+                        type="number"
+                        min="100"
+                        placeholder="e.g. 1000"
+                        value={rechargeAmount}
+                        onChange={(e) => setRechargeAmount(e.target.value)}
+                        className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-black text-slate-800 text-sm"
+                      />
+                    </div>
+                    {/* Quick amount chips */}
+                    <div className="flex gap-2 mt-2">
+                      {[500, 1000, 2000, 5000].map((amt) => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setRechargeAmount(String(amt))}
+                          className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                        >
+                          +₹{amt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-1.5">
+                      Payment Mode
+                    </label>
+                    <select
+                      value={rechargeMethod}
+                      onChange={(e) => setRechargeMethod(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-bold text-slate-700 text-xs bg-white"
+                    >
+                      <option value="UPI">UPI / QR Code (Instant)</option>
+                      <option value="Net Banking">Net Banking (NEFT/RTGS)</option>
+                      <option value="Card">Debit / Credit Card</option>
+                      <option value="Manual Admin Top-up">Admin Authorized Deposit</option>
+                    </select>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowRechargeModal(false);
+                        setBlockedHospital(null);
+                      }}
+                      className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleQuickRecharge}
+                      disabled={!rechargeAmount || Number(rechargeAmount) <= 0}
+                      className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      <span>Recharge & Unlock</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

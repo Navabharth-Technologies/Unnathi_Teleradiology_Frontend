@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import * as dicomParser from "dicom-parser";
 import JSZip from "jszip";
+import { extractDicomArchive } from "../../utils/dicomExtractor";
 import { format, parse, isValid } from "date-fns";
 import { useAuthStore } from "../../store/useAuthStore";
 
@@ -158,6 +159,8 @@ export default function DicomReceive() {
   const [parsed, setParsed] = useState(null);
   const [fileName, setFileName] = useState("");
   const [existingPatientId, setExistingPatientId] = useState(null);
+  const [extractedSeries, setExtractedSeries] = useState([]);
+  const [rawBuffersToUpload, setRawBuffersToUpload] = useState([]);
 
   // Quick Recharge Modal State
   const [showRechargeModal, setShowRechargeModal] = useState(false);
@@ -238,71 +241,31 @@ export default function DicomReceive() {
     setErrorMsg("");
 
     try {
-      let buffer;
-
-      // Real ZIP parsing using JSZip
-      if (file.name.toLowerCase().endsWith(".zip")) {
-        const zip = new JSZip();
-        const zipContent = await zip.loadAsync(file);
-        // Find the first file that looks like a DICOM (ends with .dcm or has no extension but is a file)
-        let dicomFile = null;
-        for (const relativePath in zipContent.files) {
-          const zipEntry = zipContent.files[relativePath];
-          if (
-            !zipEntry.dir &&
-            (relativePath.toLowerCase().endsWith(".dcm") ||
-              !relativePath.includes("."))
-          ) {
-            dicomFile = zipEntry;
-            break;
-          }
-        }
-
-        if (!dicomFile) {
-          throw new Error(
-            "No valid DICOM files (.dcm) found inside the ZIP archive.",
-          );
-        }
-
-        // Extract the ArrayBuffer of the first found DICOM file
-        buffer = await dicomFile.async("arraybuffer");
-      } else {
-        // Direct DICOM file upload
-        buffer = await file.arrayBuffer();
-      }
-
-      const byteArray = new Uint8Array(buffer);
-
-      // Handle both CJS default export and named export
-      const parser = dicomParser.default ?? dicomParser;
-      const dataSet = parser.parseDicom(byteArray, { untilTag: "00200013" });
-
-      const rawName = getTag(dataSet, "x00100010");
-      const rawDob = getTag(dataSet, "x00100030");
-      const rawDate = getTag(dataSet, "x00080020");
-      const dob = parseDicomDate(rawDob);
+      const extracted = await extractDicomArchive(file, JSZip);
 
       const result = {
-        patientName: formatDicomName(rawName) || "Unknown Patient",
-        patientId: getTag(dataSet, "x00100020") || `PAT-${Date.now()}`,
-        dob,
-        age: getTag(dataSet, "x00101010") || calcAge(dob),
-        gender: parseDicomGender(getTag(dataSet, "x00100040")),
-        modality: getTag(dataSet, "x00080060") || "Unknown",
-        studyDescription: getTag(dataSet, "x00081030") || "Study",
-        bodyPart: getTag(dataSet, "x00180015") || "",
-        accessionNumber: getTag(dataSet, "x00080050") || `ACC-${Date.now()}`,
-        studyDate: parseDicomDate(rawDate) || format(new Date(), "yyyy-MM-dd"),
-        studyInstanceUID: getTag(dataSet, "x0020000d") || "",
+        patientName: extracted.patientName || "Unknown Patient",
+        patientId: extracted.patientUHID || `PAT-${Date.now()}`,
+        dob: "",
+        age: extracted.age || 45,
+        gender: extracted.gender || "Female",
+        modality: extracted.modality || "CT",
+        studyDescription: extracted.studyDesc || "Study",
+        bodyPart: extracted.bodyPart || "",
+        accessionNumber: extracted.accessionNo || `ACC-${Date.now()}`,
+        studyDate: extracted.studyDate ? format(new Date(extracted.studyDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+        studyInstanceUID: extracted.studyInstanceUID || "",
       };
 
+      setExtractedSeries(extracted.seriesList || []);
+      setRawBuffersToUpload(extracted.allRawBuffers || []);
       setParsed(result);
       setFields(result);
       checkDuplicate(result.patientId);
       setStage("preview");
     } catch (e) {
       setErrorMsg(
-        `Failed to parse DICOM file: ${e.message}. The file may not be a valid DICOM format.`,
+        `Failed to parse DICOM / ZIP: ${e.message}.`,
       );
       setStage("error");
     }
@@ -359,7 +322,7 @@ export default function DicomReceive() {
 
   // ─── Register Patient + Study ─────────────────────────────────────────────
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!fields) return;
     if (isPrepaid && isWalletInsufficient) {
       setShowRechargeModal(true);
@@ -367,51 +330,96 @@ export default function DicomReceive() {
     }
     setStage("registering");
 
-    setTimeout(() => {
-      let patId = existingPatientId;
+    let orthancStudyId = null;
 
-      // Create patient only if not existing
-      if (!patId) {
-        const newPatient = {
-          id: "p" + Date.now(),
-          uhid: fields.patientId,
-          name: fields.patientName,
-          dob: fields.dob,
-          age: parseInt(fields.age) || 0,
-          gender: fields.gender,
-          phone: "",
-          email: "",
-          referringDoctor: "",
-          hospitalId: selectedHospitalId || currentHospital?.id,
-          registrationDate: new Date().toISOString(),
-        };
-        addPatient(newPatient);
-        patId = newPatient.id;
+    // Push raw DICOM files to local Orthanc PACS if available
+    try {
+      const buffersToUpload =
+        rawBuffersToUpload.length > 0
+          ? rawBuffersToUpload
+          : (extractedSeries || []).map((s) => s.rawBuffer).filter(Boolean);
+
+      if (buffersToUpload.length > 0) {
+        for (const buf of buffersToUpload) {
+          try {
+            const resp = await fetch("/orthanc-pacs/instances", {
+              method: "POST",
+              headers: { "Content-Type": "application/dicom" },
+              body: buf,
+            }).catch(() =>
+              fetch("http://localhost:8042/instances", {
+                method: "POST",
+                headers: { "Content-Type": "application/dicom" },
+                body: buf,
+              })
+            );
+            if (resp && resp.ok) {
+              const data = await resp.json();
+              if (data?.ParentStudy) {
+                orthancStudyId = data.ParentStudy;
+              }
+            }
+          } catch (uploadErr) {
+            console.warn("Could not post slice to Orthanc:", uploadErr);
+          }
+        }
       }
+    } catch (pushErr) {
+      console.warn("Orthanc batch push encountered an error:", pushErr);
+    }
 
-      // Create study
-      const caseNum = `CAS-DICOM-${Date.now().toString().slice(-5)}`;
-      const newStudy = {
-        id: "st" + Date.now(),
-        patientId: patId,
-        caseNumber: caseNum,
-        accessionNumber: fields.accessionNumber,
+    let patId = existingPatientId;
+
+    // Create patient only if not existing
+    if (!patId) {
+      const newPatient = {
+        id: "p" + Date.now(),
+        uhid: fields.patientId,
+        name: fields.patientName,
+        dob: fields.dob,
+        age: parseInt(fields.age) || 0,
+        gender: fields.gender,
+        phone: "",
+        email: "",
+        referringDoctor: "",
         hospitalId: selectedHospitalId || currentHospital?.id,
-        modality: fields.modality,
-        studyDescription: fields.studyDescription,
-        bodyPart: fields.bodyPart,
-        priority: "Routine",
-        studyDate: new Date(fields.studyDate).toISOString(),
-        status: "New",
-        reportingStatus: "Pending",
-        paymentStatus: "Unpaid",
-        tat: "24h",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        registrationDate: new Date().toISOString(),
       };
-      addStudy(newStudy);
-      setStage("done");
-    }, 1500);
+      addPatient(newPatient);
+      patId = newPatient.id;
+    }
+
+    // Clean up raw buffers for clean localStorage persistence
+    const sanitizedSeries = (extractedSeries || []).map((s) => {
+      const { rawBuffer, ...rest } = s;
+      return rest;
+    });
+
+    // Create study
+    const caseNum = `CAS-DICOM-${Date.now().toString().slice(-5)}`;
+    const newStudy = {
+      id: "st" + Date.now(),
+      patientId: patId,
+      caseNumber: caseNum,
+      accessionNumber: fields.accessionNumber,
+      hospitalId: selectedHospitalId || currentHospital?.id,
+      modality: fields.modality,
+      studyDescription: fields.studyDescription,
+      bodyPart: fields.bodyPart,
+      priority: "Routine",
+      studyDate: new Date(fields.studyDate).toISOString(),
+      status: "New",
+      reportingStatus: "Pending",
+      paymentStatus: "Unpaid",
+      tat: "24h",
+      series: sanitizedSeries,
+      studyInstanceUID: fields.studyInstanceUID || undefined,
+      orthancStudyId: orthancStudyId || undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    addStudy(newStudy);
+    setStage("done");
   };
 
   const updateField = (key, value) => {

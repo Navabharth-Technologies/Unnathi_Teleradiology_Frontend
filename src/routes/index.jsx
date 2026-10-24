@@ -112,6 +112,10 @@ export const router = createHashRouter([
         element: <TemplateEditor />,
       },
       {
+        path: "utilities/templates/:id",
+        element: <TemplateEditor />,
+      },
+      {
         path: "utilities/templates/:id/edit",
         element: <TemplateEditor />,
       },

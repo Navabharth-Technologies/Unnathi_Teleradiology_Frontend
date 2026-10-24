@@ -53,12 +53,14 @@ export default function TemplateEditor() {
     } else {
       // New template initialization
       const paramHosp = searchParams.get("hospitalId");
-      if (paramHosp && availableHospitals.some((h) => h.id === paramHosp)) {
+      if (paramHosp === "ALL") {
+        setSelectedHospitalId("ALL");
+      } else if (paramHosp && availableHospitals.some((h) => h.id === paramHosp)) {
         setSelectedHospitalId(paramHosp);
       } else if (user?.hospitalId) {
         setSelectedHospitalId(user.hospitalId);
       } else if (availableHospitals.length > 0) {
-        setSelectedHospitalId(availableHospitals[0].id);
+        setSelectedHospitalId(availableHospitals.length > 1 ? "ALL" : availableHospitals[0].id);
       }
     }
   }, [id, isEditing, templates, navigate, searchParams, availableHospitals, user]);
@@ -86,7 +88,7 @@ export default function TemplateEditor() {
       return;
     }
     const targetHospId =
-      selectedHospitalId || user?.hospitalId || availableHospitals[0]?.id;
+      selectedHospitalId || (user?.role === "SUPER_ADMIN" ? "ALL" : user?.hospitalId || availableHospitals[0]?.id || "ALL");
 
     if (isEditing && id) {
       updateTemplate(id, {
@@ -184,6 +186,9 @@ export default function TemplateEditor() {
                   onChange={(e) => setSelectedHospitalId(e.target.value)}
                   className="w-full h-10 px-3 border border-slate-300 rounded-xl bg-white text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#00A8CC]/20 focus:border-[#00A8CC] shadow-sm"
                 >
+                  {availableHospitals.length > 1 && (
+                    <option value="ALL">All Hospitals (Global Default)</option>
+                  )}
                   {availableHospitals.map((h) => (
                     <option key={h.id} value={h.id}>
                       {h.name} {h.parentSiteId ? `(Site Child)` : `(Independent)`}

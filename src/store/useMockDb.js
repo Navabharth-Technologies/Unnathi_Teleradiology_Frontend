@@ -39,6 +39,7 @@ if (typeof window !== "undefined" && window.localStorage) {
       window.localStorage.removeItem(`unnathi-mock-db-v${i}`);
     }
     window.localStorage.removeItem("unnathi-mock-db");
+    window.localStorage.removeItem("unnathi-clean-db-v1");
   } catch (e) {
     console.warn("Could not clean old localStorage:", e);
   }
@@ -168,40 +169,9 @@ const initialRadiologists = [
   },
 ];
 
-const initialPatients = [
-  {
-    id: "p1791790075869",
-    uhid: "20953",
-    name: "JOYTHI DEVI 46Y/F",
-    age: 46,
-    gender: "Female",
-    hospitalId: "hosp_1791789809438",
-    registrationDate: "2026-10-12T07:27:55.870Z",
-  },
-];
+const initialPatients = [];
 
-const initialStudies = [
-  {
-    id: "st1791790075870",
-    patientId: "p1791790075869",
-    caseNumber: "CAS-DICOM-75870",
-    accessionNumber: "ACC-1791790072641",
-    hospitalId: "hosp_1791789809438",
-    modality: "CT",
-    studyDescription: "CT KUB",
-    bodyPart: "ABDOMEN",
-    priority: "Routine",
-    studyDate: "2026-08-06T00:00:00.000Z",
-    assignedRadiologistId: "r1791790045062340",
-    status: "Final",
-    reportingStatus: "Verified",
-    paymentStatus: "Unpaid",
-    superAdminPaymentStatus: "Pending",
-    tat: "24h",
-    createdAt: "2026-10-12T07:27:55.870Z",
-    updatedAt: "2026-10-12T07:27:55.870Z",
-  },
-];
+const initialStudies = [];
 
 export const useMockDb = create()(
   persist(
@@ -253,7 +223,7 @@ export const useMockDb = create()(
 
           // Authoritative sync: Remote DB data takes complete precedence when available
           const syncCollection = (remoteData, currentData) => {
-            if (Array.isArray(remoteData) && remoteData.length > 0) {
+            if (Array.isArray(remoteData)) {
               return remoteData;
             }
             return currentData || [];
@@ -450,6 +420,23 @@ export const useMockDb = create()(
         }));
       },
 
+      fetchStudyById: async (id) => {
+        try {
+          const res = await axios.get(`${API_URL}/studies/${id}`);
+          if (res.data) {
+            set((state) => ({
+              studies: [
+                ...state.studies.filter((s) => s.id !== id),
+                res.data,
+              ],
+            }));
+            return res.data;
+          }
+        } catch (e) {
+          console.error("API error fetching study by id:", e);
+        }
+        return null;
+      },
       addStudy: async (study) => {
         try {
           await axios.post(`${API_URL}/studies`, study);
@@ -577,6 +564,23 @@ export const useMockDb = create()(
     }),
     {
       name: "unnathi-clean-db-v1",
+
+      partialize: (state) => ({
+        ...state,
+        studies: state.studies.map((study) => ({
+          ...study,
+          series: (study.series || []).map((series) => {
+            const {
+              image,
+              fullImage,
+              rawBuffer,
+              ...metadata
+            } = series;
+
+            return metadata;
+          }),
+        })),
+      }),
     },
   ),
 );

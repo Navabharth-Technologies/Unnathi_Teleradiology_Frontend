@@ -14,4 +14,17 @@ export default defineConfig({
   optimizeDeps: {
     include: ["dicom-parser"],
   },
+  server: {
+    proxy: {
+      "/orthanc-pacs": {
+        target: "http://localhost:8042",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/orthanc-pacs/, ""),
+      },
+      "/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+      },
+    },
+  },
 });

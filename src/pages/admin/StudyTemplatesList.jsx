@@ -26,7 +26,7 @@ import {
 import standardStudiesCatalog from "../../data/standardStudiesCatalog.json";
 
 export default function StudyTemplatesList() {
-  const { templates, addTemplate, deleteTemplate, hospitals } = useMockDb();
+  const { templates, addTemplate, updateTemplate, deleteTemplate, hospitals } = useMockDb();
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,6 +47,8 @@ export default function StudyTemplatesList() {
 
   const scopedTemplates = useMemo(() => {
     return (templates || []).filter((t) => {
+      // Global templates are accessible to all admins
+      if (!t.hospitalId || t.hospitalId === "ALL") return true;
       if (user?.role === "SUPER_ADMIN") return true;
       if (user?.role === "SITE_ADMIN") {
         const hosp = hospitals.find((h) => h.id === t.hospitalId);
@@ -58,28 +60,19 @@ export default function StudyTemplatesList() {
 
   // Combine custom templates with catalog studies for the active hospital
   const displayedItems = useMemo(() => {
-    const targetHospId =
-      selectedHospitalFilter !== "ALL"
-        ? selectedHospitalFilter
-        : accessibleHospitals[0]?.id || "";
-
-    const targetHosp = hospitals.find((h) => h.id === targetHospId);
-
-    // Map existing templates for this hospital by modality + studyName
-    const templateMap = new Map();
-    scopedTemplates.forEach((t) => {
-      const key = `${t.hospitalId || ""}__${(t.modality || "").toUpperCase()}__${(t.studyName || "").toUpperCase()}`;
-      templateMap.set(key, t);
-    });
+    const isAllHospitals = selectedHospitalFilter === "ALL";
+    const targetHospId = isAllHospitals ? "ALL" : selectedHospitalFilter;
 
     // Generate full list: custom templates + catalog studies
     const result = [];
     const seenKeys = new Set();
 
-    // 1. Add all configured templates first
+    // 1. Group custom templates by study and hospital
     scopedTemplates.forEach((t) => {
       if (
-        selectedHospitalFilter !== "ALL" &&
+        !isAllHospitals &&
+        t.hospitalId &&
+        t.hospitalId !== "ALL" &&
         t.hospitalId !== selectedHospitalFilter
       ) {
         return;
@@ -91,12 +84,18 @@ export default function StudyTemplatesList() {
         return;
       }
 
-      const key = `${t.hospitalId || ""}__${(t.modality || "").toUpperCase()}__${(t.studyName || "").toUpperCase()}`;
-      seenKeys.add(key);
+      // Mark that this study has a configured template
+      const normModality = (t.modality || "").toUpperCase();
+      const normStudy = (t.studyName || "").toUpperCase();
+      const matchKey = isAllHospitals
+        ? `${normModality}__${normStudy}`
+        : `${t.hospitalId || "ALL"}__${normModality}__${normStudy}`;
+
+      seenKeys.add(matchKey);
       result.push({
         id: t.id,
         isCustomized: true,
-        hospitalId: t.hospitalId,
+        hospitalId: t.hospitalId || "ALL",
         modality: t.modality,
         studyName: t.studyName,
         price: t.price,
@@ -105,7 +104,7 @@ export default function StudyTemplatesList() {
       });
     });
 
-    // 2. Add all standard catalog studies for the selected hospital (or first accessible hospital)
+    // 2. Add standard catalog studies if not already configured
     standardStudiesCatalog.forEach((catStudy, idx) => {
       if (
         selectedModalityFilter !== "ALL" &&
@@ -114,9 +113,14 @@ export default function StudyTemplatesList() {
         return;
       }
 
-      const key = `${targetHospId}__${catStudy.modality.toUpperCase()}__${catStudy.studyName.toUpperCase()}`;
-      if (!seenKeys.has(key)) {
-        seenKeys.add(key);
+      const normModality = catStudy.modality.toUpperCase();
+      const normStudy = catStudy.studyName.toUpperCase();
+      const matchKey = isAllHospitals
+        ? `${normModality}__${normStudy}`
+        : `${targetHospId}__${normModality}__${normStudy}`;
+
+      if (!seenKeys.has(matchKey)) {
+        seenKeys.add(matchKey);
         result.push({
           id: `cat_${idx}_${targetHospId}`,
           isCustomized: false,
@@ -147,34 +151,32 @@ export default function StudyTemplatesList() {
     selectedHospitalFilter,
     selectedModalityFilter,
     searchTerm,
-    accessibleHospitals,
-    hospitals,
   ]);
 
   // Quick edit modal / state for assigning price directly
   const [editingItem, setEditingItem] = useState(null);
   const [quickPrice, setQuickPrice] = useState("");
 
-  const handleSavePrice = () => {
+  const handleSavePrice = async () => {
     if (!editingItem) return;
     const priceVal = quickPrice === "" ? undefined : Number(quickPrice);
 
     if (editingItem.rawTemplate) {
       // Update existing template
-      useMockDb.getState().updateTemplate(editingItem.rawTemplate.id, {
+      await updateTemplate(editingItem.rawTemplate.id, {
         price: priceVal,
         updatedAt: new Date().toISOString(),
       });
     } else {
       // Create new template from catalog study
-      useMockDb.getState().addTemplate({
+      await addTemplate({
         id: `tpl_${Date.now()}`,
-        hospitalId: editingItem.hospitalId,
+        hospitalId: editingItem.hospitalId || "ALL",
         modality: editingItem.modality,
         studyName: editingItem.studyName,
         price: priceVal,
         isActive: true,
-        templateContent: `<h3>${editingItem.studyName} Report</h3><p>Clinical Findings:</p>`,
+        templateContent: `<h3>${editingItem.studyName} Report</h3><p><strong>Clinical Indication:</strong></p><p><strong>Technique:</strong> Standard protocol imaging was performed.</p><p><strong>Findings:</strong></p><p><strong>Impression:</strong></p>`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -255,7 +257,8 @@ export default function StudyTemplatesList() {
             }
             className="bg-[#0D2461] hover:bg-[#081840] text-white h-10 px-4 text-xs font-bold rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
           >
-            <PlusCircle className="w-4 h-4" /> Add Custom Study
+            <PlusCircle className="w-4 h-4 text-[#00A8CC]" />
+            <span>Create / Design Template</span>
           </Button>
         </div>
       </div>
@@ -300,10 +303,16 @@ export default function StudyTemplatesList() {
                 >
                   <TableCell className="py-3.5 px-6">
                     <div className="font-bold text-slate-800 text-xs">
-                      {hosp?.name || "All Assigned Hospitals"}
+                      {item.hospitalId === "ALL" || !item.hospitalId
+                        ? "All Hospitals (Global Default)"
+                        : hosp?.name || "All Assigned Hospitals"}
                     </div>
                     <div className="text-[10px] text-slate-400 font-medium">
-                      {hosp?.parentSiteId ? "Teleradiology Site Child" : "Independent Hospital"}
+                      {item.hospitalId === "ALL" || !item.hospitalId
+                        ? "Applicable to all centers & sites"
+                        : hosp?.parentSiteId
+                          ? "Teleradiology Site Child"
+                          : "Independent Hospital"}
                     </div>
                   </TableCell>
 
@@ -366,10 +375,43 @@ export default function StudyTemplatesList() {
                           setQuickPrice(hasPrice ? String(item.price) : "");
                         }}
                         className="h-8 px-2.5 text-xs font-bold border-slate-200 text-[#176B73] hover:bg-teal-50 hover:border-teal-200 cursor-pointer"
+                        title="Set or update pricing for this hospital"
                       >
                         <Edit2 className="w-3.5 h-3.5 mr-1" />
                         {hasPrice ? "Edit Price" : "Set Price"}
                       </Button>
+
+                      {item.isCustomized ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/utilities/templates/${item.id}`)}
+                          className="h-8 px-2.5 text-xs font-bold border-slate-200 text-[#0D2461] hover:bg-slate-50 cursor-pointer"
+                          title="Edit Template Report Document"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 mr-1 text-[#00A8CC]" />
+                          Template
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            const params = new URLSearchParams();
+                            if (item.hospitalId && item.hospitalId !== "ALL") {
+                              params.set("hospitalId", item.hospitalId);
+                            } else {
+                              params.set("hospitalId", "ALL");
+                            }
+                            navigate(`/utilities/templates/new?${params.toString()}`);
+                          }}
+                          className="h-8 px-2 text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer"
+                          title="Create custom template document for this study"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                          Template
+                        </Button>
+                      )}
 
                       {item.isCustomized && (
                         <button
@@ -401,13 +443,18 @@ export default function StudyTemplatesList() {
                 {editingItem.studyName}
               </h2>
               <p className="text-xs text-slate-500 font-medium">
-                Hospital: {hospitals.find((h) => h.id === editingItem.hospitalId)?.name || "Selected Hospital"}
+                Hospital:{" "}
+                <span className="font-bold text-slate-800">
+                  {editingItem.hospitalId === "ALL" || !editingItem.hospitalId
+                    ? "All Hospitals (Global Default)"
+                    : hospitals.find((h) => h.id === editingItem.hospitalId)?.name || "Selected Hospital"}
+                </span>
               </p>
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
-                Assign Price (₹) for this Hospital
+                Assign Price (₹) {editingItem.hospitalId === "ALL" ? "Across All Hospitals" : "for this Hospital"}
               </label>
               <div className="relative">
                 <span className="absolute left-3.5 top-3 text-sm font-black text-slate-400">
@@ -424,7 +471,9 @@ export default function StudyTemplatesList() {
                 />
               </div>
               <p className="text-[11px] text-slate-500 font-medium">
-                This price will automatically be applied to invoices and billing for this specific hospital.
+                {editingItem.hospitalId === "ALL"
+                  ? "This default price applies to all hospitals unless a hospital-specific override price is set."
+                  : "This price will specifically be applied to invoices and billing for this hospital."}
               </p>
             </div>
 

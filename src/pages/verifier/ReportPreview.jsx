@@ -8,6 +8,7 @@ import {
   Download,
   Loader2,
   Send,
+  FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -15,6 +16,12 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { ShareModal } from "../../components/modals/ShareModal";
 import { Share2 } from "lucide-react";
+import {
+  downloadStandardReportPDF,
+  downloadStandardReportWord,
+  getReportBranding,
+  resolveStudyReportContent,
+} from "../../utils/reportDownloader";
 import {
   Dialog,
   DialogTrigger,
@@ -93,29 +100,15 @@ export default function ReportPreview() {
 
   const handleDownloadPDF = async () => {
     setDownloading(true);
-    const element = document.getElementById("report-content");
-    if (!element) {
-      setDownloading(false);
-      return;
-    }
     try {
-      // Temporarily remove print-only restrictions if any for capture
-      element.classList.add("pdf-capture-mode");
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
+      await downloadStandardReportPDF({
+        study,
+        patient,
+        hospitals,
+        sites,
+        radiologists,
+        templates,
       });
-      element.classList.remove("pdf-capture-mode");
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(
-        `${patient.name.replace(/\s+/g, "_")}_${study.caseNumber}_Report.pdf`,
-      );
     } catch (err) {
       console.error("Failed to generate PDF", err);
       alert("Failed to generate PDF. Please try again.");
@@ -123,6 +116,25 @@ export default function ReportPreview() {
       setDownloading(false);
     }
   };
+
+  const handleDownloadWord = () => {
+    try {
+      downloadStandardReportWord({
+        study,
+        patient,
+        hospitals,
+        sites,
+        radiologists,
+        templates,
+      });
+    } catch (err) {
+      console.error("Failed to generate Word document", err);
+      alert("Failed to generate Word document. Please try again.");
+    }
+  };
+
+  const reportContentHtml = resolveStudyReportContent(study, templates);
+  const reportBranding = getReportBranding(study, hospitals, sites);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-unnathi-fade-in pb-12 print:p-0 print:m-0 print:max-w-none">
@@ -148,6 +160,7 @@ export default function ReportPreview() {
             onClick={handleDownloadPDF}
             disabled={downloading}
             className="border-[#00A8CC] text-[#00A8CC] font-bold hover:bg-cyan-50"
+            title="Download Standardized PDF Report"
           >
             {downloading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -155,6 +168,15 @@ export default function ReportPreview() {
               <Download className="mr-2 h-4 w-4" />
             )}
             {downloading ? "Generating..." : "Download PDF"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleDownloadWord}
+            className="border-blue-200 text-blue-600 font-bold hover:bg-blue-50"
+            title="Download Standardized Word Report"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Download Word
           </Button>
           {!["Verified", "Dispatched"].includes(study.reportingStatus) ? (
             <Button
@@ -278,25 +300,44 @@ export default function ReportPreview() {
                 />
               </div>
             ) : (
-              <div className="flex justify-between items-end border-b-2 border-[#0D2461] pb-6 mb-8">
+              <div className="flex justify-between items-center border-b-2 border-[#0D2461] pb-6 mb-8">
                 <div>
-                  <h1 className="text-4xl font-black text-[#0D2461] tracking-tight uppercase">
-                    UNNATHI
-                  </h1>
-                  <p className="text-[10px] font-bold tracking-widest text-[#00A8CC] uppercase mt-1">
-                    Diagnostic Imaging & Teleradiology
-                  </p>
+                  {reportBranding.logo ? (
+                    <img
+                      src={reportBranding.logo}
+                      alt="Logo"
+                      className="max-h-16 max-w-[220px] object-contain"
+                    />
+                  ) : (
+                    <div>
+                      <h1 className="text-4xl font-black text-[#0D2461] tracking-tight uppercase">
+                        UNNATHI
+                      </h1>
+                      <p className="text-[10px] font-bold tracking-widest text-[#00A8CC] uppercase mt-1">
+                        Diagnostic Imaging & Teleradiology
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className="text-right text-xs">
                   <p className="font-black text-slate-800 text-sm uppercase mb-1">
-                    {hospital?.name}
+                    {reportBranding.hospitalName}
                   </p>
-                  <p className="text-slate-500 font-medium">
-                    {hospital?.address}
-                  </p>
-                  <p className="text-slate-500 font-medium">
-                    Ph: {hospital?.phone}
-                  </p>
+                  {reportBranding.address && (
+                    <p className="text-slate-500 font-medium">
+                      {reportBranding.address}
+                    </p>
+                  )}
+                  {reportBranding.phone && (
+                    <p className="text-slate-500 font-medium">
+                      Ph: {reportBranding.phone}
+                    </p>
+                  )}
+                  {reportBranding.email && (
+                    <p className="text-slate-500 font-medium">
+                      Email: {reportBranding.email}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -316,7 +357,7 @@ export default function ReportPreview() {
                   Study Date
                 </span>
                 <span className="font-bold text-slate-800">
-                  {format(new Date(study.studyDate), "dd MMM yyyy")}
+                  {format(new Date(study.studyDate || study.createdAt || new Date()), "dd MMM yyyy")}
                 </span>
               </div>
               <div className="flex">
@@ -354,70 +395,40 @@ export default function ReportPreview() {
             {/* Report Title */}
             <div className="text-center mb-8">
               <h2 className="text-lg font-black text-slate-800 underline underline-offset-4 decoration-2 decoration-[#00A8CC] uppercase inline-block">
-                {study.modality} - {study.studyDescription}
+                {study.modality} - {study.studyDescription || "REPORT"}
               </h2>
             </div>
 
             {/* Report Body */}
-            <div className="space-y-6 text-sm text-slate-800 leading-relaxed flex-1">
-              <div>
-                <h3 className="font-black text-slate-800 uppercase tracking-widest text-[11px] mb-2 border-b border-slate-100 pb-1">
-                  Technique
-                </h3>
-                <p className="font-medium">
-                  Standard multi-planar {study.modality} sequences of the{" "}
-                  {study.bodyPart} were acquired without intravenous contrast
-                  administration.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-black text-slate-800 uppercase tracking-widest text-[11px] mb-2 border-b border-slate-100 pb-1">
-                  Findings
-                </h3>
-                <p className="font-medium mb-3">
-                  This is a simulated final report generated from the Unnathi
-                  PACS verification system. The structural architecture of the
-                  requested anatomical region appears unremarkable in this mock
-                  interpretation.
-                </p>
-                <p className="font-medium">
-                  No acute abnormalities, fractures, or space-occupying lesions
-                  are visualized. The adjacent soft tissues are within normal
-                  limits. Alignment is anatomical.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-black text-slate-800 uppercase tracking-widest text-[11px] mb-2 border-b border-slate-100 pb-1">
-                  Impression
-                </h3>
-                <p className="font-black text-base">
-                  Normal {study.modality} study of the {study.bodyPart}.
-                </p>
-                <p className="font-medium mt-2">
-                  No evidence of acute pathology.
-                </p>
-              </div>
-            </div>
+            <div
+              className="space-y-4 text-sm text-slate-800 leading-relaxed flex-1 report-rendered-content"
+              dangerouslySetInnerHTML={{ __html: reportContentHtml }}
+            />
 
             {/* Electronic Signature */}
             <div className="mt-12 flex justify-end">
-              <div className="text-center">
-                <div className="mb-3">
-                  {/* Mock Signature Visual */}
-                  <div className="h-12 flex items-center justify-center opacity-70">
-                    <span className="font-[cursive] text-2xl text-[#0D2461]">
-                      {radiologist?.name.split(" ")[1] || "Signature"}
-                    </span>
+              <div className="text-center min-w-[200px]">
+                <div className="mb-2">
+                  <div className="h-12 flex items-center justify-center">
+                    {radiologist?.signatureUrl && radiologist.signatureUrl.startsWith("data:image") ? (
+                      <img
+                        src={radiologist.signatureUrl}
+                        alt="Signature"
+                        className="max-h-11 max-w-[150px] object-contain"
+                      />
+                    ) : (
+                      <span className="font-[cursive] text-2xl text-[#0D2461]">
+                        {radiologist?.name?.split(" ")[1] || "Dr. Verified"}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="border-t-2 border-[#0D2461] w-56 pt-2">
                   <p className="font-black text-slate-800 uppercase text-sm">
-                    {radiologist?.name}
+                    {radiologist?.name || "Consultant Radiologist"}
                   </p>
                   <p className="text-xs font-bold text-[#00A8CC] uppercase tracking-wider mt-0.5">
-                    Consultant Radiologist
+                    {radiologist?.qualification || "Consultant Radiologist"}
                   </p>
                   <p className="text-[10px] font-bold text-slate-400 mt-1">
                     Reg No: {radiologist?.registrationId || "12345-MC"}
@@ -450,8 +461,31 @@ export default function ReportPreview() {
         </div>
       </div>
 
-      {/* CSS for print mode */}
+      {/* CSS for viewer and print mode */}
       <style>{`
+        .report-rendered-content {
+          text-align: justify;
+          word-break: break-word;
+          overflow-wrap: break-word;
+          font-family: 'Inter', system-ui, sans-serif;
+          font-size: 13px;
+          line-height: 1.65;
+          color: #1e293b;
+        }
+        .report-rendered-content h3 {
+          font-size: 13px;
+          font-weight: 800;
+          color: #0f172a;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-top: 14px;
+          margin-bottom: 6px;
+          padding-bottom: 2px;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .report-rendered-content p {
+          margin-bottom: 6px;
+        }
         @media print {
           @page { size: A4 portrait; margin: 0; }
           body { -webkit-print-color-adjust: exact; background: white; }

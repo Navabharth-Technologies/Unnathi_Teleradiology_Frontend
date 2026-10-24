@@ -4,7 +4,7 @@ import { Input } from "../ui/input";
 import { X, MessageCircle, Copy, Link as LinkIcon, Share2 } from "lucide-react";
 import { useState } from "react";
 
-export function ShareModal({ isOpen, onClose, study, patient, hospital }) {
+export function ShareModal({ isOpen, onClose, study, patient, hospital, onShared }) {
   const [copied, setCopied] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState("");
 
@@ -18,6 +18,7 @@ export function ShareModal({ isOpen, onClose, study, patient, hospital }) {
   const handleCopy = (text, type) => {
     navigator.clipboard.writeText(text);
     setCopied(type);
+    if (onShared) onShared();
     setTimeout(() => setCopied(null), 2000);
   };
 
@@ -31,6 +32,7 @@ export function ShareModal({ isOpen, onClose, study, patient, hospital }) {
     } else {
       window.open(`https://wa.me/?text=${encodedText}`, "_blank");
     }
+    if (onShared) onShared();
   };
 
   const modalContent = (
@@ -135,7 +137,18 @@ export function ShareModal({ isOpen, onClose, study, patient, hospital }) {
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
+        <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+          <Button
+            type="button"
+            onClick={() => {
+              if (onShared) onShared();
+              onClose();
+            }}
+            className="bg-[#0D2461] hover:bg-[#081840] text-white font-bold text-xs rounded-xl shadow-sm"
+          >
+            <Share2 className="w-3.5 h-3.5 mr-1.5" />
+            Mark Dispatched to User
+          </Button>
           <Button
             variant="outline"
             onClick={onClose}

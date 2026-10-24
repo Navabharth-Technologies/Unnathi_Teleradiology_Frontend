@@ -22,12 +22,12 @@ export function RichTextEditor({
   className = "",
 }) {
   const editorRef = useRef(null);
-  // Set initial content once if provided
+  // Sync content whenever value changes externally (e.g. template loaded)
   useEffect(() => {
-    if (editorRef.current && value && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value;
+    if (editorRef.current && editorRef.current.innerHTML !== (value || "")) {
+      editorRef.current.innerHTML = value || "";
     }
-  }, []);
+  }, [value]);
 
   const handleInput = () => {
     if (editorRef.current) {
@@ -146,18 +146,20 @@ export function RichTextEditor({
       </div>
 
       {/* Editor Content Area */}
-      <div
-        ref={editorRef}
-        className="flex-1 p-6 text-sm text-slate-800 focus:outline-none min-h-[400px] overflow-y-auto"
-        contentEditable
-        onInput={handleInput}
-        style={{ minHeight: "100%", lineHeight: "1.6" }}
-      >
+      <div className="relative flex-1 min-h-[400px]">
         {!value && (
-          <span className="text-slate-400 pointer-events-none absolute">
+          <div className="absolute top-6 left-6 text-slate-400 pointer-events-none select-none text-sm leading-relaxed">
             {placeholder}
-          </span>
+          </div>
         )}
+        <div
+          ref={editorRef}
+          className="w-full h-full p-6 text-sm text-slate-800 focus:outline-none overflow-y-auto"
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleInput}
+          style={{ minHeight: "400px", lineHeight: "1.6" }}
+        />
       </div>
     </div>
   );
