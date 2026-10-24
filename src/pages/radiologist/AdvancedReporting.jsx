@@ -484,11 +484,21 @@ export default function AdvancedReporting() {
         console.warn("Orthanc upload encountered an error:", orthancErr);
       }
 
+      // Clean series objects so rawBuffer and unneeded binary properties aren't saved to state/localStorage
+      const sanitizedSeries = (seriesList || []).map((s) => {
+        const { rawBuffer, ...rest } = s;
+        return rest;
+      });
+
       // Create new Study with real extracted series/images attached
       const caseNumber = `CAS-ZIP-${Date.now().toString().slice(-5)}`;
       const newStudy = {
         id: `st${Date.now()}`,
         patientId: patId,
+        patientName: patientName,
+        patientUHID: patientUHID,
+        age: age || 40,
+        gender: gender || "Female",
         caseNumber,
         accessionNumber: accessionNo,
         hospitalId: targetHospitalId,
@@ -503,7 +513,7 @@ export default function AdvancedReporting() {
         paymentStatus: "Unpaid",
         superAdminPaymentStatus: "Pending",
         tat: "24h",
-        series: seriesList || [],
+        series: sanitizedSeries,
         studyInstanceUID: extracted.studyInstanceUID || undefined,
         orthancStudyId: orthancStudyId || undefined,
         createdAt: new Date().toISOString(),
@@ -987,7 +997,13 @@ export default function AdvancedReporting() {
           </thead>
           <tbody className="divide-y divide-slate-100 stagger-children">
             {filteredStudies.map((study, idx) => {
-              const patient = patients.find((p) => p.id === study.patientId);
+              const patient = patients.find((p) => p.id === study.patientId) || {
+                id: study.patientId,
+                name: study.patientName || study.patient || "Patient",
+                uhid: study.patientUHID || study.uhid || "",
+                age: study.age || "",
+                gender: study.gender || "",
+              };
               const hospital = hospitals.find((h) => h.id === study.hospitalId);
               const rad = radiologists.find(
                 (r) => r.id === study.assignedRadiologistId,

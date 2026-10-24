@@ -400,6 +400,10 @@ export default function DicomReceive() {
     const newStudy = {
       id: "st" + Date.now(),
       patientId: patId,
+      patientName: fields.patientName,
+      patientUHID: fields.patientId,
+      age: parseInt(fields.age) || 0,
+      gender: fields.gender,
       caseNumber: caseNum,
       accessionNumber: fields.accessionNumber,
       hospitalId: selectedHospitalId || currentHospital?.id,
