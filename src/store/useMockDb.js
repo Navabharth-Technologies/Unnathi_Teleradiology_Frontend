@@ -30,12 +30,54 @@ const mockModalities = [
   { id: "m9", code: 16, name: "ECG", description: "Electrocardiogram" },
 ];
 
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+
+// Safe storage wrapper that gracefully catches QuotaExceededError
+// and avoids application crashes while maintaining the state in memory.
+const safeLocalStorage = {
+  getItem: (key) => {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        return window.localStorage.getItem(key);
+      }
+    } catch (e) {
+      console.warn("safeLocalStorage getItem error:", e);
+    }
+    return null;
+  },
+  setItem: (key, value) => {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
+    } catch (e) {
+      console.warn("Storage quota exceeded or write failed; keeping state in memory:", e);
+      // Attempt emergency cleanup of old legacy keys
+      try {
+        if (typeof window !== "undefined" && window.localStorage) {
+          window.localStorage.removeItem("unnathi-clean-db-v1");
+          window.localStorage.removeItem("unnathi-mock-db");
+          // Retry once after freeing legacy storage
+          window.localStorage.setItem(key, value);
+        }
+      } catch (retryErr) {
+        // Silently swallow so app continues smoothly in memory
+      }
+    }
+  },
+  removeItem: (key) => {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (e) {}
+  },
+};
 
 // Clear any stale dummy or duplicate localStorage from previous sessions
 if (typeof window !== "undefined" && window.localStorage) {
   try {
-    for (let i = 0; i <= 20; i++) {
+    for (let i = 0; i <= 25; i++) {
       window.localStorage.removeItem(`unnathi-mock-db-v${i}`);
     }
     window.localStorage.removeItem("unnathi-mock-db");
@@ -563,21 +605,27 @@ export const useMockDb = create()(
       },
     }),
     {
-      name: "unnathi-clean-db-v1",
+      name: "unnathi-clean-db-v2",
+      storage: createJSONStorage(() => safeLocalStorage),
 
       partialize: (state) => ({
         ...state,
-        studies: state.studies.map((study) => ({
+        studies: (state.studies || []).map((study) => ({
           ...study,
           series: (study.series || []).map((series) => {
             const {
               image,
               fullImage,
+              slices,
               rawBuffer,
               ...metadata
             } = series;
 
-            return metadata;
+            return {
+              ...metadata,
+              // Keep lightweight image count for Se / Img column
+              imageCount: series.imageCount || (Array.isArray(slices) ? slices.length : 1),
+            };
           }),
         })),
       }),

@@ -389,11 +389,40 @@ export default function DicomReceive() {
       patId = newPatient.id;
     }
 
-    // Clean up raw buffers for clean localStorage persistence
-    const sanitizedSeries = (extractedSeries || []).map((s) => {
+    // Clean up raw buffers for clean persistence and group slices by series
+    const seriesMap = new Map();
+    (extractedSeries || []).forEach((s) => {
       const { rawBuffer, ...rest } = s;
-      return rest;
+      const key = rest.seriesInstanceUID || rest.seriesDescription || rest.name || "SERIES_1";
+      if (!seriesMap.has(key)) {
+        seriesMap.set(key, {
+          id: seriesMap.size + 1,
+          name: (rest.seriesDescription || rest.name || `SERIES_${seriesMap.size + 1}`).toUpperCase().slice(0, 24),
+          seriesInstanceUID: rest.seriesInstanceUID,
+          seriesDescription: rest.seriesDescription,
+          studyInstanceUID: rest.studyInstanceUID,
+          image: rest.image || rest.fullImage,
+          fullImage: rest.fullImage || rest.image,
+          slices: [],
+          imageCount: 0,
+        });
+      }
+      const item = seriesMap.get(key);
+      const img = rest.fullImage || rest.image;
+      if (img) item.slices.push(img);
+      item.imageCount = item.slices.length || 1;
+      if (!item.image && img) {
+        item.image = img;
+        item.fullImage = img;
+      }
     });
+
+    const sanitizedSeries = Array.from(seriesMap.values()).map((ser) => ({
+      ...ser,
+      image: ser.slices[Math.floor(ser.slices.length / 2)] || ser.slices[0] || ser.image,
+      fullImage: ser.slices[Math.floor(ser.slices.length / 2)] || ser.slices[0] || ser.fullImage,
+      imageCount: ser.slices.length || 1,
+    }));
 
     // Create study
     const caseNum = `CAS-DICOM-${Date.now().toString().slice(-5)}`;

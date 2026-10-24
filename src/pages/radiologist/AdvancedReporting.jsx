@@ -25,6 +25,7 @@ import {
   ShieldAlert,
   Clock,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { AddHistoryModal } from "../../components/modals/AddHistoryModal";
@@ -485,10 +486,41 @@ export default function AdvancedReporting() {
       }
 
       // Clean series objects so rawBuffer and unneeded binary properties aren't saved to state/localStorage
-      const sanitizedSeries = (seriesList || []).map((s) => {
+      // Group individual slices by series to maintain correct series count and segment structure (e.g. 1/96)
+      const seriesMap = new Map();
+      (seriesList || []).forEach((s) => {
         const { rawBuffer, ...rest } = s;
-        return rest;
+        const key = rest.seriesInstanceUID || rest.seriesDescription || rest.name || "SERIES_1";
+        if (!seriesMap.has(key)) {
+          seriesMap.set(key, {
+            id: seriesMap.size + 1,
+            name: (rest.seriesDescription || rest.name || `SERIES_${seriesMap.size + 1}`).toUpperCase().slice(0, 24),
+            seriesInstanceUID: rest.seriesInstanceUID,
+            seriesDescription: rest.seriesDescription,
+            studyInstanceUID: rest.studyInstanceUID,
+            image: rest.image || rest.fullImage,
+            fullImage: rest.fullImage || rest.image,
+            slices: [],
+            imageCount: 0,
+          });
+        }
+        const item = seriesMap.get(key);
+        const img = rest.fullImage || rest.image;
+        if (img) item.slices.push(img);
+        item.imageCount = item.slices.length || 1;
+        if (!item.image && img) {
+          item.image = img;
+          item.fullImage = img;
+        }
       });
+
+      const sanitizedSeries = Array.from(seriesMap.values()).map((ser) => ({
+        ...ser,
+        // Pick representative middle slice for thumbnail
+        image: ser.slices[Math.floor(ser.slices.length / 2)] || ser.slices[0] || ser.image,
+        fullImage: ser.slices[Math.floor(ser.slices.length / 2)] || ser.slices[0] || ser.fullImage,
+        imageCount: ser.slices.length || 1,
+      }));
 
       // Create new Study with real extracted series/images attached
       const caseNumber = `CAS-ZIP-${Date.now().toString().slice(-5)}`;
