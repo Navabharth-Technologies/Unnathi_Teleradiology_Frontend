@@ -447,7 +447,8 @@ export default function DicomReceive() {
       ...ser,
       image: ser.slices[0] || ser.image,
       fullImage: ser.slices[0] || ser.fullImage,
-      imageCount: ser.slices.length || 1,
+      imageCount: ser.imageCount || ser.slices.length || 1,
+      sliceCount: ser.imageCount || ser.slices.length || 1,
     }));
 
     // Create study

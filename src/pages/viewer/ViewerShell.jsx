@@ -480,7 +480,8 @@ export default function ViewerShell() {
               image: midSlice,
               fullImage: midSlice,
               slices,
-              sliceCount: slices.length,
+              sliceCount: targetCount,
+              imageCount: targetCount,
             };
           })
           .filter((s) => s.slices.length > 0);
@@ -1139,7 +1140,7 @@ export default function ViewerShell() {
                     <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                   </div>
                   <div className="absolute bottom-1 right-1 bg-black/80 text-[10px] px-1.5 py-0.5 rounded text-amber-300 font-mono font-bold border border-slate-700">
-                    {series.slices?.length || series.sliceCount || 1}
+                    {series.imageCount || series.sliceCount || series.slices?.length || 1}
                   </div>
                 </div>
                 <div className="bg-[#1f2833] text-center py-1.5 text-[10px] font-semibold text-slate-300 truncate px-1">
