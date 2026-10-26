@@ -168,6 +168,17 @@ export default function ViewerShell() {
   useEffect(() => {
     setStudyInstanceUID("");
 
+    const isLocalhost =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname === "[::1]");
+
+    if (!isLocalhost) {
+      setOrthancSeriesList([]);
+      return;
+    }
+
     let isCancelled = false;
 
     async function queryOrthanc(level, queryObj) {
