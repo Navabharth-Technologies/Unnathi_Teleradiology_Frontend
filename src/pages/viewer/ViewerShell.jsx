@@ -49,6 +49,8 @@ import {
   X,
   Crop,
   Check,
+  Search,
+  Activity,
 } from "lucide-react";
 import { ShareModal } from "../../components/modals/ShareModal";
 import { RichTextEditor } from "../../components/ui/RichTextEditor";
@@ -124,6 +126,23 @@ export default function ViewerShell() {
   const [cropFlipH, setCropFlipH] = useState(false);
   const [cropFlipV, setCropFlipV] = useState(false);
   const [cropAspectRatio, setCropAspectRatio] = useState("Adjustable");
+
+  // Window Preset Menu (Image 1)
+  const [isWindowPresetMenuOpen, setIsWindowPresetMenuOpen] = useState(false);
+  const [activeWindowPreset, setActiveWindowPreset] = useState("Default Window");
+
+  // Transform / Orientation Menu (Image 2)
+  const [isTransformMenuOpen, setIsTransformMenuOpen] = useState(false);
+  const [imageRotation, setImageRotation] = useState(0);
+  const [imageFlipH, setImageFlipH] = useState(false);
+  const [imageFlipV, setImageFlipV] = useState(false);
+  const [imageInvert, setImageInvert] = useState(false);
+
+  // 3D Reconstruction Mode (Images 3, 4, 5)
+  const [is3DMode, setIs3DMode] = useState(false);
+  const [is3DMenuOpen, setIs3DMenuOpen] = useState(false);
+  const [selected3DPreset, setSelected3DPreset] = useState("Soft tissue");
+  const [search3DPreset, setSearch3DPreset] = useState("");
 
   const [orthancSeriesList, setOrthancSeriesList] = useState([]);
   const [studyInstanceUID, setStudyInstanceUID] = useState("");
@@ -1179,7 +1198,6 @@ export default function ViewerShell() {
             { tool: "zoom-out", Icon: ZoomOut, label: "Zoom Out" },
             { tool: "contrast", Icon: Contrast, label: "Window / Brightness Drag" },
             { tool: "crosshair", Icon: Crosshair, label: "Crosshair" },
-            { tool: "3d", Icon: BoxSelect, label: "MPR / 3D Reconstruction" },
           ].map(({ tool, Icon, label }) => (
             <button
               key={tool}
@@ -1194,6 +1212,233 @@ export default function ViewerShell() {
               <Icon className="h-3.5 w-3.5" />
             </button>
           ))}
+
+          {/* 1st Image: Window Presets Menu Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setIsWindowPresetMenuOpen((prev) => !prev);
+                setIsTransformMenuOpen(false);
+                setIs3DMenuOpen(false);
+              }}
+              title="Window / HU Presets"
+              className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${
+                isWindowPresetMenuOpen
+                  ? "bg-[#45a29e] text-[#0b0c10]"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <Contrast className="h-3.5 w-3.5" />
+            </button>
+
+            {isWindowPresetMenuOpen && (
+              <div className="absolute top-9 left-0 w-44 bg-[#1e293b]/95 border border-slate-700 rounded-lg shadow-2xl py-1 z-50 backdrop-blur-md animate-in fade-in zoom-in-95">
+                {[
+                  { label: "Default Window", w: 1500, l: -500, b: 100, c: 100, val: "" },
+                  { label: "Soft Tissue", w: 400, l: 50, b: 110, c: 130, val: "400 / 50" },
+                  { label: "Bone", w: 2000, l: 300, b: 85, c: 180, val: "2000 / 300" },
+                  { label: "Brain", w: 80, l: 40, b: 105, c: 145, val: "80 / 40" },
+                  { label: "Liver", w: 150, l: 30, b: 100, c: 135, val: "150 / 30" },
+                  { label: "Lung", w: 1600, l: -600, b: 140, c: 80, val: "1600 / 600" },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => {
+                      setActiveWindowPreset(preset.label);
+                      setBrightness(preset.b);
+                      setContrast(preset.c);
+                      setWindowLevel({ w: preset.w, l: preset.l });
+                      setIsWindowPresetMenuOpen(false);
+                    }}
+                    className={`w-full px-3 py-1.5 text-left text-xs font-medium flex items-center justify-between transition-colors ${
+                      activeWindowPreset === preset.label
+                        ? "bg-[#334155] text-white"
+                        : "text-slate-300 hover:bg-slate-700/60 hover:text-white"
+                    }`}
+                  >
+                    <span>{preset.label}</span>
+                    {preset.val && (
+                      <span className="text-[11px] font-mono text-slate-400">
+                        {preset.val}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 2nd Image: Transform / Rotate / Flip / Invert Menu */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setIsTransformMenuOpen((prev) => !prev);
+                setIsWindowPresetMenuOpen(false);
+                setIs3DMenuOpen(false);
+              }}
+              title="Transform & Orientation"
+              className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${
+                isTransformMenuOpen
+                  ? "bg-[#45a29e] text-[#0b0c10]"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <RotateCw className="h-3.5 w-3.5" />
+            </button>
+
+            {isTransformMenuOpen && (
+              <div className="absolute top-9 left-0 w-44 bg-[#1e293b]/95 border border-slate-700 rounded-lg shadow-2xl py-1 z-50 backdrop-blur-md animate-in fade-in zoom-in-95">
+                <button
+                  onClick={() => {
+                    setImageRotation((r) => (r + 90) % 360);
+                    setIsTransformMenuOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs text-slate-300 hover:bg-slate-700/60 hover:text-white flex items-center gap-2.5 transition-colors"
+                >
+                  <RotateCw className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Rotate</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setImageFlipV((v) => !v);
+                    setIsTransformMenuOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs text-slate-300 hover:bg-slate-700/60 hover:text-white flex items-center gap-2.5 transition-colors"
+                >
+                  <FlipVertical className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Flip Vertical</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setImageFlipH((h) => !h);
+                    setIsTransformMenuOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs text-slate-300 hover:bg-slate-700/60 hover:text-white flex items-center gap-2.5 transition-colors"
+                >
+                  <FlipHorizontal className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Flip Horizontal</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setImageInvert((inv) => !inv);
+                    setIsTransformMenuOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs text-slate-300 hover:bg-slate-700/60 hover:text-white flex items-center gap-2.5 transition-colors"
+                >
+                  <Contrast className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Invert</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 3rd, 4th, 5th Images: 3D Reconstruction Button & Presets */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                const nextState = !is3DMode;
+                setIs3DMode(nextState);
+                if (nextState) {
+                  setIs3DMenuOpen(true);
+                  setIsWindowPresetMenuOpen(false);
+                  setIsTransformMenuOpen(false);
+                } else {
+                  setIs3DMenuOpen(false);
+                }
+              }}
+              title="3D Volume Reconstruction"
+              className={`h-7 px-2.5 rounded text-xs font-bold flex items-center gap-1.5 transition-all ${
+                is3DMode
+                  ? "bg-[#45a29e] text-slate-950 shadow-md shadow-[#45a29e]/20"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <BoxSelect className="h-3.5 w-3.5" />
+              <span>3D</span>
+            </button>
+          </div>
+
+          {/* When 3D mode is active, display the 3D Preset Dropdown bar right in the header (Images 3, 4, 5) */}
+          {is3DMode && (
+            <div className="relative flex items-center">
+              <button
+                onClick={() => setIs3DMenuOpen((prev) => !prev)}
+                className="flex items-center justify-between w-48 px-3 py-1 bg-white text-slate-800 rounded-md text-xs font-semibold shadow border border-slate-300 hover:bg-slate-50 transition-colors"
+              >
+                <span className="truncate">{selected3DPreset}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500 ml-1.5 shrink-0" />
+              </button>
+
+              <button
+                onClick={() => setIs3DMode(false)}
+                title="Exit 3D Mode"
+                className="ml-1.5 p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+              </button>
+
+              {/* 4th Image: 3D Preset Dropdown with Search & Scrollable Options */}
+              {is3DMenuOpen && (
+                <div className="absolute top-9 left-0 w-52 bg-[#2d3748] border border-slate-600 rounded-lg shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95">
+                  {/* Search Input Box */}
+                  <div className="px-2 py-1.5 border-b border-slate-600/70">
+                    <div className="flex items-center bg-white rounded px-2 py-1">
+                      <input
+                        type="text"
+                        placeholder="Search presets..."
+                        value={search3DPreset}
+                        onChange={(e) => setSearch3DPreset(e.target.value)}
+                        className="w-full text-xs text-slate-800 bg-transparent focus:outline-none"
+                        autoFocus
+                      />
+                      <Search className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                  </div>
+
+                  {/* Preset List */}
+                  <div className="max-h-56 overflow-y-auto custom-scrollbar py-1">
+                    {[
+                      "Soft tissue",
+                      "CT - Bones",
+                      "CT - Bones & Skin",
+                      "CT - Bones (glossy)",
+                      "CT - Colonoscopy",
+                      "CT - Default",
+                      "CT - Endoscopy",
+                      "CT - Fat",
+                      "CT - Muscle",
+                      "CT - Pulmonary",
+                      "CT - Vessel",
+                      "MR - Angio",
+                      "MR - Default",
+                      "MR - T2 Brain",
+                    ]
+                      .filter((p) =>
+                        p.toLowerCase().includes(search3DPreset.toLowerCase())
+                      )
+                      .map((preset) => (
+                        <button
+                          key={preset}
+                          onClick={() => {
+                            setSelected3DPreset(preset);
+                            setIs3DMenuOpen(false);
+                          }}
+                          className={`w-full px-3 py-1.5 text-left text-xs font-medium transition-colors ${
+                            selected3DPreset === preset
+                              ? "bg-[#4a5568] text-white font-semibold"
+                              : "text-slate-200 hover:bg-[#3b4759] hover:text-white"
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="h-5 w-px bg-slate-700 mx-1"></div>
 
           {/* Kin's Cloud Windowing / Brightness Presets & Quick Sliders */}
           <div className="flex items-center bg-[#161f2e] border border-[#2c3b52] rounded px-1.5 py-0.5 space-x-1">
@@ -1346,12 +1591,6 @@ export default function ViewerShell() {
             className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:bg-slate-800 hover:text-white"
           >
             <TypeIcon className="h-3.5 w-3.5" />
-          </button>
-          <button
-            title="Rotate 90°"
-            className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:bg-slate-800 hover:text-white"
-          >
-            <RotateCw className="h-3.5 w-3.5" />
           </button>
         </div>
 
@@ -1642,10 +1881,31 @@ export default function ViewerShell() {
                         src={sliceUrl}
                         alt="DICOM Scan"
                         style={{
-                          transform: `scale(${zoom / 100})`,
-                          filter: `brightness(${brightness}%) contrast(${contrast}%)`,
-                          transition: "none",
-                          imageRendering: "auto",
+                          transform: `scale(${zoom / 100}) rotate(${imageRotation}deg) scaleX(${imageFlipH ? -1 : 1}) scaleY(${imageFlipV ? -1 : 1})`,
+                          filter: (() => {
+                            let f = `brightness(${brightness}%) contrast(${contrast}%)`;
+                            if (imageInvert) f += " invert(100%)";
+                            if (is3DMode) {
+                              if (selected3DPreset === "Soft tissue") {
+                                // 3rd and 4th images: warm copper / soft-tissue 3D volumetric tint
+                                f += " sepia(85%) hue-rotate(330deg) saturate(240%) brightness(105%) contrast(140%)";
+                              } else if (selected3DPreset === "CT - Bones & Skin") {
+                                // 5th image: bronze core with cyan / teal perimeter edge tint
+                                f += " sepia(80%) hue-rotate(150deg) saturate(280%) contrast(160%) brightness(110%)";
+                              } else if (selected3DPreset.includes("Bones")) {
+                                f += " sepia(60%) hue-rotate(15deg) saturate(180%) contrast(175%) brightness(115%)";
+                              } else if (selected3DPreset.includes("Pulmonary") || selected3DPreset.includes("Lung")) {
+                                f += " hue-rotate(190deg) saturate(220%) contrast(140%) brightness(110%)";
+                              } else if (selected3DPreset.includes("Angio") || selected3DPreset.includes("Vessel")) {
+                                f += " sepia(90%) hue-rotate(310deg) saturate(320%) contrast(170%) brightness(105%)";
+                              } else {
+                                f += " sepia(70%) hue-rotate(340deg) saturate(200%) contrast(130%)";
+                              }
+                            }
+                            return f;
+                          })(),
+                          transition: "filter 0.25s ease, transform 0.2s ease",
+                          imageRendering: is3DMode ? "auto" : "auto",
                         }}
                         className="w-full h-full max-h-full max-w-full object-contain pointer-events-none select-none p-2"
                       />
