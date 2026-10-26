@@ -216,6 +216,7 @@ export async function extractDicomArchive(file, JSZip) {
               studyInstanceUID: getIdentifierTag("x0020000d"),
               seriesInstanceUID: getIdentifierTag("x0020000e"),
               seriesDescription: getIdentifierTag("x0008103e"),
+              seriesNumber: getIdentifierTag("x00200011"),
               sopInstanceUID: getIdentifierTag("x00080018"),
               instanceNumber: getIdentifierTag("x00200013"),
               numberOfFrames,
@@ -273,46 +274,64 @@ export async function extractDicomArchive(file, JSZip) {
             }
           }
 
-          // Render slice(s) to visual data URL (supports both single-frame and multi-frame DICOM files)
-          if (seriesList.length < 250) {
-            const sDesc = dicomIdentifiers.seriesDescription || fileNameOnly;
-            if (numberOfFrames > 1) {
-              // Extract frames from multi-frame DICOM (up to numberOfFrames)
-              const slices = [];
-              const midFrame = Math.floor(numberOfFrames / 2);
-              let previewUrl = null;
+          // Extract folder or series metadata
+          const pathSegments = relativePath.split("/").filter(Boolean);
+          const folderName = pathSegments.length > 1 ? pathSegments[pathSegments.length - 2] : "";
+          const sDesc =
+            dicomIdentifiers.seriesDescription ||
+            (folderName && !folderName.toLowerCase().includes("dicom") ? folderName : "") ||
+            fileNameOnly;
 
-              for (let f = 0; f < numberOfFrames; f++) {
-                const fUrl = await renderDicomToDataUrl(buffer, f);
-                if (fUrl) {
-                  slices.push(fUrl);
-                  if (f === midFrame || !previewUrl) {
-                    previewUrl = fUrl;
-                  }
+          const seriesKey =
+            dicomIdentifiers.seriesInstanceUID ||
+            (dicomIdentifiers.seriesNumber ? `SERIES_${dicomIdentifiers.seriesNumber}` : "") ||
+            (dicomIdentifiers.seriesDescription ? dicomIdentifiers.seriesDescription : "") ||
+            folderName ||
+            "SERIES_1";
+
+          if (numberOfFrames > 1) {
+            // Multi-frame DICOM
+            const slices = [];
+            const midFrame = Math.floor(numberOfFrames / 2);
+            let previewUrl = null;
+
+            for (let f = 0; f < numberOfFrames; f++) {
+              const fUrl = await renderDicomToDataUrl(buffer, f);
+              if (fUrl) {
+                slices.push(fUrl);
+                if (f === midFrame || !previewUrl) {
+                  previewUrl = fUrl;
                 }
               }
+            }
 
-              seriesList.push({
-                id: seriesList.length + 1,
-                name: sDesc.toUpperCase().slice(0, 24) || `SCAN_${seriesList.length + 1}`,
-                image: previewUrl || slices[0] || null,
-                fullImage: previewUrl || slices[0] || null,
-                slices: slices.length > 0 ? slices : undefined,
-                imageCount: numberOfFrames,
-                numberOfFrames: numberOfFrames,
-                rawBuffer: buffer,
-                studyInstanceUID: dicomIdentifiers.studyInstanceUID,
-                seriesInstanceUID: dicomIdentifiers.seriesInstanceUID,
-                seriesDescription: dicomIdentifiers.seriesDescription,
-                sopInstanceUID: dicomIdentifiers.sopInstanceUID,
-                instanceNumber: dicomIdentifiers.instanceNumber,
-              });
-            } else {
+            seriesList.push({
+              id: seriesList.length + 1,
+              seriesKey,
+              name: sDesc.toUpperCase().slice(0, 24) || `SERIES ${seriesList.length + 1}`,
+              image: previewUrl || slices[0] || null,
+              fullImage: previewUrl || slices[0] || null,
+              slices: slices.length > 0 ? slices : undefined,
+              imageCount: numberOfFrames,
+              numberOfFrames: numberOfFrames,
+              rawBuffer: buffer,
+              studyInstanceUID: dicomIdentifiers.studyInstanceUID,
+              seriesInstanceUID: dicomIdentifiers.seriesInstanceUID,
+              seriesDescription: dicomIdentifiers.seriesDescription,
+              sopInstanceUID: dicomIdentifiers.sopInstanceUID,
+              instanceNumber: dicomIdentifiers.instanceNumber,
+              seriesNumber: dicomIdentifiers.seriesNumber,
+            });
+          } else {
+            // Single-frame slice: extract image
+            // Allow extracting slices across all series (up to 1500 slices total)
+            if (seriesList.length < 1500) {
               const renderedUrl = await renderDicomToDataUrl(buffer, 0);
               if (renderedUrl) {
                 seriesList.push({
                   id: seriesList.length + 1,
-                  name: sDesc.toUpperCase().slice(0, 24) || `SCAN_${seriesList.length + 1}`,
+                  seriesKey,
+                  name: sDesc.toUpperCase().slice(0, 24) || `SERIES ${seriesList.length + 1}`,
                   image: renderedUrl,
                   fullImage: renderedUrl,
                   slices: [renderedUrl],
@@ -324,6 +343,7 @@ export async function extractDicomArchive(file, JSZip) {
                   seriesDescription: dicomIdentifiers.seriesDescription,
                   sopInstanceUID: dicomIdentifiers.sopInstanceUID,
                   instanceNumber: dicomIdentifiers.instanceNumber,
+                  seriesNumber: dicomIdentifiers.seriesNumber,
                 });
               }
             }

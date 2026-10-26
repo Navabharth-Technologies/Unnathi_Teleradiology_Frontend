@@ -504,13 +504,20 @@ export default function AdvancedReporting() {
       const seriesMap = new Map();
       (seriesList || []).forEach((s) => {
         const { rawBuffer, ...rest } = s;
-        const key = rest.seriesInstanceUID || rest.seriesDescription || rest.name || "SERIES_1";
+        const key =
+          rest.seriesKey ||
+          rest.seriesInstanceUID ||
+          (rest.seriesNumber ? `SERIES_${rest.seriesNumber}` : "") ||
+          rest.seriesDescription ||
+          rest.name ||
+          "SERIES_1";
         if (!seriesMap.has(key)) {
           seriesMap.set(key, {
             id: seriesMap.size + 1,
             name: (rest.seriesDescription || rest.name || `SERIES_${seriesMap.size + 1}`).toUpperCase().slice(0, 24),
             seriesInstanceUID: rest.seriesInstanceUID,
             seriesDescription: rest.seriesDescription,
+            seriesNumber: rest.seriesNumber,
             studyInstanceUID: rest.studyInstanceUID,
             image: rest.image || rest.fullImage,
             fullImage: rest.fullImage || rest.image,
@@ -536,9 +543,9 @@ export default function AdvancedReporting() {
 
       const sanitizedSeries = Array.from(seriesMap.values()).map((ser) => ({
         ...ser,
-        // Pick representative middle slice for thumbnail
-        image: ser.slices[Math.floor(ser.slices.length / 2)] || ser.slices[0] || ser.image,
-        fullImage: ser.slices[Math.floor(ser.slices.length / 2)] || ser.slices[0] || ser.fullImage,
+        // Pick first slice for thumbnail and default view
+        image: ser.slices[0] || ser.image,
+        fullImage: ser.slices[0] || ser.fullImage,
         imageCount: ser.slices.length || 1,
       }));
 
