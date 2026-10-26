@@ -1,6 +1,13 @@
 import { create } from "zustand";
 import axios from "axios";
-const API_URL = "http://localhost:5000/api";
+
+const isLocalhost =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "[::1]");
+
+const API_URL = isLocalhost ? "http://localhost:5000/api" : null;
 
 const mockSites = [];
 
@@ -232,6 +239,7 @@ export const useMockDb = create()(
       postpaidSettlements: [],
 
       fetchData: async () => {
+        if (!API_URL) return;
         try {
           const [
             sitesRes,
@@ -480,20 +488,24 @@ export const useMockDb = create()(
         return null;
       },
       addStudy: async (study) => {
-        try {
-          await axios.post(`${API_URL}/studies`, study);
-        } catch (e) {
-          console.error("API error adding study:", e);
+        if (API_URL) {
+          try {
+            await axios.post(`${API_URL}/studies`, study);
+          } catch (e) {
+            console.error("API error adding study:", e);
+          }
         }
         set((state) => ({
           studies: [...state.studies.filter((s) => s.id !== study.id), study],
         }));
       },
       updateStudy: async (id, data) => {
-        try {
-          await axios.put(`${API_URL}/studies/${id}`, data);
-        } catch (e) {
-          console.error("API error updating study:", e);
+        if (API_URL) {
+          try {
+            await axios.put(`${API_URL}/studies/${id}`, data);
+          } catch (e) {
+            console.error("API error updating study:", e);
+          }
         }
         set((state) => ({
           studies: state.studies.map((s) =>
