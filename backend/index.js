@@ -6,8 +6,8 @@ const { sql, connectDB } = require('./db');
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ limit: '200mb', extended: true }));
 
 // Basic health check endpoint
 app.get('/api/health', (req, res) => {
@@ -195,6 +195,18 @@ Object.entries(routeToTableMap).forEach(([routeName, tableName]) => {
 
       if (checkRes.recordset.length === 0) {
         // Record does not exist, INSERT
+        // Ensure all non-nullable columns have values
+        Object.keys(validColsMap).forEach((colLower) => {
+          const colInfo = validColsMap[colLower];
+          if (!colInfo.isNullable && body[colInfo.name] === undefined && body[colLower] === undefined) {
+            if (colLower === 'patientid') body[colInfo.name] = body.patientId || `p${Date.now()}`;
+            else if (colLower === 'casenumber') body[colInfo.name] = `CAS-${Date.now().toString().slice(-5)}`;
+            else if (colLower === 'accessionnumber') body[colInfo.name] = `ACC-${Date.now().toString().slice(-5)}`;
+            else if (colLower === 'hospitalid') body[colInfo.name] = 'h1';
+            else body[colInfo.name] = '';
+          }
+        });
+
         const insertKeys = Object.keys(body).filter(k => validColsMap[k.toLowerCase()]);
         const request = pool.request();
         let query = `INSERT INTO ${tableName} (`;
