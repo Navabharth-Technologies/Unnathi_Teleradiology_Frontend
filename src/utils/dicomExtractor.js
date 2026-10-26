@@ -5,7 +5,7 @@ import daikon from "daikon";
  * Converts a decoded DICOM image into a browser-renderable Data URL (JPEG/PNG) via HTML Canvas.
  * Supports both uncompressed grayscale/RGB and encapsulated/JPEG frames.
  */
-export async function renderDicomToDataUrl(arrayBuffer) {
+export async function renderDicomToDataUrl(arrayBuffer, frameIndex = 0) {
   try {
     // 1. Try Daikon parser for direct interpreted pixel data
     const daikonParser = new (daikon.default?.Parser || daikon.Parser)();
@@ -17,7 +17,7 @@ export async function renderDicomToDataUrl(arrayBuffer) {
       const rows = dImg.getRows();
 
       if (cols > 0 && rows > 0) {
-        const interp = dImg.getInterpretedData(false, false, 0);
+        const interp = dImg.getInterpretedData(false, false, frameIndex);
         if (interp && interp.length >= cols * rows) {
           let min = dImg.getImageMin?.();
           let max = dImg.getImageMax?.();
@@ -176,6 +176,7 @@ export async function extractDicomArchive(file, JSZip) {
             instanceNumber: "",
           };
 
+          let numberOfFrames = 1;
           try {
             const parser = dicomParser.default ?? dicomParser;
             const ds = parser.parseDicom(byteArray);
@@ -188,12 +189,21 @@ export async function extractDicomArchive(file, JSZip) {
               }
             };
 
+            const rawFrames = getIdentifierTag("x00280008");
+            if (rawFrames) {
+              const parsedFrames = parseInt(rawFrames);
+              if (!isNaN(parsedFrames) && parsedFrames > 1) {
+                numberOfFrames = parsedFrames;
+              }
+            }
+
             dicomIdentifiers = {
               studyInstanceUID: getIdentifierTag("x0020000d"),
               seriesInstanceUID: getIdentifierTag("x0020000e"),
               seriesDescription: getIdentifierTag("x0008103e"),
               sopInstanceUID: getIdentifierTag("x00080018"),
               instanceNumber: getIdentifierTag("x00200013"),
+              numberOfFrames,
             };
           } catch (identifierErr) {
             console.warn("DICOM identifier extraction error:", identifierErr);
@@ -248,16 +258,33 @@ export async function extractDicomArchive(file, JSZip) {
             }
           }
 
-          // Render slice to visual data URL (keep visual preview sample up to 100 slices)
-          if (seriesList.length < 100) {
-            const renderedUrl = await renderDicomToDataUrl(buffer);
-            if (renderedUrl) {
-              const sDesc = dicomIdentifiers.seriesDescription || fileNameOnly;
+          // Render slice(s) to visual data URL (supports both single-frame and multi-frame DICOM files)
+          if (seriesList.length < 250) {
+            const sDesc = dicomIdentifiers.seriesDescription || fileNameOnly;
+            if (numberOfFrames > 1) {
+              // Extract frames from multi-frame DICOM (up to numberOfFrames)
+              const slices = [];
+              const midFrame = Math.floor(numberOfFrames / 2);
+              let previewUrl = null;
+
+              for (let f = 0; f < numberOfFrames; f++) {
+                const fUrl = await renderDicomToDataUrl(buffer, f);
+                if (fUrl) {
+                  slices.push(fUrl);
+                  if (f === midFrame || !previewUrl) {
+                    previewUrl = fUrl;
+                  }
+                }
+              }
+
               seriesList.push({
                 id: seriesList.length + 1,
                 name: sDesc.toUpperCase().slice(0, 24) || `SCAN_${seriesList.length + 1}`,
-                image: renderedUrl,
-                fullImage: renderedUrl,
+                image: previewUrl || slices[0] || null,
+                fullImage: previewUrl || slices[0] || null,
+                slices: slices.length > 0 ? slices : undefined,
+                imageCount: numberOfFrames,
+                numberOfFrames: numberOfFrames,
                 rawBuffer: buffer,
                 studyInstanceUID: dicomIdentifiers.studyInstanceUID,
                 seriesInstanceUID: dicomIdentifiers.seriesInstanceUID,
@@ -265,6 +292,25 @@ export async function extractDicomArchive(file, JSZip) {
                 sopInstanceUID: dicomIdentifiers.sopInstanceUID,
                 instanceNumber: dicomIdentifiers.instanceNumber,
               });
+            } else {
+              const renderedUrl = await renderDicomToDataUrl(buffer, 0);
+              if (renderedUrl) {
+                seriesList.push({
+                  id: seriesList.length + 1,
+                  name: sDesc.toUpperCase().slice(0, 24) || `SCAN_${seriesList.length + 1}`,
+                  image: renderedUrl,
+                  fullImage: renderedUrl,
+                  slices: [renderedUrl],
+                  imageCount: 1,
+                  numberOfFrames: 1,
+                  rawBuffer: buffer,
+                  studyInstanceUID: dicomIdentifiers.studyInstanceUID,
+                  seriesInstanceUID: dicomIdentifiers.seriesInstanceUID,
+                  seriesDescription: dicomIdentifiers.seriesDescription,
+                  sopInstanceUID: dicomIdentifiers.sopInstanceUID,
+                  instanceNumber: dicomIdentifiers.instanceNumber,
+                });
+              }
             }
           }
         }

@@ -108,6 +108,7 @@ export default function ViewerShell() {
     st1791976917581: "1bde1b16-8089af90-eb031297-fc3642fb-8b060c04", // Sarojamma (MR L-Spine)
     st1792817515327: "83b20b0e-7a76959f-e0803e12-d138e310-b097b511", // Kulashekar (MR L-Spine)
     st1792836411957: "83b20b0e-7a76959f-e0803e12-d138e310-b097b511", // Kulashekar (MR L-Spine)
+    st1792835901634: "e8835bdb-37a3d7d6-6b6971b0-b24d07fb-a242c6f3", // Vageesha B (MR Shoulder)
   };
 
   const isKulashekarStudy = useMemo(() => {
@@ -167,6 +168,33 @@ export default function ViewerShell() {
 
     let isCancelled = false;
 
+    async function queryOrthanc(level, queryObj) {
+      try {
+        const bodyStr = JSON.stringify({ Level: level, Query: queryObj });
+        const res = await fetch("/orthanc-pacs/tools/find", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: bodyStr,
+        }).catch(() =>
+          fetch("http://localhost:8042/tools/find", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: bodyStr,
+          }).catch(() => null)
+        );
+
+        if (res && res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list) && list.length > 0) {
+            return list[0];
+          }
+        }
+      } catch {
+        // Ignore and continue fallback
+      }
+      return null;
+    }
+
     async function resolveAndLoadOrthancStudy() {
       let fetchStudyId =
         study?.orthancStudyId ||
@@ -174,49 +202,40 @@ export default function ViewerShell() {
         KNOWN_ORTHANC_STUDIES[study?.id] ||
         KNOWN_ORTHANC_STUDIES[id];
 
-      // Auto-discover study in Orthanc if not explicitly mapped
+      // Auto-discover study in Orthanc universally if not explicitly mapped
       if (!fetchStudyId) {
         try {
-          const studyUID =
-            study?.studyInstanceUID ||
-            study?.series?.[0]?.studyInstanceUID;
+          // 1. Match by PatientID / UHID
+          const patientIdQuery = patient?.uhid || study?.patientUHID || patient?.id;
+          if (patientIdQuery) {
+            fetchStudyId = await queryOrthanc("Study", { PatientID: patientIdQuery });
+          }
 
-          if (studyUID) {
-            const findRes = await fetch("/orthanc-pacs/tools/find", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                Level: "Study",
-                Query: { StudyInstanceUID: studyUID },
-              }),
-            }).catch(() => null);
-
-            if (findRes && findRes.ok) {
-              const matched = await findRes.json();
-              if (Array.isArray(matched) && matched.length > 0) {
-                fetchStudyId = matched[0];
-              }
+          // 2. Match by StudyInstanceUID
+          if (!fetchStudyId) {
+            const studyUID =
+              study?.studyInstanceUID ||
+              study?.series?.[0]?.studyInstanceUID;
+            if (studyUID) {
+              fetchStudyId = await queryOrthanc("Study", { StudyInstanceUID: studyUID });
             }
           }
 
-          if (!fetchStudyId && patient?.name) {
-            const nameQuery = patient.name.replace(/[^\w\s]/g, "").trim().split(" ")[0];
-            if (nameQuery) {
-              const findRes = await fetch("/orthanc-pacs/tools/find", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  Level: "Study",
-                  Query: { PatientName: `*${nameQuery}*` },
-                }),
-              }).catch(() => null);
+          // 3. Match by Accession Number
+          if (!fetchStudyId) {
+            const acc = study?.accessionNumber || study?.caseNumber;
+            if (acc) {
+              fetchStudyId = await queryOrthanc("Study", { AccessionNumber: acc });
+            }
+          }
 
-              if (findRes && findRes.ok) {
-                const matched = await findRes.json();
-                if (Array.isArray(matched) && matched.length > 0) {
-                  fetchStudyId = matched[0];
-                }
-              }
+          // 4. Match by PatientName
+          if (!fetchStudyId && (patient?.name || study?.patientName)) {
+            const rawName = patient?.name || study?.patientName || "";
+            const nameTokens = rawName.replace(/[^\w\s]/g, "").trim().split(/\s+/).filter(Boolean);
+            const nameQuery = nameTokens[0];
+            if (nameQuery) {
+              fetchStudyId = await queryOrthanc("Study", { PatientName: `*${nameQuery}*` });
             }
           }
         } catch (findErr) {
@@ -457,12 +476,21 @@ export default function ViewerShell() {
         seriesMap.get(seriesKey).slices.push(imgUrl);
       });
 
-      const grouped = Array.from(seriesMap.values()).map((g) => ({
-        ...g,
-        image: g.slices[Math.floor(g.slices.length / 2)] || g.slices[0],
-        fullImage: g.slices[Math.floor(g.slices.length / 2)] || g.slices[0],
-        sliceCount: g.slices.length,
-      }));
+      const grouped = Array.from(seriesMap.values()).map((g) => {
+        const rawCount = g.slices.length;
+        const targetCount = g.sliceCount || g.imageCount || rawCount;
+        let finalSlices = g.slices;
+        if (rawCount === 1 && targetCount > 1) {
+          finalSlices = Array.from({ length: targetCount }, () => g.slices[0]);
+        }
+        return {
+          ...g,
+          image: finalSlices[Math.floor(finalSlices.length / 2)] || finalSlices[0],
+          fullImage: finalSlices[Math.floor(finalSlices.length / 2)] || finalSlices[0],
+          sliceCount: finalSlices.length,
+          slices: finalSlices,
+        };
+      });
 
       if (grouped.length > 0) {
         return grouped;
@@ -517,10 +545,11 @@ export default function ViewerShell() {
       study?.orthancStudyId ||
       study?.orthancId ||
       KNOWN_ORTHANC_STUDIES[study?.id] ||
-      KNOWN_ORTHANC_STUDIES[id] ||
-      null;
-    setActiveOrthancId(oId);
-  }, [study?.id, study?.orthancStudyId, id]);
+      KNOWN_ORTHANC_STUDIES[id];
+    if (oId) {
+      setActiveOrthancId(oId);
+    }
+  }, [study?.id, study?.orthancStudyId, study?.orthancId, id]);
 
   useEffect(() => {
     if (study) {
@@ -1252,15 +1281,15 @@ export default function ViewerShell() {
 
                       {/* DICOM Meta Overlays (Corners) - Exact Kin's Cloud PACS HUD */}
                       <div className="absolute top-3 left-3 max-w-[45%] text-xs font-mono text-emerald-400/90 space-y-0.5 pointer-events-none drop-shadow">
-                        <div className="font-bold tracking-wider">{study?.modality || "MRI"}</div>
-                        <div className="truncate">{study?.accessionNumber || study?.caseNumber || "69533"}</div>
-                        <div className="uppercase font-bold truncate">{patient?.name || "KULASHEKAR 42YM"}</div>
-                        <div>{patient?.age || "42"}Y / {patient?.gender === "Female" ? "F" : "M"}</div>
+                        <div className="font-bold tracking-wider">{study?.modality || "MR"}</div>
+                        <div className="truncate">{patient?.uhid || study?.patientUHID || study?.accessionNumber || study?.caseNumber || "69541"}</div>
+                        <div className="uppercase font-bold truncate">{patient?.name || study?.patientName || "PATIENT"}</div>
+                        <div>{patient?.age || study?.age || "0"}Y / {(patient?.gender || study?.gender || "M").toString().toUpperCase().startsWith("F") ? "F" : "M"}</div>
                       </div>
 
                       <div className="absolute top-3 right-8 max-w-[45%] text-xs font-mono text-emerald-400/90 text-right space-y-0.5 pointer-events-none drop-shadow">
                         <div>{(study?.studyDate || new Date().toISOString()).split("T")[0]}</div>
-                        <div className="uppercase truncate">{study?.studyDescription || "Ispine Lifecare"}</div>
+                        <div className="uppercase truncate">{study?.studyDescription || study?.bodyPart || "DIAGNOSTIC SCAN"}</div>
                         <div className="font-semibold text-cyan-300 truncate">{curSeries?.name?.replace(/_/g, "") || "SERIES"}</div>
                         <div className="font-bold text-amber-300">
                           Img : {activeSlice + 1} / {totalSlices}

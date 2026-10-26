@@ -408,12 +408,18 @@ export default function DicomReceive() {
         });
       }
       const item = seriesMap.get(key);
-      const img = rest.fullImage || rest.image;
-      if (img) item.slices.push(img);
-      item.imageCount = item.slices.length || 1;
-      if (!item.image && img) {
-        item.image = img;
-        item.fullImage = img;
+      if (Array.isArray(rest.slices) && rest.slices.length > 0) {
+        rest.slices.forEach((sliceUrl) => {
+          if (sliceUrl) item.slices.push(sliceUrl);
+        });
+      } else {
+        const img = rest.fullImage || rest.image;
+        if (img) item.slices.push(img);
+      }
+      item.imageCount = item.slices.length || rest.imageCount || 1;
+      if (!item.image && (rest.image || rest.fullImage)) {
+        item.image = rest.image || rest.fullImage;
+        item.fullImage = rest.fullImage || rest.image;
       }
     });
 
