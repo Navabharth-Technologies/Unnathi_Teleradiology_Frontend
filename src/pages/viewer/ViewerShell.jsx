@@ -146,7 +146,13 @@ export default function ViewerShell() {
       KNOWN_ORTHANC_STUDIES[localStudy?.id] ||
       KNOWN_ORTHANC_STUDIES[id];
 
-    if (!hasImages && !isOrthancKnown) {
+    const isLocalhost =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname === "[::1]");
+
+    if (!hasImages && !isOrthancKnown && isLocalhost) {
       setIsLoadingStudy(true);
       fetch(`/api/studies/${id}`)
         .then((res) => (res.ok ? res.json() : fetch(`http://localhost:5000/api/studies/${id}`).then((r) => r.json())))
@@ -552,13 +558,11 @@ export default function ViewerShell() {
     return () => clearInterval(interval);
   }, [isPlayingCine, cineFps, activeSeries, activeSeriesList]);
 
-  // Reset slice index when active series changes
+  // Reset slice index to 0 (image 1) when active series changes
   const handleSelectSeries = (index) => {
     setActiveSeries(index);
     setViewerEngine("native");
-    const s = activeSeriesList[index];
-    const total = s?.slices?.length || 1;
-    setActiveSlice(Math.floor(total / 2));
+    setActiveSlice(0);
   };
 
   useEffect(() => {
@@ -1296,8 +1300,9 @@ export default function ViewerShell() {
                           transform: `scale(${zoom / 100})`,
                           filter: `brightness(${brightness}%) contrast(${contrast}%)`,
                           transition: "none",
+                          imageRendering: "auto",
                         }}
-                        className="max-h-full max-w-full object-contain pointer-events-none select-none"
+                        className="w-full h-full max-h-full max-w-full object-contain pointer-events-none select-none p-2"
                       />
 
                       {/* DICOM Meta Overlays (Corners) - Exact Kin's Cloud PACS HUD */}

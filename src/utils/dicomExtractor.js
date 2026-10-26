@@ -19,20 +19,35 @@ export async function renderDicomToDataUrl(arrayBuffer, frameIndex = 0) {
       if (cols > 0 && rows > 0) {
         const interp = dImg.getInterpretedData(false, false, frameIndex);
         if (interp && interp.length >= cols * rows) {
-          let min = dImg.getImageMin?.();
-          let max = dImg.getImageMax?.();
+          let minVal;
+          let maxVal;
 
-          if (min === undefined || max === undefined || min === max) {
-            min = Infinity;
-            max = -Infinity;
-            for (let i = 0; i < interp.length; i++) {
-              const val = interp[i];
-              if (val < min) min = val;
-              if (val > max) max = val;
+          // Check if WindowCenter and WindowWidth are present in DICOM header
+          const wc = dImg.getWindowCenter?.();
+          const ww = dImg.getWindowWidth?.();
+
+          if (wc !== undefined && ww !== undefined && ww > 1) {
+            // Apply authentic radiological window leveling (e.g. CT/MR Window)
+            minVal = wc - ww / 2;
+            maxVal = wc + ww / 2;
+          } else {
+            let min = dImg.getImageMin?.();
+            let max = dImg.getImageMax?.();
+
+            if (min === undefined || max === undefined || min === max) {
+              min = Infinity;
+              max = -Infinity;
+              for (let i = 0; i < interp.length; i++) {
+                const val = interp[i];
+                if (val < min) min = val;
+                if (val > max) max = val;
+              }
             }
+            minVal = min;
+            maxVal = max;
           }
 
-          const range = max - min || 1;
+          const range = maxVal - minVal || 1;
 
           if (typeof document !== "undefined") {
             const canvas = document.createElement("canvas");
@@ -53,7 +68,7 @@ export async function renderDicomToDataUrl(arrayBuffer, frameIndex = 0) {
               }
             } else {
               for (let i = 0, j = 0; i < cols * rows; i++, j += 4) {
-                const norm = Math.min(255, Math.max(0, Math.round(((interp[i] - min) / range) * 255)));
+                const norm = Math.min(255, Math.max(0, Math.round(((interp[i] - minVal) / range) * 255)));
                 data[j] = norm;
                 data[j + 1] = norm;
                 data[j + 2] = norm;
@@ -62,7 +77,7 @@ export async function renderDicomToDataUrl(arrayBuffer, frameIndex = 0) {
             }
 
             ctx.putImageData(imgData, 0, 0);
-            return canvas.toDataURL("image/jpeg", 0.92);
+            return canvas.toDataURL("image/jpeg", 0.95);
           }
         }
       }
