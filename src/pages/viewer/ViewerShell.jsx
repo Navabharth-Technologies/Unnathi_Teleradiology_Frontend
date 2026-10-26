@@ -110,6 +110,7 @@ export default function ViewerShell() {
     st1792836411957: "83b20b0e-7a76959f-e0803e12-d138e310-b097b511", // Kulashekar (MR L-Spine)
     st1792835901634: "e8835bdb-37a3d7d6-6b6971b0-b24d07fb-a242c6f3", // Vageesha B (MR Shoulder)
     st1792997606100: "57e93f80-2b87cd20-5dd30758-b760eb3e-35984471", // Mr Nagendra (CT Hips)
+    st1793000349220: "57e93f80-2b87cd20-5dd30758-b760eb3e-35984471", // Mr Nagendra (CT Hips)
   };
 
   const isKulashekarStudy = useMemo(() => {
@@ -439,7 +440,7 @@ export default function ViewerShell() {
       if (hasPreformedSlices) {
         return study.series
           .map((s, idx) => {
-            const slices = (s.slices || []).filter(
+            let slices = (s.slices || []).filter(
               (url) => typeof url === "string" && url.length > 0
             );
 
@@ -449,11 +450,18 @@ export default function ViewerShell() {
               slices.push(fallbackImage);
             }
 
+            const targetCount = s.imageCount || s.sliceCount || slices.length;
+            if (slices.length === 1 && targetCount > 1) {
+              slices = Array.from({ length: targetCount }, () => slices[0]);
+            }
+
+            const midSlice = slices[Math.floor(slices.length / 2)] || slices[0] || fallbackImage || null;
+
             return {
               id: s.id ?? idx + 1,
               name: s.name || `Series ${idx + 1}`,
-              image: slices[0] || fallbackImage || null,
-              fullImage: fallbackImage || slices[0] || null,
+              image: midSlice,
+              fullImage: midSlice,
               slices,
               sliceCount: slices.length,
             };
