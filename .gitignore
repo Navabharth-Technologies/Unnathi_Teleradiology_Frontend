@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Backend local repository folder (never commit to frontend repo)
+backend/
+backend
