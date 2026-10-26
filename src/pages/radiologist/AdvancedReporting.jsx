@@ -448,41 +448,55 @@ export default function AdvancedReporting() {
         existingPat = newPatient;
       }
 
-      // Push raw DICOM files to local Orthanc PACS if available
+      // Push raw DICOM files to local Orthanc PACS only if running locally on localhost/127.0.0.1
       let orthancStudyId = null;
-      try {
-        const buffersToUpload =
-          extracted.allRawBuffers && extracted.allRawBuffers.length > 0
-            ? extracted.allRawBuffers
-            : (seriesList || []).map((s) => s.rawBuffer).filter(Boolean);
+      const isLocalhost =
+        typeof window !== "undefined" &&
+        (window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1" ||
+          window.location.hostname === "[::1]");
 
-        if (buffersToUpload.length > 0) {
-          for (const buf of buffersToUpload) {
-            try {
-              const resp = await fetch("/orthanc-pacs/instances", {
-                method: "POST",
-                headers: { "Content-Type": "application/dicom" },
-                body: buf,
-              }).catch(() =>
-                fetch("http://localhost:8042/instances", {
+      if (isLocalhost) {
+        try {
+          const buffersToUpload =
+            extracted.allRawBuffers && extracted.allRawBuffers.length > 0
+              ? extracted.allRawBuffers
+              : (seriesList || []).map((s) => s.rawBuffer).filter(Boolean);
+
+          if (buffersToUpload.length > 0) {
+            let orthancReachable = true;
+            for (const buf of buffersToUpload) {
+              if (!orthancReachable) break;
+              try {
+                const resp = await fetch("/orthanc-pacs/instances", {
                   method: "POST",
                   headers: { "Content-Type": "application/dicom" },
                   body: buf,
-                })
-              );
-              if (resp && resp.ok) {
-                const data = await resp.json();
-                if (data?.ParentStudy) {
-                  orthancStudyId = data.ParentStudy;
+                }).catch(() =>
+                  fetch("http://localhost:8042/instances", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/dicom" },
+                    body: buf,
+                  })
+                );
+                if (resp && resp.ok) {
+                  const data = await resp.json();
+                  if (data?.ParentStudy) {
+                    orthancStudyId = data.ParentStudy;
+                  }
+                } else {
+                  // If first slice fails (e.g. 404, 405, 502), do not spam hundreds/thousands of failed requests
+                  orthancReachable = false;
                 }
+              } catch (postErr) {
+                orthancReachable = false;
+                console.warn("Could not post DICOM slice to Orthanc:", postErr);
               }
-            } catch (postErr) {
-              console.warn("Could not post DICOM slice to Orthanc:", postErr);
             }
           }
+        } catch (orthancErr) {
+          console.warn("Orthanc upload encountered an error:", orthancErr);
         }
-      } catch (orthancErr) {
-        console.warn("Orthanc upload encountered an error:", orthancErr);
       }
 
       // Clean series objects so rawBuffer and unneeded binary properties aren't saved to state/localStorage

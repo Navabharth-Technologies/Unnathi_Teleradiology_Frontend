@@ -331,41 +331,54 @@ export default function DicomReceive() {
     setStage("registering");
 
     let orthancStudyId = null;
+    const isLocalhost =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname === "[::1]");
 
-    // Push raw DICOM files to local Orthanc PACS if available
-    try {
-      const buffersToUpload =
-        rawBuffersToUpload.length > 0
-          ? rawBuffersToUpload
-          : (extractedSeries || []).map((s) => s.rawBuffer).filter(Boolean);
+    // Push raw DICOM files to local Orthanc PACS only if running locally on localhost/127.0.0.1
+    if (isLocalhost) {
+      try {
+        const buffersToUpload =
+          rawBuffersToUpload.length > 0
+            ? rawBuffersToUpload
+            : (extractedSeries || []).map((s) => s.rawBuffer).filter(Boolean);
 
-      if (buffersToUpload.length > 0) {
-        for (const buf of buffersToUpload) {
-          try {
-            const resp = await fetch("/orthanc-pacs/instances", {
-              method: "POST",
-              headers: { "Content-Type": "application/dicom" },
-              body: buf,
-            }).catch(() =>
-              fetch("http://localhost:8042/instances", {
+        if (buffersToUpload.length > 0) {
+          let orthancReachable = true;
+          for (const buf of buffersToUpload) {
+            if (!orthancReachable) break;
+            try {
+              const resp = await fetch("/orthanc-pacs/instances", {
                 method: "POST",
                 headers: { "Content-Type": "application/dicom" },
                 body: buf,
-              })
-            );
-            if (resp && resp.ok) {
-              const data = await resp.json();
-              if (data?.ParentStudy) {
-                orthancStudyId = data.ParentStudy;
+              }).catch(() =>
+                fetch("http://localhost:8042/instances", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/dicom" },
+                  body: buf,
+                })
+              );
+              if (resp && resp.ok) {
+                const data = await resp.json();
+                if (data?.ParentStudy) {
+                  orthancStudyId = data.ParentStudy;
+                }
+              } else {
+                // If first slice fails (e.g. 404, 405, 502), do not spam hundreds/thousands of failed requests
+                orthancReachable = false;
               }
+            } catch (uploadErr) {
+              orthancReachable = false;
+              console.warn("Could not post slice to Orthanc:", uploadErr);
             }
-          } catch (uploadErr) {
-            console.warn("Could not post slice to Orthanc:", uploadErr);
           }
         }
+      } catch (pushErr) {
+        console.warn("Orthanc batch push encountered an error:", pushErr);
       }
-    } catch (pushErr) {
-      console.warn("Orthanc batch push encountered an error:", pushErr);
     }
 
     let patId = existingPatientId;
