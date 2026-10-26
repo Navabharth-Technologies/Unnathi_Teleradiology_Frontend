@@ -109,6 +109,7 @@ export default function ViewerShell() {
     st1792817515327: "83b20b0e-7a76959f-e0803e12-d138e310-b097b511", // Kulashekar (MR L-Spine)
     st1792836411957: "83b20b0e-7a76959f-e0803e12-d138e310-b097b511", // Kulashekar (MR L-Spine)
     st1792835901634: "e8835bdb-37a3d7d6-6b6971b0-b24d07fb-a242c6f3", // Vageesha B (MR Shoulder)
+    st1792997606100: "57e93f80-2b87cd20-5dd30758-b760eb3e-35984471", // Mr Nagendra (CT Hips)
   };
 
   const isKulashekarStudy = useMemo(() => {
@@ -376,15 +377,16 @@ export default function ViewerShell() {
                 });
 
                 // Generate slice URLs: handle both Multi-Frame DICOM instances and Single-Slice instances
+                // Using Orthanc's authentic /rendered endpoint ensures calibrated DICOM WindowCenter and WindowWidth (HU) are applied
                 for (const item of metadataResults) {
                   if (item.numberOfFrames > 1) {
                     // Multi-frame DICOM instance (e.g. enhanced MR with 96 frames or 13 frames)
                     for (let f = 0; f < item.numberOfFrames; f++) {
-                      sliceUrls.push(`/orthanc-pacs/instances/${item.instId}/frames/${f}/preview`);
+                      sliceUrls.push(`/orthanc-pacs/instances/${item.instId}/frames/${f}/rendered`);
                     }
                   } else {
-                    // Single-frame DICOM slice
-                    sliceUrls.push(`/orthanc-pacs/instances/${item.instId}/preview`);
+                    // Single-frame DICOM slice with authentic DICOM window rendering
+                    sliceUrls.push(`/orthanc-pacs/instances/${item.instId}/rendered`);
                   }
                 }
               }
@@ -1313,31 +1315,59 @@ export default function ViewerShell() {
 
                       {/* Kin's Cloud Vertical Stack Scrollbar & Slider */}
                       {totalSlices > 1 && (
-                        <div className="absolute right-1 top-4 bottom-4 w-5 flex flex-col items-center justify-between py-1 bg-black/40 rounded-full border border-slate-800/80 backdrop-blur-sm z-20">
+                        <div className="absolute right-2 top-4 bottom-4 w-7 flex flex-col items-center justify-between py-2 bg-black/60 rounded-full border border-slate-700/80 backdrop-blur-md z-30 shadow-2xl">
                           <button
-                            onClick={() => setActiveSlice((prev) => Math.max(0, prev - 1))}
-                            className="text-slate-400 hover:text-white transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveSlice((prev) => Math.max(0, prev - 1));
+                            }}
+                            className="p-1 rounded-full text-slate-300 hover:text-white hover:bg-slate-700/60 transition-colors"
                             title="Scroll Up (Previous Slice)"
                           >
-                            <ChevronUp className="w-3.5 h-3.5" />
+                            <ChevronUp className="w-4 h-4" />
                           </button>
                           
-                          {/* Slider Track */}
-                          <div className="flex-1 w-1.5 bg-slate-800 rounded-full relative my-1 overflow-hidden">
+                          {/* Slider Track with Click & Drag to Jump */}
+                          <div
+                            className="flex-1 w-2.5 bg-slate-800/90 rounded-full relative my-2 overflow-hidden cursor-pointer border border-slate-700/50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const clickY = e.clientY - rect.top;
+                              const ratio = Math.max(0, Math.min(1, clickY / rect.height));
+                              const targetIndex = Math.min(totalSlices - 1, Math.floor(ratio * totalSlices));
+                              setActiveSlice(targetIndex);
+                            }}
+                            onMouseMove={(e) => {
+                              if (e.buttons === 1) {
+                                e.stopPropagation();
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const clickY = e.clientY - rect.top;
+                                const ratio = Math.max(0, Math.min(1, clickY / rect.height));
+                                const targetIndex = Math.min(totalSlices - 1, Math.floor(ratio * totalSlices));
+                                setActiveSlice(targetIndex);
+                              }
+                            }}
+                            title={`Slice ${activeSlice + 1} of ${totalSlices} (Click or drag to scroll)`}
+                          >
+                            {/* Scroll Indicator Fill & Thumb */}
                             <div
-                              className="w-full bg-[#45a29e] rounded-full transition-all duration-75"
+                              className="w-full bg-gradient-to-b from-[#45a29e] to-cyan-400 rounded-full transition-all duration-75 relative shadow-[0_0_10px_rgba(69,162,158,0.5)]"
                               style={{
-                                height: `${Math.max(4, ((activeSlice + 1) / totalSlices) * 100)}%`,
+                                height: `${Math.max(5, ((activeSlice + 1) / totalSlices) * 100)}%`,
                               }}
                             />
                           </div>
 
                           <button
-                            onClick={() => setActiveSlice((prev) => Math.min(totalSlices - 1, prev + 1))}
-                            className="text-slate-400 hover:text-white transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveSlice((prev) => Math.min(totalSlices - 1, prev + 1));
+                            }}
+                            className="p-1 rounded-full text-slate-300 hover:text-white hover:bg-slate-700/60 transition-colors"
                             title="Scroll Down (Next Slice)"
                           >
-                            <ChevronDown className="w-3.5 h-3.5" />
+                            <ChevronDown className="w-4 h-4" />
                           </button>
                         </div>
                       )}
