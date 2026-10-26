@@ -36,6 +36,12 @@ import {
   SkipForward,
   Sun,
   Moon,
+  Ruler,
+  Circle,
+  Square,
+  Triangle,
+  MoveHorizontal,
+  PenTool,
 } from "lucide-react";
 import { ShareModal } from "../../components/modals/ShareModal";
 import { RichTextEditor } from "../../components/ui/RichTextEditor";
@@ -93,6 +99,13 @@ export default function ViewerShell() {
   const [activeOrthancId, setActiveOrthancId] = useState(
     study?.orthancStudyId || study?.orthancId || null
   );
+
+  // Measurement and Annotation Tools State
+  const [activeMeasurementTool, setActiveMeasurementTool] = useState(null); // 'length', 'elliptical', 'rectangle', 'angle', 'bidirectional', 'freehand'
+  const [isMeasurementMenuOpen, setIsMeasurementMenuOpen] = useState(false);
+  const [measurements, setMeasurements] = useState([]);
+  const [currentDrawing, setCurrentDrawing] = useState(null);
+  const [anglePoints, setAnglePoints] = useState([]);
 
   const [orthancSeriesList, setOrthancSeriesList] = useState([]);
   const [studyInstanceUID, setStudyInstanceUID] = useState("");
@@ -688,9 +701,97 @@ export default function ViewerShell() {
     if (tool === "zoom-out") setZoom((z) => Math.max(z - 25, 25));
   };
 
-  // Interactive mouse drag to adjust Brightness (horizontal drag left-to-right / vice-versa) & Contrast (vertical drag)
+  // Helper to get normalized coordinates relative to image viewport
+  const getRelativePoint = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  };
+
+  // Measurement drawing and calculation logic
+  const calculateDistance = (p1, p2) => {
+    const distPx = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+    // Standard pixel spacing factor (0.5 mm per pixel nominal CT calibration)
+    return (distPx * 0.5).toFixed(1);
+  };
+
+  const calculateAngle = (p1, p2, p3) => {
+    // p2 is the vertex
+    const a = Math.atan2(p1.y - p2.y, p1.x - p2.x);
+    const b = Math.atan2(p3.y - p2.y, p3.x - p2.x);
+    let deg = Math.abs((a - b) * (180 / Math.PI));
+    if (deg > 180) deg = 360 - deg;
+    return deg.toFixed(1);
+  };
+
+  const calculatePolygonArea = (points) => {
+    let area = 0;
+    const n = points.length;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      area += points[i].x * points[j].y;
+      area -= points[j].x * points[i].y;
+    }
+    const areaPx = Math.abs(area) / 2;
+    // Area in cm^2 (0.5mm * 0.5mm = 0.0025 cm^2 per pixel)
+    return (areaPx * 0.0025).toFixed(2);
+  };
+
+  // Interactive mouse drag to adjust Brightness & Contrast or draw annotations
   const handleViewportMouseDown = (e) => {
-    // Left-click (button 0) when not in pan/zoom mode or right-click (button 2) or when contrast tool is active
+    if (activeMeasurementTool) {
+      if (e.button !== 0) return; // Only left-click draws
+      const pt = getRelativePoint(e);
+
+      if (activeMeasurementTool === "angle") {
+        const nextPoints = [...anglePoints, pt];
+        if (nextPoints.length === 3) {
+          // Finished 3-point angle
+          const ang = calculateAngle(nextPoints[0], nextPoints[1], nextPoints[2]);
+          setMeasurements((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              type: "angle",
+              sliceIndex: activeSlice,
+              points: nextPoints,
+              value: `${ang}°`,
+              label: `Angle: ${ang}°`,
+            },
+          ]);
+          setAnglePoints([]);
+          setCurrentDrawing(null);
+        } else {
+          setAnglePoints(nextPoints);
+          setCurrentDrawing({
+            type: "angle",
+            points: nextPoints,
+            mousePt: pt,
+          });
+        }
+        return;
+      }
+
+      if (activeMeasurementTool === "freehand") {
+        setCurrentDrawing({
+          type: "freehand",
+          points: [pt],
+        });
+        return;
+      }
+
+      // 2-point tools: length, elliptical, rectangle, bidirectional
+      setCurrentDrawing({
+        type: activeMeasurementTool,
+        start: pt,
+        current: pt,
+      });
+      return;
+    }
+
+    // Left-click (button 0) when not in measurement mode or right-click (button 2) or when contrast tool is active
     if (e.button === 0 || e.button === 2 || activeTool === "contrast") {
       setIsAdjustingWindow(true);
       setDragStart({ x: e.clientX, y: e.clientY });
@@ -698,6 +799,29 @@ export default function ViewerShell() {
   };
 
   const handleViewportMouseMove = (e) => {
+    if (activeMeasurementTool) {
+      const pt = getRelativePoint(e);
+      if (activeMeasurementTool === "angle" && anglePoints.length > 0) {
+        setCurrentDrawing((prev) => (prev ? { ...prev, mousePt: pt } : null));
+        return;
+      }
+
+      if (currentDrawing) {
+        if (currentDrawing.type === "freehand") {
+          setCurrentDrawing((prev) => ({
+            ...prev,
+            points: [...prev.points, pt],
+          }));
+        } else {
+          setCurrentDrawing((prev) => ({
+            ...prev,
+            current: pt,
+          }));
+        }
+      }
+      return;
+    }
+
     if (isAdjustingWindow) {
       const dx = e.clientX - dragStart.x;
       const dy = dragStart.y - e.clientY;
@@ -725,6 +849,109 @@ export default function ViewerShell() {
   };
 
   const handleViewportMouseUp = () => {
+    if (activeMeasurementTool && currentDrawing) {
+      if (activeMeasurementTool === "angle") {
+        return; // Handled in click steps
+      }
+
+      if (currentDrawing.type === "freehand") {
+        if (currentDrawing.points.length > 3) {
+          const area = calculatePolygonArea(currentDrawing.points);
+          setMeasurements((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              type: "freehand",
+              sliceIndex: activeSlice,
+              points: currentDrawing.points,
+              value: `${area} cm²`,
+              label: `Area: ${area} cm²`,
+            },
+          ]);
+        }
+        setCurrentDrawing(null);
+        return;
+      }
+
+      const { start, current } = currentDrawing;
+      const dx = Math.abs(current.x - start.x);
+      const dy = Math.abs(current.y - start.y);
+
+      if (dx > 4 || dy > 4) {
+        if (currentDrawing.type === "length") {
+          const distMm = calculateDistance(start, current);
+          setMeasurements((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              type: "length",
+              sliceIndex: activeSlice,
+              start,
+              end: current,
+              value: `${distMm} mm`,
+              label: `${distMm} mm`,
+            },
+          ]);
+        } else if (currentDrawing.type === "rectangle") {
+          const widthMm = (dx * 0.5).toFixed(1);
+          const heightMm = (dy * 0.5).toFixed(1);
+          const areaCm2 = ((dx * dy) * 0.0025).toFixed(2);
+          setMeasurements((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              type: "rectangle",
+              sliceIndex: activeSlice,
+              start,
+              end: current,
+              value: `${areaCm2} cm²`,
+              label: `${widthMm} x ${heightMm} mm (${areaCm2} cm²)`,
+            },
+          ]);
+        } else if (currentDrawing.type === "elliptical") {
+          const rx = dx / 2;
+          const ry = dy / 2;
+          const areaCm2 = (Math.PI * rx * ry * 0.0025).toFixed(2);
+          setMeasurements((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              type: "elliptical",
+              sliceIndex: activeSlice,
+              start,
+              end: current,
+              value: `${areaCm2} cm²`,
+              label: `Mean ROI: ${areaCm2} cm²`,
+            },
+          ]);
+        } else if (currentDrawing.type === "bidirectional") {
+          const d1 = calculateDistance(start, current);
+          const cx = (start.x + current.x) / 2;
+          const cy = (start.y + current.y) / 2;
+          const perpLength = Math.min(dx, dy) || 20;
+          const d2 = (perpLength * 0.5).toFixed(1);
+          setMeasurements((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              type: "bidirectional",
+              sliceIndex: activeSlice,
+              start,
+              end: current,
+              cx,
+              cy,
+              perpLength,
+              value: `${d1} x ${d2} mm`,
+              label: `${d1} mm x ${d2} mm`,
+            },
+          ]);
+        }
+      }
+
+      setCurrentDrawing(null);
+      return;
+    }
+
     setIsAdjustingWindow(false);
   };
 
@@ -1028,7 +1255,80 @@ export default function ViewerShell() {
             </div>
           </div>
 
-          <div className="h-5 w-px bg-slate-700 mx-1"></div>
+          {/* Measurement & ROI Tools Dropdown (Exact Kin's Cloud PACS) */}
+          <div className="relative">
+            <button
+              title="Measurements & Annotations"
+              onClick={() => setIsMeasurementMenuOpen((prev) => !prev)}
+              className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${
+                activeMeasurementTool
+                  ? "bg-[#45a29e] text-[#0b0c10]"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <Ruler className="h-3.5 w-3.5" />
+            </button>
+
+            {isMeasurementMenuOpen && (
+              <div className="absolute top-9 left-0 w-44 bg-[#141b26] border border-[#2b3a50] rounded-xl shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95">
+                {[
+                  { id: "length", label: "Length (L)", Icon: Ruler },
+                  { id: "elliptical", label: "Elliptical ROI", Icon: Circle },
+                  { id: "rectangle", label: "Rectangle ROI", Icon: Square },
+                  { id: "angle", label: "Angle", Icon: Triangle },
+                  { id: "bidirectional", label: "Bidirectional", Icon: MoveHorizontal },
+                  { id: "freehand", label: "Freehand ROI", Icon: PenTool },
+                ].map(({ id: toolId, label, Icon }) => (
+                  <button
+                    key={toolId}
+                    onClick={() => {
+                      if (activeMeasurementTool === toolId) {
+                        setActiveMeasurementTool(null);
+                        setAnglePoints([]);
+                        setCurrentDrawing(null);
+                      } else {
+                        setActiveMeasurementTool(toolId);
+                        setActiveTool(null);
+                        setAnglePoints([]);
+                        setCurrentDrawing(null);
+                      }
+                      setIsMeasurementMenuOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left text-xs font-semibold flex items-center justify-between transition-colors ${
+                      activeMeasurementTool === toolId
+                        ? "bg-[#45a29e]/20 text-[#45a29e]"
+                        : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Icon className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{label}</span>
+                    </span>
+                    {activeMeasurementTool === toolId && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#45a29e]" />
+                    )}
+                  </button>
+                ))}
+
+                {measurements.length > 0 && (
+                  <>
+                    <div className="border-t border-[#2b3a50] my-1"></div>
+                    <button
+                      onClick={() => {
+                        setMeasurements([]);
+                        setCurrentDrawing(null);
+                        setAnglePoints([]);
+                        setIsMeasurementMenuOpen(false);
+                      }}
+                      className="w-full px-3 py-1.5 text-left text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 transition-colors"
+                    >
+                      Clear Measurements ({measurements.length})
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
           <button
             title="Text Annotation"
@@ -1238,7 +1538,9 @@ export default function ViewerShell() {
               {/* Primary Viewport */}
               <div
                 className={`flex-1 h-full relative bg-black flex items-center justify-center overflow-hidden ${
-                  isAdjustingWindow
+                  activeMeasurementTool
+                    ? "cursor-crosshair select-none"
+                    : isAdjustingWindow
                     ? "cursor-ew-resize"
                     : activeTool === "contrast"
                     ? "cursor-ew-resize"
@@ -1314,6 +1616,322 @@ export default function ViewerShell() {
                         }}
                         className="w-full h-full max-h-full max-w-full object-contain pointer-events-none select-none p-2"
                       />
+
+                      {/* Interactive Measurement & Annotation SVG Overlay */}
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
+                        {/* Finalized measurements on current slice */}
+                        {measurements
+                          .filter((m) => m.sliceIndex === activeSlice)
+                          .map((m) => {
+                            if (m.type === "length") {
+                              const midX = (m.start.x + m.end.x) / 2;
+                              const midY = (m.start.y + m.end.y) / 2;
+                              return (
+                                <g key={m.id}>
+                                  <line
+                                    x1={m.start.x}
+                                    y1={m.start.y}
+                                    x2={m.end.x}
+                                    y2={m.end.y}
+                                    stroke="#00ffff"
+                                    strokeWidth="2"
+                                  />
+                                  <circle cx={m.start.x} cy={m.start.y} r="3.5" fill="#00ffff" />
+                                  <circle cx={m.end.x} cy={m.end.y} r="3.5" fill="#00ffff" />
+                                  <rect
+                                    x={midX - 25}
+                                    y={midY - 18}
+                                    width="50"
+                                    height="16"
+                                    fill="rgba(0,0,0,0.75)"
+                                    rx="3"
+                                  />
+                                  <text
+                                    x={midX}
+                                    y={midY - 6}
+                                    fill="#00ffff"
+                                    fontSize="11"
+                                    fontWeight="bold"
+                                    fontFamily="monospace"
+                                    textAnchor="middle"
+                                  >
+                                    {m.value}
+                                  </text>
+                                </g>
+                              );
+                            }
+
+                            if (m.type === "rectangle") {
+                              const x = Math.min(m.start.x, m.end.x);
+                              const y = Math.min(m.start.y, m.end.y);
+                              const w = Math.abs(m.end.x - m.start.x);
+                              const h = Math.abs(m.end.y - m.start.y);
+                              return (
+                                <g key={m.id}>
+                                  <rect
+                                    x={x}
+                                    y={y}
+                                    width={w}
+                                    height={h}
+                                    fill="rgba(0, 255, 255, 0.08)"
+                                    stroke="#00ffff"
+                                    strokeWidth="2"
+                                    strokeDasharray="4 2"
+                                  />
+                                  <rect
+                                    x={x}
+                                    y={y - 18}
+                                    width="110"
+                                    height="16"
+                                    fill="rgba(0,0,0,0.8)"
+                                    rx="3"
+                                  />
+                                  <text
+                                    x={x + 4}
+                                    y={y - 6}
+                                    fill="#00ffff"
+                                    fontSize="10"
+                                    fontWeight="bold"
+                                    fontFamily="monospace"
+                                  >
+                                    {m.value}
+                                  </text>
+                                </g>
+                              );
+                            }
+
+                            if (m.type === "elliptical") {
+                              const cx = (m.start.x + m.end.x) / 2;
+                              const cy = (m.start.y + m.end.y) / 2;
+                              const rx = Math.abs(m.end.x - m.start.x) / 2;
+                              const ry = Math.abs(m.end.y - m.start.y) / 2;
+                              return (
+                                <g key={m.id}>
+                                  <ellipse
+                                    cx={cx}
+                                    cy={cy}
+                                    rx={rx}
+                                    ry={ry}
+                                    fill="rgba(0, 255, 255, 0.08)"
+                                    stroke="#00ffff"
+                                    strokeWidth="2"
+                                    strokeDasharray="4 2"
+                                  />
+                                  <rect
+                                    x={cx - 40}
+                                    y={cy - 10}
+                                    width="80"
+                                    height="18"
+                                    fill="rgba(0,0,0,0.8)"
+                                    rx="3"
+                                  />
+                                  <text
+                                    x={cx}
+                                    y={cy + 3}
+                                    fill="#00ffff"
+                                    fontSize="10"
+                                    fontWeight="bold"
+                                    fontFamily="monospace"
+                                    textAnchor="middle"
+                                  >
+                                    {m.value}
+                                  </text>
+                                </g>
+                              );
+                            }
+
+                            if (m.type === "angle") {
+                              const [p1, p2, p3] = m.points;
+                              return (
+                                <g key={m.id}>
+                                  <line x1={p2.x} y1={p2.y} x2={p1.x} y2={p1.y} stroke="#f59e0b" strokeWidth="2" />
+                                  <line x1={p2.x} y1={p2.y} x2={p3.x} y2={p3.y} stroke="#f59e0b" strokeWidth="2" />
+                                  <circle cx={p1.x} cy={p1.y} r="3" fill="#f59e0b" />
+                                  <circle cx={p2.x} cy={p2.y} r="4" fill="#fbbf24" />
+                                  <circle cx={p3.x} cy={p3.y} r="3" fill="#f59e0b" />
+                                  <rect
+                                    x={p2.x + 8}
+                                    y={p2.y - 10}
+                                    width="45"
+                                    height="16"
+                                    fill="rgba(0,0,0,0.8)"
+                                    rx="3"
+                                  />
+                                  <text
+                                    x={p2.x + 12}
+                                    y={p2.y + 2}
+                                    fill="#fbbf24"
+                                    fontSize="11"
+                                    fontWeight="bold"
+                                    fontFamily="monospace"
+                                  >
+                                    {m.value}
+                                  </text>
+                                </g>
+                              );
+                            }
+
+                            if (m.type === "bidirectional") {
+                              const midX = (m.start.x + m.end.x) / 2;
+                              const midY = (m.start.y + m.end.y) / 2;
+                              return (
+                                <g key={m.id}>
+                                  <line x1={m.start.x} y1={m.start.y} x2={m.end.x} y2={m.end.y} stroke="#00ffff" strokeWidth="2" />
+                                  <line
+                                    x1={m.cx}
+                                    y1={m.cy - m.perpLength / 2}
+                                    x2={m.cx}
+                                    y2={m.cy + m.perpLength / 2}
+                                    stroke="#34d399"
+                                    strokeWidth="2"
+                                  />
+                                  <rect
+                                    x={midX - 35}
+                                    y={midY - 20}
+                                    width="70"
+                                    height="16"
+                                    fill="rgba(0,0,0,0.8)"
+                                    rx="3"
+                                  />
+                                  <text
+                                    x={midX}
+                                    y={midY - 8}
+                                    fill="#34d399"
+                                    fontSize="10"
+                                    fontWeight="bold"
+                                    fontFamily="monospace"
+                                    textAnchor="middle"
+                                  >
+                                    {m.value}
+                                  </text>
+                                </g>
+                              );
+                            }
+
+                            if (m.type === "freehand") {
+                              const d = m.points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") + " Z";
+                              const first = m.points[0];
+                              return (
+                                <g key={m.id}>
+                                  <path d={d} fill="rgba(168, 85, 247, 0.15)" stroke="#c084fc" strokeWidth="2" />
+                                  <rect
+                                    x={first.x}
+                                    y={first.y - 18}
+                                    width="70"
+                                    height="16"
+                                    fill="rgba(0,0,0,0.8)"
+                                    rx="3"
+                                  />
+                                  <text
+                                    x={first.x + 4}
+                                    y={first.y - 6}
+                                    fill="#c084fc"
+                                    fontSize="10"
+                                    fontWeight="bold"
+                                    fontFamily="monospace"
+                                  >
+                                    {m.value}
+                                  </text>
+                                </g>
+                              );
+                            }
+
+                            return null;
+                          })}
+
+                        {/* Current in-progress drawing */}
+                        {currentDrawing && (() => {
+                          if (currentDrawing.type === "length" && currentDrawing.start && currentDrawing.current) {
+                            return (
+                              <g>
+                                <line
+                                  x1={currentDrawing.start.x}
+                                  y1={currentDrawing.start.y}
+                                  x2={currentDrawing.current.x}
+                                  y2={currentDrawing.current.y}
+                                  stroke="#00ffff"
+                                  strokeWidth="2"
+                                  strokeDasharray="4 2"
+                                />
+                                <circle cx={currentDrawing.start.x} cy={currentDrawing.start.y} r="3.5" fill="#00ffff" />
+                                <circle cx={currentDrawing.current.x} cy={currentDrawing.current.y} r="3.5" fill="#00ffff" />
+                              </g>
+                            );
+                          }
+
+                          if (currentDrawing.type === "rectangle" && currentDrawing.start && currentDrawing.current) {
+                            const x = Math.min(currentDrawing.start.x, currentDrawing.current.x);
+                            const y = Math.min(currentDrawing.start.y, currentDrawing.current.y);
+                            const w = Math.abs(currentDrawing.current.x - currentDrawing.start.x);
+                            const h = Math.abs(currentDrawing.current.y - currentDrawing.start.y);
+                            return (
+                              <rect
+                                x={x}
+                                y={y}
+                                width={w}
+                                height={h}
+                                fill="rgba(0, 255, 255, 0.1)"
+                                stroke="#00ffff"
+                                strokeWidth="2"
+                                strokeDasharray="4 2"
+                              />
+                            );
+                          }
+
+                          if (currentDrawing.type === "elliptical" && currentDrawing.start && currentDrawing.current) {
+                            const cx = (currentDrawing.start.x + currentDrawing.current.x) / 2;
+                            const cy = (currentDrawing.start.y + currentDrawing.current.y) / 2;
+                            const rx = Math.abs(currentDrawing.current.x - currentDrawing.start.x) / 2;
+                            const ry = Math.abs(currentDrawing.current.y - currentDrawing.start.y) / 2;
+                            return (
+                              <ellipse
+                                cx={cx}
+                                cy={cy}
+                                rx={rx}
+                                ry={ry}
+                                fill="rgba(0, 255, 255, 0.1)"
+                                stroke="#00ffff"
+                                strokeWidth="2"
+                                strokeDasharray="4 2"
+                              />
+                            );
+                          }
+
+                          if (currentDrawing.type === "angle" && currentDrawing.points) {
+                            const pts = currentDrawing.points;
+                            return (
+                              <g>
+                                {pts.length >= 2 && (
+                                  <line x1={pts[1].x} y1={pts[1].y} x2={pts[0].x} y2={pts[0].y} stroke="#f59e0b" strokeWidth="2" />
+                                )}
+                                {pts.length === 2 && currentDrawing.mousePt && (
+                                  <line
+                                    x1={pts[1].x}
+                                    y1={pts[1].y}
+                                    x2={currentDrawing.mousePt.x}
+                                    y2={currentDrawing.mousePt.y}
+                                    stroke="#f59e0b"
+                                    strokeWidth="2"
+                                    strokeDasharray="4 2"
+                                  />
+                                )}
+                                {pts.map((p, idx) => (
+                                  <circle key={idx} cx={p.x} cy={p.y} r="4" fill="#fbbf24" />
+                                ))}
+                              </g>
+                            );
+                          }
+
+                          if (currentDrawing.type === "freehand" && currentDrawing.points?.length > 1) {
+                            const d = currentDrawing.points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+                            return (
+                              <path d={d} fill="none" stroke="#c084fc" strokeWidth="2" strokeDasharray="3 2" />
+                            );
+                          }
+
+                          return null;
+                        })()}
+                      </svg>
 
                       {/* DICOM Meta Overlays (Corners) - Exact Kin's Cloud PACS HUD */}
                       <div className="absolute top-3 left-3 max-w-[45%] text-xs font-mono text-emerald-400/90 space-y-0.5 pointer-events-none drop-shadow">
