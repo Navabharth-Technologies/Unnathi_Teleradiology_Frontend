@@ -42,6 +42,13 @@ import {
   Triangle,
   MoveHorizontal,
   PenTool,
+  RotateCcw,
+  FlipHorizontal,
+  FlipVertical,
+  Upload,
+  X,
+  Crop,
+  Check,
 } from "lucide-react";
 import { ShareModal } from "../../components/modals/ShareModal";
 import { RichTextEditor } from "../../components/ui/RichTextEditor";
@@ -75,7 +82,8 @@ export default function ViewerShell() {
   const [zoom, setZoom] = useState(100);
   const [windowLevel, setWindowLevel] = useState({ w: 1500, l: -500 });
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isReportingExpanded, setIsReportingExpanded] = useState(true);
+  // Default to false: DO NOT automatically open report/template panel when scanned images are viewed
+  const [isReportingExpanded, setIsReportingExpanded] = useState(false);
   const [activeSeries, setActiveSeries] = useState(0);
   const [activeSlice, setActiveSlice] = useState(0);
   const [isPlayingCine, setIsPlayingCine] = useState(false);
@@ -88,7 +96,7 @@ export default function ViewerShell() {
       ? "Final"
       : "Draft",
   );
-  const [showLockedWarning, setShowLockedWarning] = useState(true);
+  const [showLockedWarning, setShowLockedWarning] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   // Viewer engine mode: "native" (Kin's Cloud PACS DICOM Viewport), "stone" (Orthanc / Stone WebViewer)
   const [viewerEngine, setViewerEngine] = useState("native");
@@ -106,6 +114,16 @@ export default function ViewerShell() {
   const [measurements, setMeasurements] = useState([]);
   const [currentDrawing, setCurrentDrawing] = useState(null);
   const [anglePoints, setAnglePoints] = useState([]);
+
+  // Key Images and Crop Modal State
+  const [keyImages, setKeyImages] = useState(study?.keyImages || []);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropRotation, setCropRotation] = useState(0);
+  const [cropFlipH, setCropFlipH] = useState(false);
+  const [cropFlipV, setCropFlipV] = useState(false);
+  const [cropAspectRatio, setCropAspectRatio] = useState("Adjustable");
 
   const [orthancSeriesList, setOrthancSeriesList] = useState([]);
   const [studyInstanceUID, setStudyInstanceUID] = useState("");
@@ -619,7 +637,7 @@ export default function ViewerShell() {
       const normMod = (study.modality || "").toUpperCase().trim();
       const normStudyDesc = (study.studyDescription || "").toUpperCase().trim();
 
-      // Look for custom template for this hospital or global default
+      // Look for custom template for this hospital or global default to pre-fill dropdown only
       const hospTemplates = templates.filter((t) => {
         if (t.isActive === false) return false;
         const tHosp = t.hospitalId;
@@ -644,15 +662,8 @@ export default function ViewerShell() {
 
       if (matchedTpl) {
         setSelectedTemplateId(matchedTpl.id);
-        if (!reportText && matchedTpl.templateContent) {
-          setReportText(matchedTpl.templateContent);
-        }
       } else if (!selectedTemplateId && hospTemplates.length > 0) {
-        // Pre-select first available hospital or global template
         setSelectedTemplateId(hospTemplates[0].id);
-        if (!reportText && hospTemplates[0].templateContent) {
-          setReportText(hospTemplates[0].templateContent);
-        }
       }
     }
   }, [study, templates]);
@@ -1391,15 +1402,37 @@ export default function ViewerShell() {
           <div className="flex gap-2 p-3 border-b border-[#1f2833]">
             <Button
               variant="outline"
-              className="flex-1 bg-[#1f2833] border-[#1f2833] text-xs h-8 hover:text-white"
+              onClick={() => setIsReportingExpanded((prev) => !prev)}
+              className={`flex-1 border text-xs h-8 font-bold transition-all ${
+                isReportingExpanded
+                  ? "bg-[#00A8CC] border-[#00A8CC] text-white shadow-md shadow-[#00A8CC]/20"
+                  : "bg-[#1f2833] border-[#1f2833] text-slate-300 hover:text-white hover:bg-slate-800"
+              }`}
+              title="Click to toggle Report Editor"
             >
-              <Maximize className="w-3 h-3 mr-2" /> PENDING
+              <Maximize className="w-3 h-3 mr-1.5" /> PENDING
             </Button>
             <Button
               variant="outline"
-              className="flex-1 bg-[#1f2833] border-[#1f2833] text-xs h-8 hover:text-white"
+              onClick={() => {
+                const curSeries = activeSeriesList[activeSeries];
+                const activeSliceImg =
+                  curSeries?.slices?.[activeSlice] ||
+                  curSeries?.fullImage ||
+                  curSeries?.image;
+                setCropImageSrc(activeSliceImg || null);
+                setCropZoom(1);
+                setCropRotation(0);
+                setCropFlipH(false);
+                setCropFlipV(false);
+                setCropAspectRatio("Adjustable");
+                setIsCropModalOpen(true);
+              }}
+              className="flex-1 bg-[#1f2833] border-[#1f2833] text-slate-300 text-xs h-8 hover:text-white hover:bg-slate-800 font-bold transition-all relative"
+              title="Click to Crop and Add Key Image"
             >
-              <BoxSelect className="w-3 h-3 mr-2" /> KEY IMAGES
+              <BoxSelect className="w-3 h-3 mr-1.5 text-cyan-400" />
+              <span>{keyImages.length} KEY IMAGES</span>
             </Button>
           </div>
 
@@ -2337,6 +2370,245 @@ export default function ViewerShell() {
         patient={patient}
         hospital={hospital}
       />
+
+      {/* Crop Image & Keyframe Modal (Exact 1st User Image) */}
+      {isCropModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col border border-slate-200">
+            {/* Modal Body */}
+            <div className="flex flex-col md:flex-row h-[560px]">
+              {/* Left Canvas Preview Area */}
+              <div className="flex-1 bg-slate-50 flex flex-col border-b md:border-b-0 md:border-r border-slate-200 relative overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/80 bg-white">
+                  <h3 className="text-lg font-black text-slate-800 tracking-tight">Crop Image</h3>
+                  <span className="text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+                    {cropAspectRatio}
+                  </span>
+                </div>
+
+                {/* Checkerboard Image Container */}
+                <div className="flex-1 relative flex items-center justify-center p-6 overflow-hidden bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]">
+                  {cropImageSrc ? (
+                    <div className="relative w-full h-full flex items-center justify-center">
+                      <div
+                        className="relative border-2 border-blue-500 rounded-lg overflow-hidden shadow-2xl flex items-center justify-center bg-black"
+                        style={{
+                          width: cropAspectRatio === "1:1" ? "340px" : cropAspectRatio === "4:3" ? "420px" : "90%",
+                          height: cropAspectRatio === "1:1" ? "340px" : cropAspectRatio === "4:3" ? "315px" : "80%",
+                        }}
+                      >
+                        {/* Grid Guides */}
+                        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none z-10">
+                          <div className="border-r border-b border-blue-400/30"></div>
+                          <div className="border-r border-b border-blue-400/30"></div>
+                          <div className="border-b border-blue-400/30"></div>
+                          <div className="border-r border-b border-blue-400/30"></div>
+                          <div className="border-r border-b border-blue-400/30"></div>
+                          <div className="border-b border-blue-400/30"></div>
+                          <div className="border-r border-blue-400/30"></div>
+                          <div className="border-r border-blue-400/30"></div>
+                          <div></div>
+                        </div>
+
+                        {/* Corner markers */}
+                        <div className="absolute top-1 left-1 w-3 h-3 border-t-2 border-l-2 border-white z-20"></div>
+                        <div className="absolute top-1 right-1 w-3 h-3 border-t-2 border-r-2 border-white z-20"></div>
+                        <div className="absolute bottom-1 left-1 w-3 h-3 border-b-2 border-l-2 border-white z-20"></div>
+                        <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-white z-20"></div>
+
+                        {/* Image */}
+                        <img
+                          src={cropImageSrc}
+                          alt="Crop Preview"
+                          style={{
+                            transform: `scale(${cropZoom}) rotate(${cropRotation}deg) scaleX(${cropFlipH ? -1 : 1}) scaleY(${cropFlipV ? -1 : 1})`,
+                            transition: "transform 0.15s ease",
+                          }}
+                          className="max-h-full max-w-full object-contain pointer-events-none select-none"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-slate-400">
+                      <ImageIcon className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                      <p className="text-xs font-semibold">No image selected</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom Modal Actions */}
+                <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-end space-x-3">
+                  <button
+                    onClick={() => setIsCropModalOpen(false)}
+                    className="px-5 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (cropImageSrc) {
+                        const newKey = {
+                          id: Date.now(),
+                          src: cropImageSrc,
+                          zoom: cropZoom,
+                          rotation: cropRotation,
+                          slice: activeSlice + 1,
+                          timestamp: new Date().toISOString(),
+                        };
+                        const updated = [...keyImages, newKey];
+                        setKeyImages(updated);
+                        updateStudy(study.id, { keyImages: updated });
+                      }
+                      setIsCropModalOpen(false);
+                    }}
+                    className="px-6 py-2 text-xs font-bold text-white bg-[#00A8CC] hover:bg-[#008ba8] rounded-xl shadow-md shadow-[#00A8CC]/20 transition-all cursor-pointer"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Control Sidebar */}
+              <div className="w-full md:w-72 bg-white p-5 flex flex-col justify-between overflow-y-auto space-y-5">
+                <div className="space-y-5">
+                  {/* Upload Image Box */}
+                  <div>
+                    <label className="text-xs font-black text-slate-700 block mb-2">Upload Image</label>
+                    <label className="border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/60 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors text-center group">
+                      <input
+                        type="file"
+                        accept="image/*,.dcm"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) {
+                            const url = URL.createObjectURL(f);
+                            setCropImageSrc(url);
+                          }
+                        }}
+                      />
+                      <div className="w-8 h-8 rounded-lg bg-blue-500 text-white flex items-center justify-center mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+                        <Upload className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-700">Click or drag an image here</span>
+                    </label>
+                  </div>
+
+                  {/* Aspect Ratio */}
+                  <div>
+                    <label className="text-xs font-black text-slate-700 block mb-1.5">Aspect Ratio</label>
+                    <select
+                      value={cropAspectRatio}
+                      onChange={(e) => setCropAspectRatio(e.target.value)}
+                      className="w-full text-xs font-bold border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="Adjustable">Adjustable</option>
+                      <option value="1:1">1:1 Square</option>
+                      <option value="4:3">4:3 Standard</option>
+                      <option value="16:9">16:9 Widescreen</option>
+                    </select>
+                  </div>
+
+                  {/* Zoom */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-black text-slate-700">Zoom</label>
+                      <span className="text-[11px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                        {cropZoom.toFixed(1)}x
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="3"
+                      step="0.1"
+                      value={cropZoom}
+                      onChange={(e) => setCropZoom(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mb-2"
+                    />
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[1, 1.5, 2, 3].map((val) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setCropZoom(val)}
+                          className={`py-1 text-xs font-bold rounded-lg border transition-all ${
+                            cropZoom === val
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          {val}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Transform */}
+                  <div>
+                    <label className="text-xs font-black text-slate-700 block mb-2">Transform</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCropRotation((prev) => (prev - 45) % 360)}
+                        className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 flex flex-col items-center justify-center transition-colors group"
+                      >
+                        <RotateCcw className="w-4 h-4 text-slate-600 group-hover:text-blue-600 mb-1" />
+                        <span className="text-[10px] font-bold text-slate-600">-45°</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCropRotation((prev) => (prev + 45) % 360)}
+                        className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 flex flex-col items-center justify-center transition-colors group"
+                      >
+                        <RotateCw className="w-4 h-4 text-slate-600 group-hover:text-blue-600 mb-1" />
+                        <span className="text-[10px] font-bold text-slate-600">+45°</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCropFlipH((prev) => !prev)}
+                        className={`p-2 border rounded-xl flex flex-col items-center justify-center transition-colors ${
+                          cropFlipH ? "bg-blue-50 border-blue-400 text-blue-600" : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                        }`}
+                      >
+                        <FlipHorizontal className="w-4 h-4 mb-1" />
+                        <span className="text-[10px] font-bold">FLIP H</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCropFlipV((prev) => !prev)}
+                        className={`p-2 border rounded-xl flex flex-col items-center justify-center transition-colors ${
+                          cropFlipV ? "bg-blue-50 border-blue-400 text-blue-600" : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                        }`}
+                      >
+                        <FlipVertical className="w-4 h-4 mb-1" />
+                        <span className="text-[10px] font-bold">FLIP V</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reset All */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCropZoom(1);
+                    setCropRotation(0);
+                    setCropFlipH(false);
+                    setCropFlipV(false);
+                    setCropAspectRatio("Adjustable");
+                  }}
+                  className="w-full py-2.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset All</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
