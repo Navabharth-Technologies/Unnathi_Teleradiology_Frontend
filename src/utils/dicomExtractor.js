@@ -156,201 +156,233 @@ export async function extractDicomArchive(file, JSZip) {
     // Sort entries to maintain anatomical sequence
     entries.sort((a, b) => a.relativePath.localeCompare(b.relativePath, undefined, { numeric: true }));
 
-    for (let i = 0; i < entries.length; i++) {
-      const { relativePath, entry, lower } = entries[i];
-      const fileNameOnly = relativePath.split("/").pop().replace(/\.[^/.]+$/, "");
+    // Group entries by series or top folder first to guarantee all series are recognized
+    const folderGroups = new Map();
+    for (const item of entries) {
+      const parts = item.relativePath.split("/").filter(Boolean);
+      const groupKey = parts.length > 1 ? parts[0] : "root";
+      if (!folderGroups.has(groupKey)) {
+        folderGroups.set(groupKey, []);
+      }
+      folderGroups.get(groupKey).push(item);
+    }
 
-      try {
-        if (
-          lower.endsWith(".jpg") ||
-          lower.endsWith(".jpeg") ||
-          lower.endsWith(".png") ||
-          lower.endsWith(".webp")
-        ) {
-          if (seriesList.length < 50) {
-            const blob = await entry.async("blob");
-            const url = URL.createObjectURL(blob);
-            seriesList.push({
-              id: seriesList.length + 1,
-              name: fileNameOnly.toUpperCase().slice(0, 24) || `SERIES ${seriesList.length + 1}`,
-              image: url,
-              fullImage: url,
-            });
-          }
-        } else {
-          // Process DICOM
-          const buffer = await entry.async("arraybuffer");
-          allRawBuffers.push(buffer);
-          const byteArray = new Uint8Array(buffer);
+    // Process each series folder with a generous quota so no series is starved
+    const groupCount = folderGroups.size;
+    const maxSlicesPerGroup = groupCount <= 10 ? 400 : Math.max(50, Math.floor(2000 / groupCount));
 
-          let dicomIdentifiers = {
-            studyInstanceUID: "",
-            seriesInstanceUID: "",
-            seriesDescription: "",
-            sopInstanceUID: "",
-            instanceNumber: "",
-          };
+    for (const [folderKey, groupEntries] of folderGroups.entries()) {
+      // Sort within the series group by file path/name
+      groupEntries.sort((a, b) => a.relativePath.localeCompare(b.relativePath, undefined, { numeric: true }));
 
-          let numberOfFrames = 1;
-          try {
-            const parser = dicomParser.default ?? dicomParser;
-            const ds = parser.parseDicom(byteArray);
+      const totalInGroup = groupEntries.length;
+      let step = 1;
+      if (totalInGroup > maxSlicesPerGroup) {
+        step = Math.ceil(totalInGroup / maxSlicesPerGroup);
+      }
 
-            const getIdentifierTag = (tag) => {
-              try {
-                return ds.string(tag) || "";
-              } catch {
-                return "";
-              }
-            };
+      for (let i = 0; i < groupEntries.length; i++) {
+        const { relativePath, entry, lower } = groupEntries[i];
+        const fileNameOnly = relativePath.split("/").pop().replace(/\.[^/.]+$/, "");
 
-            const rawFrames = getIdentifierTag("x00280008");
-            if (rawFrames) {
-              const parsedFrames = parseInt(rawFrames);
-              if (!isNaN(parsedFrames) && parsedFrames > 1) {
-                numberOfFrames = parsedFrames;
-              }
+        // For large series (> 400 slices), keep every Nth slice to conserve memory while keeping previews and range
+        const isSliceIncluded = i === 0 || i === groupEntries.length - 1 || i % step === 0;
+
+        try {
+          if (
+            lower.endsWith(".jpg") ||
+            lower.endsWith(".jpeg") ||
+            lower.endsWith(".png") ||
+            lower.endsWith(".webp")
+          ) {
+            if (isSliceIncluded) {
+              const blob = await entry.async("blob");
+              const url = URL.createObjectURL(blob);
+              seriesList.push({
+                id: seriesList.length + 1,
+                seriesKey: folderKey,
+                name: fileNameOnly.toUpperCase().slice(0, 24) || `SERIES ${seriesList.length + 1}`,
+                image: url,
+                fullImage: url,
+                slices: [url],
+                imageCount: totalInGroup,
+              });
             }
+          } else {
+            // Process DICOM
+            const buffer = await entry.async("arraybuffer");
+            allRawBuffers.push(buffer);
+            const byteArray = new Uint8Array(buffer);
 
-            dicomIdentifiers = {
-              studyInstanceUID: getIdentifierTag("x0020000d"),
-              seriesInstanceUID: getIdentifierTag("x0020000e"),
-              seriesDescription: getIdentifierTag("x0008103e"),
-              seriesNumber: getIdentifierTag("x00200011"),
-              sopInstanceUID: getIdentifierTag("x00080018"),
-              instanceNumber: getIdentifierTag("x00200013"),
-              numberOfFrames,
+            let dicomIdentifiers = {
+              studyInstanceUID: "",
+              seriesInstanceUID: "",
+              seriesDescription: "",
+              seriesNumber: "",
+              sopInstanceUID: "",
+              instanceNumber: "",
             };
-          } catch (identifierErr) {
-            console.warn("DICOM identifier extraction error:", identifierErr);
-          }
 
-          // Extract DICOM metadata once from first valid DICOM file
-          if (seriesList.length === 0) {
+            let numberOfFrames = 1;
             try {
               const parser = dicomParser.default ?? dicomParser;
-              const ds = parser.parseDicom(byteArray, { untilTag: "00200013" });
+              const ds = parser.parseDicom(byteArray);
 
-              const getTag = (t) => {
+              const getIdentifierTag = (tag) => {
                 try {
-                  return ds.string(t) || "";
+                  return ds.string(tag) || "";
                 } catch {
                   return "";
                 }
               };
 
-              const rawName = getTag("x00100010");
-              if (rawName) {
-                const parts = rawName.split("^").map((s) => s.trim()).filter(Boolean);
-                patientName = parts.length >= 2 ? `${parts[1]} ${parts[0]}` : parts[0] || rawName;
+              const rawFrames = getIdentifierTag("x00280008");
+              if (rawFrames) {
+                const parsedFrames = parseInt(rawFrames);
+                if (!isNaN(parsedFrames) && parsedFrames > 1) {
+                  numberOfFrames = parsedFrames;
+                }
               }
 
-              const rawId = getTag("x00100020");
-              if (rawId) patientUHID = rawId;
-
-              const rawMod = getTag("x00080060");
-              if (rawMod) modality = rawMod;
-
-              const rawDesc = getTag("x00081030");
-              if (rawDesc) studyDesc = rawDesc;
-
-              const rawBody = getTag("x00180015");
-              if (rawBody) bodyPart = rawBody;
-
-              const rawAcc = getTag("x00080050");
-              if (rawAcc) accessionNo = rawAcc;
-
-              const rawSex = getTag("x00100040")?.toUpperCase().trim();
-              if (rawSex === "M") gender = "Male";
-              else if (rawSex === "F") gender = "Female";
-
-              const rawAge = getTag("x00101010");
-              if (rawAge) {
-                const parsedAge = parseInt(rawAge);
-                if (!isNaN(parsedAge)) age = parsedAge;
-              }
-            } catch (metaErr) {
-              console.warn("DICOM metadata parse error:", metaErr);
+              dicomIdentifiers = {
+                studyInstanceUID: getIdentifierTag("x0020000d"),
+                seriesInstanceUID: getIdentifierTag("x0020000e"),
+                seriesDescription: getIdentifierTag("x0008103e"),
+                seriesNumber: getIdentifierTag("x00200011"),
+                sopInstanceUID: getIdentifierTag("x00080018"),
+                instanceNumber: getIdentifierTag("x00200013"),
+                numberOfFrames,
+              };
+            } catch (identifierErr) {
+              console.warn("DICOM identifier extraction error:", identifierErr);
             }
-          }
 
-          // Extract folder or series metadata
-          const pathSegments = relativePath.split("/").filter(Boolean);
-          const folderName = pathSegments.length > 1 ? pathSegments[pathSegments.length - 2] : "";
-          const sDesc =
-            dicomIdentifiers.seriesDescription ||
-            (folderName && !folderName.toLowerCase().includes("dicom") ? folderName : "") ||
-            fileNameOnly;
+            // Extract study metadata once from first valid DICOM file
+            if (seriesList.length === 0) {
+              try {
+                const parser = dicomParser.default ?? dicomParser;
+                const ds = parser.parseDicom(byteArray, { untilTag: "00200013" });
 
-          const seriesKey =
-            dicomIdentifiers.seriesInstanceUID ||
-            (dicomIdentifiers.seriesNumber ? `SERIES_${dicomIdentifiers.seriesNumber}` : "") ||
-            (dicomIdentifiers.seriesDescription ? dicomIdentifiers.seriesDescription : "") ||
-            folderName ||
-            "SERIES_1";
+                const getTag = (t) => {
+                  try {
+                    return ds.string(t) || "";
+                  } catch {
+                    return "";
+                  }
+                };
 
-          if (numberOfFrames > 1) {
-            // Multi-frame DICOM
-            const slices = [];
-            const midFrame = Math.floor(numberOfFrames / 2);
-            let previewUrl = null;
+                const rawName = getTag("x00100010");
+                if (rawName) {
+                  const parts = rawName.split("^").map((s) => s.trim()).filter(Boolean);
+                  patientName = parts.length >= 2 ? `${parts[1]} ${parts[0]}` : parts[0] || rawName;
+                }
 
-            for (let f = 0; f < numberOfFrames; f++) {
-              const fUrl = await renderDicomToDataUrl(buffer, f);
-              if (fUrl) {
-                slices.push(fUrl);
-                if (f === midFrame || !previewUrl) {
-                  previewUrl = fUrl;
+                const rawId = getTag("x00100020");
+                if (rawId) patientUHID = rawId;
+
+                const rawMod = getTag("x00080060");
+                if (rawMod) modality = rawMod;
+
+                const rawDesc = getTag("x00081030");
+                if (rawDesc) studyDesc = rawDesc;
+
+                const rawBody = getTag("x00180015");
+                if (rawBody) bodyPart = rawBody;
+
+                const rawAcc = getTag("x00080050");
+                if (rawAcc) accessionNo = rawAcc;
+
+                const rawSex = getTag("x00100040")?.toUpperCase().trim();
+                if (rawSex === "M") gender = "Male";
+                else if (rawSex === "F") gender = "Female";
+
+                const rawAge = getTag("x00101010");
+                if (rawAge) {
+                  const parsedAge = parseInt(rawAge);
+                  if (!isNaN(parsedAge)) age = parsedAge;
+                }
+              } catch (metaErr) {
+                console.warn("DICOM metadata parse error:", metaErr);
+              }
+            }
+
+            // Extract folder or series metadata
+            const pathSegments = relativePath.split("/").filter(Boolean);
+            const folderName = pathSegments.length > 1 ? pathSegments[pathSegments.length - 2] : "";
+            const sDesc =
+              dicomIdentifiers.seriesDescription ||
+              (folderName && !folderName.toLowerCase().includes("dicom") ? folderName : "") ||
+              fileNameOnly;
+
+            // Make sure seriesKey is unique for distinct series
+            const seriesKey =
+              dicomIdentifiers.seriesInstanceUID ||
+              (dicomIdentifiers.seriesNumber ? `SERIES_${dicomIdentifiers.seriesNumber}` : "") ||
+              folderKey ||
+              `SERIES_${folderName || sDesc}`;
+
+            if (numberOfFrames > 1) {
+              // Multi-frame DICOM
+              const slices = [];
+              const midFrame = Math.floor(numberOfFrames / 2);
+              let previewUrl = null;
+
+              for (let f = 0; f < numberOfFrames; f++) {
+                const fUrl = await renderDicomToDataUrl(buffer, f);
+                if (fUrl) {
+                  slices.push(fUrl);
+                  if (f === midFrame || !previewUrl) {
+                    previewUrl = fUrl;
+                  }
+                }
+              }
+
+              seriesList.push({
+                id: seriesList.length + 1,
+                seriesKey,
+                name: sDesc.toUpperCase().slice(0, 24) || `SERIES ${seriesList.length + 1}`,
+                image: previewUrl || slices[0] || null,
+                fullImage: previewUrl || slices[0] || null,
+                slices: slices.length > 0 ? slices : undefined,
+                imageCount: numberOfFrames,
+                numberOfFrames: numberOfFrames,
+                rawBuffer: buffer,
+                studyInstanceUID: dicomIdentifiers.studyInstanceUID,
+                seriesInstanceUID: dicomIdentifiers.seriesInstanceUID,
+                seriesDescription: dicomIdentifiers.seriesDescription,
+                sopInstanceUID: dicomIdentifiers.sopInstanceUID,
+                instanceNumber: dicomIdentifiers.instanceNumber,
+                seriesNumber: dicomIdentifiers.seriesNumber,
+              });
+            } else {
+              // Single-frame slice
+              if (isSliceIncluded) {
+                const renderedUrl = await renderDicomToDataUrl(buffer, 0);
+                if (renderedUrl) {
+                  seriesList.push({
+                    id: seriesList.length + 1,
+                    seriesKey,
+                    name: sDesc.toUpperCase().slice(0, 24) || `SERIES ${seriesList.length + 1}`,
+                    image: renderedUrl,
+                    fullImage: renderedUrl,
+                    slices: [renderedUrl],
+                    imageCount: totalInGroup,
+                    numberOfFrames: 1,
+                    rawBuffer: buffer,
+                    studyInstanceUID: dicomIdentifiers.studyInstanceUID,
+                    seriesInstanceUID: dicomIdentifiers.seriesInstanceUID,
+                    seriesDescription: dicomIdentifiers.seriesDescription,
+                    sopInstanceUID: dicomIdentifiers.sopInstanceUID,
+                    instanceNumber: dicomIdentifiers.instanceNumber,
+                    seriesNumber: dicomIdentifiers.seriesNumber,
+                  });
                 }
               }
             }
-
-            seriesList.push({
-              id: seriesList.length + 1,
-              seriesKey,
-              name: sDesc.toUpperCase().slice(0, 24) || `SERIES ${seriesList.length + 1}`,
-              image: previewUrl || slices[0] || null,
-              fullImage: previewUrl || slices[0] || null,
-              slices: slices.length > 0 ? slices : undefined,
-              imageCount: numberOfFrames,
-              numberOfFrames: numberOfFrames,
-              rawBuffer: buffer,
-              studyInstanceUID: dicomIdentifiers.studyInstanceUID,
-              seriesInstanceUID: dicomIdentifiers.seriesInstanceUID,
-              seriesDescription: dicomIdentifiers.seriesDescription,
-              sopInstanceUID: dicomIdentifiers.sopInstanceUID,
-              instanceNumber: dicomIdentifiers.instanceNumber,
-              seriesNumber: dicomIdentifiers.seriesNumber,
-            });
-          } else {
-            // Single-frame slice: extract image
-            // Allow extracting slices across all series (up to 1500 slices total)
-            if (seriesList.length < 1500) {
-              const renderedUrl = await renderDicomToDataUrl(buffer, 0);
-              if (renderedUrl) {
-                seriesList.push({
-                  id: seriesList.length + 1,
-                  seriesKey,
-                  name: sDesc.toUpperCase().slice(0, 24) || `SERIES ${seriesList.length + 1}`,
-                  image: renderedUrl,
-                  fullImage: renderedUrl,
-                  slices: [renderedUrl],
-                  imageCount: 1,
-                  numberOfFrames: 1,
-                  rawBuffer: buffer,
-                  studyInstanceUID: dicomIdentifiers.studyInstanceUID,
-                  seriesInstanceUID: dicomIdentifiers.seriesInstanceUID,
-                  seriesDescription: dicomIdentifiers.seriesDescription,
-                  sopInstanceUID: dicomIdentifiers.sopInstanceUID,
-                  instanceNumber: dicomIdentifiers.instanceNumber,
-                  seriesNumber: dicomIdentifiers.seriesNumber,
-                });
-              }
-            }
           }
+        } catch (entryErr) {
+          console.warn(`Error processing file ${relativePath}:`, entryErr);
         }
-      } catch (entryErr) {
-        console.warn(`Error processing file ${relativePath}:`, entryErr);
       }
     }
   } else {

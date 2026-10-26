@@ -492,12 +492,21 @@ export default function ViewerShell() {
         const imgUrl = s.fullImage || s.image;
         if (!imgUrl) return;
 
-        const seriesKey = s.name || s.seriesName || `Series 1`;
+        const seriesKey =
+          s.seriesKey ||
+          s.seriesInstanceUID ||
+          (s.seriesNumber ? `SERIES_${s.seriesNumber}` : "") ||
+          s.name ||
+          s.seriesName ||
+          `Series_${idx + 1}`;
         if (!seriesMap.has(seriesKey)) {
           seriesMap.set(seriesKey, {
-            id: seriesMap.size + 1,
-            name: seriesKey.toUpperCase().slice(0, 24),
+            id: s.id ?? (seriesMap.size + 1),
+            name: (s.name || s.seriesName || `Series ${seriesMap.size + 1}`).toUpperCase().slice(0, 24),
+            seriesNumber: s.seriesNumber,
+            seriesInstanceUID: s.seriesInstanceUID,
             slices: [],
+            sliceCount: s.sliceCount || s.imageCount || 0,
           });
         }
         seriesMap.get(seriesKey).slices.push(imgUrl);
