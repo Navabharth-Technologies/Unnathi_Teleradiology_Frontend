@@ -12,20 +12,24 @@ import { LiveStudyTrend } from "../../components/dashboard/LiveStudyTrend";
 
 export default function AdminDashboard() {
   const { patients, studies, users, radiologists, hospitals } = useMockDb();
-  const { user } = useAuthStore();
+  const { user, selectedHospitalId } = useAuthStore();
   const navigate = useNavigate();
 
-  // Filter data for this specific hospital
+  // Active hospital ID resolves from selectedHospitalId (when navigated from Hospitals list/Unnathi dashboard) or user's hospitalId
+  const activeHospitalId = selectedHospitalId || user?.hospitalId;
+  const currentHospital = hospitals.find((h) => h.id === activeHospitalId);
+
+  // Filter data strictly for this specific hospital
   const hospitalPatients = patients.filter(
-    (p) => p.hospitalId === user?.hospitalId,
+    (p) => p.hospitalId === activeHospitalId,
   );
   const hospitalStudies = studies.filter(
-    (s) => s.hospitalId === user?.hospitalId,
+    (s) => s.hospitalId === activeHospitalId,
   );
-  const hospitalUsers = users.filter((u) => u.hospitalId === user?.hospitalId);
+  const hospitalUsers = users.filter((u) => u.hospitalId === activeHospitalId);
   // Find radiologists assigned to this hospital
   const hospitalRadiologists = radiologists.filter((r) =>
-    r.assignedHospitals.includes(user?.hospitalId || ""),
+    r.assignedHospitals?.includes(activeHospitalId || ""),
   );
 
   return (
@@ -33,14 +37,14 @@ export default function AdminDashboard() {
       <div className="flex flex-col mb-4">
         <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
           <Building2 className="w-5 h-5 text-accent" />
-          Hospital Dashboard
+          {currentHospital?.name ? `${currentHospital.name} Dashboard` : "Hospital Dashboard"}
         </h1>
         <p className="text-sm font-medium text-slate-500 mt-1 pl-7">
           Overview of hospital operations and performance metrics
         </p>
       </div>
 
-      <LiveStudyTrend />
+      <LiveStudyTrend hospitalId={activeHospitalId} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-6">
         <div className="bg-card rounded-lg p-5 border border-border relative overflow-hidden shadow-sm">
@@ -50,13 +54,9 @@ export default function AdminDashboard() {
                 Wallet Balance
               </p>
               <h3
-                className={`text-2xl font-bold ${((user?.hospitalId ? hospitals.find((h) => h.id === user.hospitalId)?.walletBalance : 0) || 0) < 0 ? "text-destructive" : "text-success"}`}
+                className={`text-2xl font-bold ${(currentHospital?.walletBalance || 0) < 0 ? "text-destructive" : "text-success"}`}
               >
-                ₹{" "}
-                {(user?.hospitalId
-                  ? hospitals.find((h) => h.id === user.hospitalId)
-                      ?.walletBalance
-                  : 0) || 0}
+                ₹ {currentHospital?.walletBalance || 0}
               </h3>
             </div>
             <div className="p-2.5 bg-success/10 rounded-md text-success">
@@ -70,13 +70,11 @@ export default function AdminDashboard() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (user?.hospitalId) {
-                  const currentBalance =
-                    hospitals.find((h) => h.id === user.hospitalId)
-                      ?.walletBalance || 0;
+                if (activeHospitalId) {
+                  const currentBalance = currentHospital?.walletBalance || 0;
                   useMockDb
                     .getState()
-                    .updateHospital(user.hospitalId, {
+                    .updateHospital(activeHospitalId, {
                       walletBalance: currentBalance + 5000,
                     });
                 }

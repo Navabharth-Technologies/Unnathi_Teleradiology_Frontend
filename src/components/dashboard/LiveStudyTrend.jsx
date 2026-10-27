@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import {
@@ -26,39 +26,54 @@ import {
   FileSearch,
   XCircle,
   ChevronRight,
+  UserCheck,
 } from "lucide-react";
 import { useMockDb } from "../../store/useMockDb";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useNavigate } from "react-router-dom";
 
-export function LiveStudyTrend() {
-  const { hospitals, studies } = useMockDb();
-  const { user } = useAuthStore();
+export function LiveStudyTrend({ hospitalId }) {
+  const { hospitals, studies, radiologists } = useMockDb();
+  const { user, selectedHospitalId } = useAuthStore();
   const navigate = useNavigate();
 
-  // Filter hospitals based on user role
-  const scopedHospitals = hospitals.filter((h) => {
-    if (user?.role === "SUPER_ADMIN") return true;
-    if (user?.role === "SITE_ADMIN") return h.parentSiteId === user?.siteId;
-    return h.id === user?.hospitalId;
-  });
-  const scopedHospitalIds = scopedHospitals.map((h) => h.id);
+  // If a specific hospital is targeted (via prop, selectedHospitalId, or user's hospitalId)
+  const targetHospitalId = hospitalId || selectedHospitalId || (user?.role === "HOSPITAL_ADMIN" ? user?.hospitalId : null);
 
-  // Filter studies based on scoped hospitals
-  const scopedStudies = studies.filter((s) =>
-    scopedHospitalIds.includes(s.hospitalId),
+  // Filter hospitals based on target hospital or user role
+  const scopedHospitals = useMemo(() => {
+    if (targetHospitalId) {
+      return hospitals.filter((h) => h.id === targetHospitalId);
+    }
+    return hospitals.filter((h) => {
+      if (user?.role === "SUPER_ADMIN") return true;
+      if (user?.role === "SITE_ADMIN") return h.parentSiteId === user?.siteId;
+      return h.id === user?.hospitalId;
+    });
+  }, [hospitals, targetHospitalId, user]);
+
+  const scopedHospitalIds = useMemo(
+    () => scopedHospitals.map((h) => h.id),
+    [scopedHospitals],
   );
+
+  // Filter studies strictly based on scoped hospitals
+  const scopedStudies = useMemo(() => {
+    return studies.filter((s) => scopedHospitalIds.includes(s.hospitalId));
+  }, [studies, scopedHospitalIds]);
+
   // State
   const [activeTab, setActiveTab] = useState("Dashboard Chart");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filterType, setFilterType] = useState("Site");
   const [selectedModality, setSelectedModality] = useState("All");
-  // Daily Trend Data (Dynamic)
+
+  // Daily Trend Data (Real-time and Dynamic)
   const today = new Date().toISOString().split("T")[0];
   const metricsData = [
     {
       label: "Today",
-      value: scopedStudies.filter((s) => s.createdAt.startsWith(today)).length,
+      value: scopedStudies.filter((s) => (s.createdAt || s.createdDate || "").startsWith(today)).length,
       icon: Calendar,
       color: "text-blue-600",
       bg: "bg-blue-50/50",
@@ -91,7 +106,7 @@ export function LiveStudyTrend() {
     {
       label: "Pending",
       value: scopedStudies.filter(
-        (s) => s.status === "Pending" || s.status === "Draft",
+        (s) => s.status === "Pending" || s.status === "Draft" || s.reportingStatus === "Pending",
       ).length,
       icon: Clock,
       color: "text-amber-600",
@@ -99,7 +114,11 @@ export function LiveStudyTrend() {
     },
     {
       label: "TAT Delay",
-      value: 0,
+      value: scopedStudies.filter((s) => {
+        if (!s.createdAt) return false;
+        const diffHrs = (Date.now() - new Date(s.createdAt).getTime()) / (1000 * 60 * 60);
+        return diffHrs > 4 && s.status !== "Final" && s.status !== "Completed";
+      }).length,
       icon: AlertCircle,
       color: "text-rose-600",
       bg: "bg-rose-50/50",
@@ -113,7 +132,7 @@ export function LiveStudyTrend() {
     },
     {
       label: "Final",
-      value: scopedStudies.filter((s) => s.status === "Final").length,
+      value: scopedStudies.filter((s) => s.status === "Final" || s.status === "Completed").length,
       icon: CheckCircle,
       color: "text-[#0D2461]",
       bg: "bg-[#0D2461]/5",
@@ -134,14 +153,176 @@ export function LiveStudyTrend() {
     },
   ];
 
-  // Simulated Analytics Data
-  const siteAnalyticsData = scopedHospitals
-    .map((c) => ({
-      name: c.name.split(" ")[0],
-      volume: scopedStudies.filter((s) => s.hospitalId === c.id).length,
-    }))
-    .slice(0, 6)
-    .filter((c) => c.volume > 0);
+  // Dynamic Real-Time Chart Data:
+  // When filterType === "Site": Plot timeline by modalities (CT, MRI, X-Ray)
+  // When filterType === "Radiologist": Plot timeline or volume by Assigned Radiologists
+  const dynamicTimelineData = useMemo(() => {
+    // Collect past 7 days dates as the timeline range
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      const displayStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      days.push({ raw: dateStr, label: displayStr });
+    }
+
+    if (filterType === "Site") {
+      return days.map(({ raw, label }) => {
+        const dayStudies = scopedStudies.filter((s) =>
+          (s.createdAt || s.createdDate || s.studyDate || "").startsWith(raw),
+        );
+
+        const ctCount = dayStudies.filter(
+          (s) => (s.modality || "").toUpperCase().includes("CT"),
+        ).length;
+        const mriCount = dayStudies.filter(
+          (s) => (s.modality || "").toUpperCase().includes("MR"),
+        ).length;
+        const xrayCount = dayStudies.filter((s) => {
+          const mod = (s.modality || "").toUpperCase();
+          return mod.includes("XR") || mod.includes("CR") || mod.includes("DX") || mod.includes("X-RAY");
+        }).length;
+
+        return {
+          date: label,
+          CT: ctCount,
+          MRI: mriCount,
+          Xray: xrayCount,
+          Total: dayStudies.length,
+        };
+      });
+    } else {
+      // By Radiologist: show breakdown of completed vs assigned studies over time
+      return days.map(({ raw, label }) => {
+        const dayStudies = scopedStudies.filter((s) =>
+          (s.createdAt || s.createdDate || s.studyDate || "").startsWith(raw),
+        );
+
+        // Filter by modality if selected
+        const filteredDayStudies = selectedModality === "All"
+          ? dayStudies
+          : dayStudies.filter((s) => {
+              const m = (s.modality || "").toUpperCase();
+              if (selectedModality === "CT") return m.includes("CT");
+              if (selectedModality === "MRI") return m.includes("MR");
+              if (selectedModality === "X-Ray") return m.includes("XR") || m.includes("CR") || m.includes("DX");
+              return true;
+            });
+
+        const reportedCount = filteredDayStudies.filter(
+          (s) => (s.status === "Final" || s.status === "Completed") && s.radiologistId,
+        ).length;
+        const inProgressCount = filteredDayStudies.filter(
+          (s) => s.status === "Review" || s.status === "Active",
+        ).length;
+        const assignedCount = filteredDayStudies.filter(
+          (s) => s.radiologistId && s.status !== "Cancelled",
+        ).length;
+
+        return {
+          date: label,
+          Reported: reportedCount,
+          Assigned: assignedCount,
+          Active: inProgressCount,
+        };
+      });
+    }
+  }, [scopedStudies, filterType, selectedModality]);
+
+  // Dynamic Site Analytics Data
+  const siteAnalyticsData = useMemo(() => {
+    if (filterType === "Radiologist") {
+      // Show Volume Generated per Radiologist
+      const counts = {};
+      scopedStudies.forEach((s) => {
+        if (selectedModality !== "All") {
+          const m = (s.modality || "").toUpperCase();
+          if (selectedModality === "CT" && !m.includes("CT")) return;
+          if (selectedModality === "MRI" && !m.includes("MR")) return;
+          if (selectedModality === "X-Ray" && !m.includes("XR") && !m.includes("CR") && !m.includes("DX")) return;
+        }
+        const rad = radiologists.find((r) => r.id === s.radiologistId || r.userId === s.radiologistId);
+        const name = rad?.name || s.radiologistName || (s.radiologistId ? "Assigned Rad" : "Unassigned");
+        counts[name] = (counts[name] || 0) + 1;
+      });
+
+      return Object.entries(counts).map(([name, volume]) => ({
+        name,
+        volume,
+      }));
+    }
+
+    // By Site / Modality Distribution
+    if (scopedHospitals.length === 1) {
+      // Single Hospital: Show Modality Volume breakdown
+      const singleHosp = scopedHospitals[0];
+      const hospStudies = scopedStudies.filter((s) => s.hospitalId === singleHosp.id);
+      const ct = hospStudies.filter((s) => (s.modality || "").toUpperCase().includes("CT")).length;
+      const mri = hospStudies.filter((s) => (s.modality || "").toUpperCase().includes("MR")).length;
+      const xray = hospStudies.filter((s) => {
+        const m = (s.modality || "").toUpperCase();
+        return m.includes("XR") || m.includes("CR") || m.includes("DX") || m.includes("X-RAY");
+      }).length;
+      const other = hospStudies.length - (ct + mri + xray);
+
+      const items = [
+        { name: `${singleHosp.name} (CT)`, volume: ct },
+        { name: `${singleHosp.name} (MRI)`, volume: mri },
+        { name: `${singleHosp.name} (X-Ray)`, volume: xray },
+      ];
+      if (other > 0) items.push({ name: `${singleHosp.name} (Other)`, volume: other });
+      return items;
+    }
+
+    // Multiple sites: Show Volume per Site
+    return scopedHospitals
+      .map((c) => ({
+        name: c.name.split(" ")[0],
+        volume: scopedStudies.filter((s) => {
+          if (s.hospitalId !== c.id) return false;
+          if (selectedModality !== "All") {
+            const m = (s.modality || "").toUpperCase();
+            if (selectedModality === "CT") return m.includes("CT");
+            if (selectedModality === "MRI") return m.includes("MR");
+            if (selectedModality === "X-Ray") return m.includes("XR") || m.includes("CR") || m.includes("DX");
+          }
+          return true;
+        }).length,
+      }))
+      .filter((c) => c.volume >= 0);
+  }, [scopedHospitals, scopedStudies, filterType, selectedModality, radiologists]);
+
+  // Critical Sites strictly computed from live data of scoped hospitals ONLY
+  const criticalSitesList = useMemo(() => {
+    return scopedHospitals.map((site) => {
+      const siteStudies = scopedStudies.filter((s) => s.hospitalId === site.id);
+      const pendingCount = siteStudies.filter(
+        (s) => s.status === "Pending" || s.status === "Draft" || s.reportingStatus === "Pending",
+      ).length;
+
+      // Calculate real delay based on the oldest pending study
+      let maxDelayHours = 0;
+      const pendingStudies = siteStudies.filter(
+        (s) => s.status === "Pending" || s.reportingStatus === "Pending",
+      );
+      if (pendingStudies.length > 0) {
+        pendingStudies.forEach((ps) => {
+          if (ps.createdAt) {
+            const delay = (Date.now() - new Date(ps.createdAt).getTime()) / (1000 * 60 * 60);
+            if (delay > maxDelayHours) maxDelayHours = delay;
+          }
+        });
+      }
+
+      return {
+        ...site,
+        pendingCount,
+        maxDelayHours: Math.max(0, Math.round(maxDelayHours)),
+      };
+    });
+  }, [scopedHospitals, scopedStudies]);
+
   const barColors = [
     "#0D2461",
     "#00A8CC",
@@ -149,16 +330,6 @@ export function LiveStudyTrend() {
     "#8b5cf6",
     "#f59e0b",
     "#ec4899",
-  ];
-
-  const baseChartData = [
-    { date: "10:00 AM", CT: 12, MRI: 8, Xray: 15 },
-    { date: "11:00 AM", CT: 19, MRI: 12, Xray: 22 },
-    { date: "12:00 PM", CT: 15, MRI: 10, Xray: 18 },
-    { date: "01:00 PM", CT: 22, MRI: 15, Xray: 30 },
-    { date: "02:00 PM", CT: 18, MRI: 11, Xray: 25 },
-    { date: "03:00 PM", CT: 25, MRI: 18, Xray: 35 },
-    { date: "04:00 PM", CT: 20, MRI: 14, Xray: 28 },
   ];
 
   const handleRefresh = () => {
@@ -299,16 +470,18 @@ export function LiveStudyTrend() {
                 <div className="flex justify-between items-end mb-6">
                   <div>
                     <h3 className="text-lg font-black text-[#0D2461]">
-                      Modality Volume Timeline
+                      {filterType === "Site" ? "Modality Volume Timeline" : "Radiologist Activity Timeline"}
                     </h3>
                     <p className="text-xs font-medium text-slate-400">
-                      Comparing studies completed over the selected timeframe
+                      {filterType === "Site"
+                        ? "Real-time studies completed across modalities over the past 7 days"
+                        : "Real-time studies assigned, reported, and active over the past 7 days"}
                     </p>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={baseChartData}
+                    data={dynamicTimelineData}
                     margin={{ top: 5, right: 30, left: -20, bottom: 5 }}
                   >
                     <CartesianGrid
@@ -328,6 +501,7 @@ export function LiveStudyTrend() {
                       dy={10}
                     />
                     <YAxis
+                      allowDecimals={false}
                       tick={{
                         fontSize: 12,
                         fill: "#64748b",
@@ -355,39 +529,76 @@ export function LiveStudyTrend() {
                         fontWeight: "bold",
                       }}
                     />
-                    {(selectedModality === "All" ||
-                      selectedModality === "CT") && (
-                      <Line
-                        type="monotone"
-                        dataKey="CT"
-                        stroke="#0D2461"
-                        strokeWidth={3}
-                        dot={{ r: 4, strokeWidth: 2 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    )}
-                    {(selectedModality === "All" ||
-                      selectedModality === "MRI") && (
-                      <Line
-                        type="monotone"
-                        dataKey="MRI"
-                        stroke="#00A8CC"
-                        strokeWidth={3}
-                        dot={{ r: 4, strokeWidth: 2 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    )}
-                    {(selectedModality === "All" ||
-                      selectedModality === "X-Ray") && (
-                      <Line
-                        type="monotone"
-                        dataKey="Xray"
-                        name="X-Ray"
-                        stroke="#f59e0b"
-                        strokeWidth={3}
-                        dot={{ r: 4, strokeWidth: 2 }}
-                        activeDot={{ r: 6 }}
-                      />
+
+                    {filterType === "Site" ? (
+                      <>
+                        {(selectedModality === "All" ||
+                          selectedModality === "CT") && (
+                          <Line
+                            type="monotone"
+                            dataKey="CT"
+                            name="CT Scans"
+                            stroke="#0D2461"
+                            strokeWidth={3}
+                            dot={{ r: 4, strokeWidth: 2 }}
+                            activeDot={{ r: 6 }}
+                          />
+                        )}
+                        {(selectedModality === "All" ||
+                          selectedModality === "MRI") && (
+                          <Line
+                            type="monotone"
+                            dataKey="MRI"
+                            name="MRI Scans"
+                            stroke="#00A8CC"
+                            strokeWidth={3}
+                            dot={{ r: 4, strokeWidth: 2 }}
+                            activeDot={{ r: 6 }}
+                          />
+                        )}
+                        {(selectedModality === "All" ||
+                          selectedModality === "X-Ray") && (
+                          <Line
+                            type="monotone"
+                            dataKey="Xray"
+                            name="X-Ray"
+                            stroke="#f59e0b"
+                            strokeWidth={3}
+                            dot={{ r: 4, strokeWidth: 2 }}
+                            activeDot={{ r: 6 }}
+                          />
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Line
+                          type="monotone"
+                          dataKey="Reported"
+                          name="Reported Studies"
+                          stroke="#10b981"
+                          strokeWidth={3}
+                          dot={{ r: 4, strokeWidth: 2 }}
+                          activeDot={{ r: 6 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="Assigned"
+                          name="Assigned Studies"
+                          stroke="#0D2461"
+                          strokeWidth={3}
+                          dot={{ r: 4, strokeWidth: 2 }}
+                          activeDot={{ r: 6 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="Active"
+                          name="In Review / Active"
+                          stroke="#00A8CC"
+                          strokeWidth={3}
+                          dot={{ r: 4, strokeWidth: 2 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </>
                     )}
                   </LineChart>
                 </ResponsiveContainer>
@@ -403,13 +614,12 @@ export function LiveStudyTrend() {
                       Urgent Attention Required
                     </h3>
                     <p className="text-xs font-medium text-slate-400">
-                      Sites currently experiencing SLA breaches or high TAT
-                      delays
+                      Sites currently experiencing SLA breaches or high TAT delays
                     </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {hospitals.slice(0, 3).map((site, idx) => (
+                  {criticalSitesList.map((site) => (
                     <div
                       key={site.id}
                       className="relative bg-white border border-rose-200 rounded-2xl p-6 shadow-md shadow-rose-100/50 overflow-hidden group hover:shadow-lg transition-all"
@@ -432,7 +642,7 @@ export function LiveStudyTrend() {
                             Pending
                           </span>
                           <span className="text-xl font-black text-slate-800">
-                            {12 + idx * 5}
+                            {site.pendingCount}
                           </span>
                         </div>
                         <div className="flex justify-between items-center bg-rose-50/50 p-3 rounded-xl border border-rose-100">
@@ -440,13 +650,13 @@ export function LiveStudyTrend() {
                             Max Delay
                           </span>
                           <span className="text-xl font-black text-rose-600">
-                            +{2 + idx} <span className="text-sm">hrs</span>
+                            +{site.maxDelayHours} <span className="text-sm">hrs</span>
                           </span>
                         </div>
                       </div>
 
                       <Button
-                        onClick={() => navigate("/manager/tat")}
+                        onClick={() => navigate("/studies")}
                         className="w-full mt-6 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-bold shadow-sm group-hover:border-rose-400 group-hover:bg-rose-600 group-hover:text-white transition-all"
                       >
                         Intervene Queue{" "}
@@ -454,7 +664,7 @@ export function LiveStudyTrend() {
                       </Button>
                     </div>
                   ))}
-                  {hospitals.length === 0 && (
+                  {criticalSitesList.length === 0 && (
                     <div className="col-span-3 text-center py-12 bg-slate-50 rounded-2xl border border-slate-100">
                       <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
                       <h3 className="text-lg font-bold text-slate-700">
@@ -478,7 +688,11 @@ export function LiveStudyTrend() {
                       Volume Distribution
                     </h3>
                     <p className="text-xs font-medium text-slate-400">
-                      Total studies generated per site
+                      {filterType === "Radiologist"
+                        ? "Total live studies distributed per radiologist"
+                        : scopedHospitals.length === 1
+                          ? `Total live studies generated for ${scopedHospitals[0]?.name} by modality`
+                          : "Total live studies generated per site"}
                     </p>
                   </div>
                 </div>
@@ -486,7 +700,7 @@ export function LiveStudyTrend() {
                   <BarChart
                     data={siteAnalyticsData}
                     margin={{ top: 20, right: 30, left: -20, bottom: 5 }}
-                    barSize={60}
+                    barSize={50}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -505,6 +719,7 @@ export function LiveStudyTrend() {
                       dy={10}
                     />
                     <YAxis
+                      allowDecimals={false}
                       tick={{
                         fontSize: 12,
                         fill: "#64748b",
