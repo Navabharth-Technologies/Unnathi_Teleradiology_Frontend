@@ -70,20 +70,47 @@ export function RichTextEditor({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Report - ${patientName}</title>
+          <title></title>
           <style>
             @page {
               size: A4;
-              margin: 15mm 15mm 15mm 15mm;
+              margin: 0mm;
+            }
+            @media print {
+              html, body {
+                width: 210mm;
+                height: 297mm;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+              .page-container {
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                box-sizing: border-box;
+                padding: 16mm 18mm 16mm 18mm !important;
+              }
+            }
+            * {
+              box-sizing: border-box;
             }
             body {
-              font-family: Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
               color: #1e293b;
               margin: 0;
               padding: 0;
               font-size: 13px;
               line-height: 1.6;
               background: #fff;
+            }
+            .page-container {
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              min-height: 100vh;
+              padding: 16mm 18mm;
+              box-sizing: border-box;
             }
             .header-bar {
               border-bottom: 2px solid #0D2461;
@@ -143,7 +170,7 @@ export function RichTextEditor({
             }
             .study-title {
               text-align: center;
-              font-size: 15px;
+              font-size: 14.5px;
               font-weight: 900;
               color: #0D2461;
               text-transform: uppercase;
@@ -154,61 +181,88 @@ export function RichTextEditor({
             }
             .report-body {
               color: #0f172a;
-              min-height: 400px;
+              flex: 1;
+              line-height: 1.6;
             }
             .report-body h3, .report-body strong {
               color: #0D2461;
             }
             .footer-sign {
-              margin-top: 40px;
-              padding-top: 10px;
+              margin-top: auto;
+              padding-top: 28px;
               display: flex;
               justify-content: flex-end;
               page-break-inside: avoid;
             }
             .sign-box {
               text-align: center;
-              min-width: 180px;
-              border-top: 1.5px solid #0D2461;
-              padding-top: 6px;
+              min-width: 220px;
+              border-top: 2px solid #0D2461;
+              padding-top: 8px;
               font-size: 11px;
-              font-weight: 700;
+              font-weight: 800;
               color: #0D2461;
+              text-transform: uppercase;
+            }
+            .sign-meta {
+              font-size: 9.5px;
+              color: #64748b;
+              font-weight: 600;
+              margin-top: 3px;
+              letter-spacing: 0.5px;
+            }
+            .doc-end {
+              border-top: 1px solid #e2e8f0;
+              margin-top: 16px;
+              padding-top: 6px;
+              text-align: center;
+              font-size: 9px;
+              color: #94a3b8;
+              font-weight: 600;
+              letter-spacing: 1px;
               text-transform: uppercase;
             }
           </style>
         </head>
         <body>
-          <div class="header-bar">
+          <div class="page-container">
             <div>
-              <h1 class="brand-name">UNNATHI</h1>
-              <div class="brand-sub">Diagnostic Imaging &amp; Teleradiology</div>
+              <div class="header-bar">
+                <div>
+                  <h1 class="brand-name">UNNATHI</h1>
+                  <div class="brand-sub">Diagnostic Imaging &amp; Teleradiology</div>
+                </div>
+                <div class="hosp-meta">
+                  ${hospName && hospName !== "Hospital" && hospName !== "Abc" && hospName !== "-" ? `<div>${hospName}</div>` : ""}
+                  <div>Report Date: ${studyDate}</div>
+                </div>
+              </div>
+
+              <div class="patient-card">
+                <div class="patient-row"><span class="patient-label">Patient Name:</span><span class="patient-val">${patientName}</span></div>
+                <div class="patient-row"><span class="patient-label">Study Date:</span><span class="patient-val">${studyDate}</span></div>
+                <div class="patient-row"><span class="patient-label">UHID:</span><span class="patient-val">${uhid}</span></div>
+                <div class="patient-row"><span class="patient-label">Modality:</span><span class="patient-val">${modality}</span></div>
+                <div class="patient-row"><span class="patient-label">Age / Gender:</span><span class="patient-val">${ageGender}</span></div>
+                <div class="patient-row"><span class="patient-label">Ref Doctor:</span><span class="patient-val">${refDoctor}</span></div>
+              </div>
+
+              <div class="study-title">${studyDesc}</div>
+
+              <div class="report-body">
+                ${reportHtml}
+              </div>
             </div>
-            <div class="hosp-meta">
-              <div>${hospName}</div>
-              <div>Report Date: ${studyDate}</div>
-            </div>
-          </div>
 
-          <div class="patient-card">
-            <div class="patient-row"><span class="patient-label">Patient Name:</span><span class="patient-val">${patientName}</span></div>
-            <div class="patient-row"><span class="patient-label">Study Date:</span><span class="patient-val">${studyDate}</span></div>
-            <div class="patient-row"><span class="patient-label">UHID:</span><span class="patient-val">${uhid}</span></div>
-            <div class="patient-row"><span class="patient-label">Modality:</span><span class="patient-val">${modality}</span></div>
-            <div class="patient-row"><span class="patient-label">Age / Gender:</span><span class="patient-val">${ageGender}</span></div>
-            <div class="patient-row"><span class="patient-label">Ref Doctor:</span><span class="patient-val">${refDoctor}</span></div>
-          </div>
-
-          <div class="study-title">${studyDesc}</div>
-
-          <div class="report-body">
-            ${reportHtml}
-          </div>
-
-          <div class="footer-sign">
-            <div class="sign-box">
-              <div>Consultant Radiologist</div>
-              <div style="font-size: 9px; color: #64748b; font-weight: normal; margin-top: 2px;">Electronically Verified &amp; Signed</div>
+            <div>
+              <div class="footer-sign">
+                <div class="sign-box">
+                  <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 22px; color: #0D2461; text-transform: none; margin-bottom: 4px; font-weight: normal;">Dr. Verified</div>
+                  <div>Consultant Radiologist</div>
+                  <div class="sign-meta">Electronically Verified &amp; Signed</div>
+                </div>
+              </div>
+              <div class="doc-end">*** End of Report ***</div>
             </div>
           </div>
         </body>

@@ -243,25 +243,25 @@ export function buildFormalReportDOM({
         </div>
       </div>
 
-      <!-- Footer & Signature Block -->
-      <div style="margin-top: 24px; width: 100%; box-sizing: border-box;">
+      <!-- Footer & Signature Block (Cleanly Aligned at the Bottom with Standardized Classic Format) -->
+      <div style="margin-top: auto; padding-top: 24px; width: 100%; box-sizing: border-box;">
         <div style="display: flex; justify-content: flex-end; margin-bottom: 14px;">
-          <div style="text-align: center; min-width: 200px;">
-            <div style="height: 42px; display: flex; align-items: center; justify-content: center;">
+          <div style="text-align: center; min-width: 220px;">
+            <div style="height: 42px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
               ${
                 radiologist?.signatureUrl && radiologist.signatureUrl.startsWith("data:image")
                   ? `<img src="${radiologist.signatureUrl}" style="max-height: 38px; max-width: 150px; object-fit: contain;" alt="Signature" />`
-                  : `<span style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 22px; color: #0D2461;">${radiologist?.name ? radiologist.name.split(" ")[1] || radiologist.name : "Dr. Verified"}</span>`
+                  : `<span style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 24px; color: #0D2461;">${radiologist?.name ? radiologist.name.split(" ")[1] || radiologist.name : "Dr. Verified"}</span>`
               }
             </div>
-            <div style="border-top: 1.5px solid #0D2461; padding-top: 4px;">
+            <div style="border-top: 2px solid #0D2461; padding-top: 6px;">
               <div style="font-weight: 800; font-size: 11.5px; color: #0f172a; text-transform: uppercase;">
                 ${radiologist?.name || "Consultant Radiologist"}
               </div>
-              <div style="font-size: 9.5px; font-weight: 700; color: #00A8CC; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px;">
+              <div style="font-size: 9.5px; font-weight: 700; color: #00A8CC; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">
                 ${radiologist?.qualification || "MBBS, MD (Radiodiagnosis)"}
               </div>
-              <div style="font-size: 8.5px; font-weight: 600; color: #64748b; margin-top: 1px;">
+              <div style="font-size: 8.5px; font-weight: 600; color: #64748b; margin-top: 2px;">
                 Reg No: ${radiologist?.registrationId || "KMC-48291"}
               </div>
             </div>
