@@ -47,11 +47,11 @@ export function formatReportHtmlContent(rawContent) {
   // Check if it's already HTML (contains HTML tags)
   const isHtml = /<[a-z][\s\S]*>/i.test(trimmed);
   if (isHtml) {
-    // Sanitize any existing justify styles that might cause edge clipping
+    // Sanitize any existing justify styles that might cause edge clipping and enforce standard compact medical line spacing
     return trimmed
       .replace(/text-align\s*:\s*justify/gi, "text-align: left")
-      .replace(/<p(\s|>)/gi, '<p style="margin: 0 0 6px 0; font-size: 11.5px; line-height: 1.6; color: #1e293b; text-align: left; width: 100%; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word;"$1')
-      .replace(/<h3(\s|>)/gi, '<h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 14px; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1.5px solid #e2e8f0; width: 100%; box-sizing: border-box; text-align: left;"$1');
+      .replace(/<p(\s|>)/gi, '<p style="margin: 0 0 2px 0; font-size: 11px; line-height: 1.4; color: #1e293b; text-align: left; width: 100%; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word;"$1')
+      .replace(/<h3(\s|>)/gi, '<h3 style="font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px; margin-bottom: 3px; padding-bottom: 2px; border-bottom: 1.5px solid #e2e8f0; width: 100%; box-sizing: border-box; text-align: left;"$1');
   }
 
   // Convert plain text with sections like FINDINGS: / IMPRESSION: into structured HTML
@@ -61,15 +61,15 @@ export function formatReportHtmlContent(rawContent) {
   for (let line of lines) {
     const cleanLine = line.trim();
     if (!cleanLine) {
-      formattedHtml += "<div style='height: 8px;'></div>";
+      formattedHtml += "<div style='height: 4px;'></div>";
       continue;
     }
 
     // Check if line is a major medical section header (e.g. FINDINGS:, IMPRESSION:, CLINICAL HISTORY:, TECHNIQUE:)
     if (/^[A-Z\s\/\-_]{3,30}:$/.test(cleanLine) || /^(CLINICAL HISTORY|TECHNIQUE|OBSERVATION|FINDINGS|IMPRESSION|ADVICE|NOTE):?/i.test(cleanLine)) {
-      formattedHtml += `<h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 14px; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1.5px solid #e2e8f0; width: 100%; box-sizing: border-box; text-align: left;">${cleanLine}</h3>`;
+      formattedHtml += `<h3 style="font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px; margin-bottom: 3px; padding-bottom: 2px; border-bottom: 1.5px solid #e2e8f0; width: 100%; box-sizing: border-box; text-align: left;">${cleanLine}</h3>`;
     } else {
-      formattedHtml += `<p style="margin: 0 0 6px 0; font-size: 11.5px; line-height: 1.6; color: #1e293b; text-align: left; width: 100%; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word; hyphens: manual;">${cleanLine}</p>`;
+      formattedHtml += `<p style="margin: 0 0 2px 0; font-size: 11px; line-height: 1.4; color: #1e293b; text-align: left; width: 100%; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word; hyphens: manual;">${cleanLine}</p>`;
     }
   }
 
@@ -162,7 +162,7 @@ export function buildFormalReportDOM({
   container.style.backgroundColor = "#ffffff";
   container.style.color = "#1e293b";
   container.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-  container.style.padding = "50px 62px 46px 62px";
+  container.style.padding = "36px 44px 30px 44px";
   container.style.boxSizing = "border-box";
 
   const studyDateStr = study?.studyDate
@@ -178,94 +178,94 @@ export function buildFormalReportDOM({
     : format(new Date(), "dd MMM yyyy, hh:mm a");
 
   const logoHtml = branding.logo
-    ? `<img src="${branding.logo}" style="max-height: 52px; max-width: 200px; object-fit: contain; display: block;" alt="Logo" />`
+    ? `<img src="${branding.logo}" style="max-height: 48px; max-width: 180px; object-fit: contain; display: block;" alt="Logo" />`
     : `<div>
-        <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #0D2461; letter-spacing: -0.5px; text-transform: uppercase;">UNNATHI</h1>
-        <div style="font-size: 9px; font-weight: 700; color: #00A8CC; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px;">Diagnostic Imaging & Teleradiology</div>
+        <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #0D2461; letter-spacing: -0.5px; text-transform: uppercase;">UNNATHI</h1>
+        <div style="font-size: 8.5px; font-weight: 700; color: #00A8CC; letter-spacing: 1.2px; text-transform: uppercase; margin-top: 1px;">Diagnostic Imaging & Teleradiology</div>
        </div>`;
 
   const headerFacilityInfo = `
-    <div style="text-align: right; font-size: 10.5px; line-height: 1.4; color: #475569; max-width: 300px;">
-      <div style="font-size: 13.5px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-bottom: 2px;">
+    <div style="text-align: right; font-size: 10px; line-height: 1.35; color: #475569; max-width: 280px;">
+      <div style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-bottom: 2px;">
         ${branding.hospitalName}
       </div>
-      ${branding.address ? `<div style="font-size: 9.5px;">${branding.address}</div>` : ""}
-      ${branding.phone ? `<div style="font-size: 9.5px;">Ph: ${branding.phone}</div>` : ""}
-      ${branding.email ? `<div style="font-size: 9.5px;">Email: ${branding.email}</div>` : ""}
+      ${branding.address ? `<div style="font-size: 9px;">${branding.address}</div>` : ""}
+      ${branding.phone ? `<div style="font-size: 9px;">Ph: ${branding.phone}</div>` : ""}
+      ${branding.email ? `<div style="font-size: 9px;">Email: ${branding.email}</div>` : ""}
     </div>
   `;
 
   container.innerHTML = `
-    <div style="display: flex; flex-direction: column; min-height: 1025px; justify-content: space-between; box-sizing: border-box; width: 100%;">
+    <div style="display: flex; flex-direction: column; min-height: 1050px; justify-content: space-between; box-sizing: border-box; width: 100%;">
       <div style="width: 100%; box-sizing: border-box;">
         <!-- Standard Header -->
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0D2461; padding-bottom: 12px; margin-bottom: 14px; width: 100%; box-sizing: border-box;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0D2461; padding-bottom: 10px; margin-bottom: 10px; width: 100%; box-sizing: border-box;">
           <div>${logoHtml}</div>
           <div>${headerFacilityInfo}</div>
         </div>
 
         <!-- Demographics Box with clear structured columns -->
-        <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px 14px; margin-bottom: 16px; width: 100%; box-sizing: border-box;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 10.5px; table-layout: fixed;">
+        <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 5px; padding: 7px 12px; margin-bottom: 10px; width: 100%; box-sizing: border-box;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px; table-layout: fixed;">
             <tr>
-              <td style="width: 18%; font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Patient Name:</td>
-              <td style="width: 32%; font-weight: 800; color: #0f172a; padding: 2.5px 8px 2.5px 0; text-transform: uppercase; word-break: break-word;">${patient?.name || "N/A"}</td>
-              <td style="width: 18%; font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Study Date:</td>
-              <td style="width: 32%; font-weight: 700; color: #0f172a; padding: 2.5px 0;">${studyDateStr}</td>
+              <td style="width: 18%; font-weight: 700; color: #64748b; padding: 2px 4px 2px 0; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.5px;">Patient Name:</td>
+              <td style="width: 32%; font-weight: 800; color: #0f172a; padding: 2px 8px 2px 0; text-transform: uppercase; word-break: break-word;">${patient?.name || "N/A"}</td>
+              <td style="width: 18%; font-weight: 700; color: #64748b; padding: 2px 4px 2px 0; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.5px;">Study Date:</td>
+              <td style="width: 32%; font-weight: 700; color: #0f172a; padding: 2px 0;">${studyDateStr}</td>
             </tr>
             <tr>
-              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Age / Gender:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 8px 2.5px 0;">${patient?.age ? `${patient.age} Y` : "N/A"} / ${patient?.gender || "N/A"}</td>
-              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Case Number:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 0;">${study?.caseNumber || "N/A"}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2px 4px 2px 0; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.5px;">Age / Gender:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2px 8px 2px 0;">${patient?.age ? `${patient.age} Y` : "N/A"} / ${patient?.gender || "N/A"}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2px 4px 2px 0; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.5px;">Case Number:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2px 0;">${study?.caseNumber || "N/A"}</td>
             </tr>
             <tr>
-              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Patient UHID:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 8px 2.5px 0;">${patient?.uhid || "N/A"}</td>
-              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Modality:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 0;">${study?.modality || "N/A"}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2px 4px 2px 0; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.5px;">Patient UHID:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2px 8px 2px 0;">${patient?.uhid || "N/A"}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2px 4px 2px 0; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.5px;">Modality:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2px 0;">${study?.modality || "N/A"}</td>
             </tr>
             <tr>
-              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Ref Doctor:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 8px 2.5px 0;">${patient?.referringDoctor || "Self / Consultant"}</td>
-              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Report Date:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 0;">${reportDateStr}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2px 4px 2px 0; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.5px;">Ref Doctor:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2px 8px 2px 0;">${patient?.referringDoctor || "Self / Consultant"}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2px 4px 2px 0; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.5px;">Report Date:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2px 0;">${reportDateStr}</td>
             </tr>
           </table>
         </div>
 
         <!-- Examination Title -->
-        <div style="text-align: center; margin-bottom: 16px; padding-bottom: 4px;">
-          <h2 style="margin: 0; font-size: 13px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 2px solid #00A8CC; display: inline-block; padding-bottom: 3px;">
+        <div style="text-align: center; margin-bottom: 10px; padding-bottom: 2px;">
+          <h2 style="margin: 0; font-size: 12.5px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 2px solid #00A8CC; display: inline-block; padding-bottom: 2px;">
             ${study?.modality || ""} ${study?.studyDescription ? `- ${study.studyDescription}` : "REPORT"}
           </h2>
         </div>
 
-        <!-- Clinical Report Body with Standard Typography and Safe Padding -->
-        <div class="report-standard-body" style="font-size: 11.5px; line-height: 1.6; color: #1e293b; width: 100%; box-sizing: border-box; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; padding-right: 12px; padding-left: 2px;">
+        <!-- Clinical Report Body with Standard Tight Typography -->
+        <div class="report-standard-body" style="font-size: 11px; line-height: 1.4; color: #1e293b; width: 100%; box-sizing: border-box; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; padding-right: 6px;">
           ${reportContentHtml}
         </div>
       </div>
 
       <!-- Footer & Signature Block (Cleanly Aligned at the Bottom with Standardized Classic Format) -->
-      <div style="margin-top: auto; padding-top: 24px; width: 100%; box-sizing: border-box;">
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 14px;">
-          <div style="text-align: center; min-width: 220px;">
-            <div style="height: 42px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
+      <div style="margin-top: auto; padding-top: 14px; width: 100%; box-sizing: border-box;">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+          <div style="text-align: center; min-width: 200px;">
+            <div style="height: 36px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px;">
               ${
                 radiologist?.signatureUrl && radiologist.signatureUrl.startsWith("data:image")
-                  ? `<img src="${radiologist.signatureUrl}" style="max-height: 38px; max-width: 150px; object-fit: contain;" alt="Signature" />`
-                  : `<span style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 24px; color: #0D2461;">${radiologist?.name ? radiologist.name.split(" ")[1] || radiologist.name : "Dr. Verified"}</span>`
+                  ? `<img src="${radiologist.signatureUrl}" style="max-height: 32px; max-width: 140px; object-fit: contain;" alt="Signature" />`
+                  : `<span style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 22px; color: #0D2461;">${radiologist?.name ? radiologist.name.split(" ")[1] || radiologist.name : "Dr. Verified"}</span>`
               }
             </div>
-            <div style="border-top: 2px solid #0D2461; padding-top: 6px;">
-              <div style="font-weight: 800; font-size: 11.5px; color: #0f172a; text-transform: uppercase;">
+            <div style="border-top: 1.5px solid #0D2461; padding-top: 4px;">
+              <div style="font-weight: 800; font-size: 11px; color: #0f172a; text-transform: uppercase;">
                 ${radiologist?.name || "Consultant Radiologist"}
               </div>
-              <div style="font-size: 9.5px; font-weight: 700; color: #00A8CC; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">
+              <div style="font-size: 9px; font-weight: 700; color: #00A8CC; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px;">
                 ${radiologist?.qualification || "MBBS, MD (Radiodiagnosis)"}
               </div>
-              <div style="font-size: 8.5px; font-weight: 600; color: #64748b; margin-top: 2px;">
+              <div style="font-size: 8px; font-weight: 600; color: #64748b; margin-top: 1px;">
                 Reg No: ${radiologist?.registrationId || "KMC-48291"}
               </div>
             </div>
@@ -273,8 +273,8 @@ export function buildFormalReportDOM({
         </div>
 
         <!-- Document Bottom Footer Notice -->
-        <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; text-align: center; font-size: 8.5px; color: #94a3b8; line-height: 1.4;">
-          <div style="font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 2px;">
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; text-align: center; font-size: 8px; color: #94a3b8; line-height: 1.3;">
+          <div style="font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 1px;">
             *** End of Report ***
           </div>
           <div>This is an electronically verified and authenticated diagnostic radiology report. Generated via Unnathi Teleradiology Platform.</div>
@@ -356,8 +356,8 @@ export async function downloadStandardReportPDF({
     // Calculate full scaled height in mm
     const totalImgHeightMm = (canvas.height * pdfPageWidth) / canvas.width;
 
-    // If report fits inside 1 page (or marginally exceeds 1 page by <= 15mm), fit neatly onto 1 page
-    if (totalImgHeightMm <= pdfPageHeight + 10) {
+    // If report fits inside 1 page (or fits with standard clinical single-page tolerance), fit neatly onto 1 page
+    if (totalImgHeightMm <= pdfPageHeight + 28) {
       const renderHeight = Math.min(totalImgHeightMm, pdfPageHeight);
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
       pdf.addImage(imgData, "JPEG", 0, 0, pdfPageWidth, renderHeight, undefined, "FAST");
