@@ -53,20 +53,19 @@ export function formatReportHtmlContent(rawContent) {
   // Convert plain text with sections like FINDINGS: / IMPRESSION: into structured HTML
   const lines = trimmed.split("\n");
   let formattedHtml = "";
-  let inList = false;
 
   for (let line of lines) {
     const cleanLine = line.trim();
     if (!cleanLine) {
-      formattedHtml += "<div style='height: 6px;'></div>";
+      formattedHtml += "<div style='height: 8px;'></div>";
       continue;
     }
 
     // Check if line is a major medical section header (e.g. FINDINGS:, IMPRESSION:, CLINICAL HISTORY:, TECHNIQUE:)
     if (/^[A-Z\s\/\-_]{3,30}:$/.test(cleanLine) || /^(CLINICAL HISTORY|TECHNIQUE|OBSERVATION|FINDINGS|IMPRESSION|ADVICE|NOTE):?/i.test(cleanLine)) {
-      formattedHtml += `<h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 14px; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1.5px solid #e2e8f0; width: 100%; box-sizing: border-box;">${cleanLine}</h3>`;
+      formattedHtml += `<h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 14px; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1.5px solid #e2e8f0; width: 100%; box-sizing: border-box; text-align: left;">${cleanLine}</h3>`;
     } else {
-      formattedHtml += `<p style="margin: 0 0 5px 0; font-size: 12px; line-height: 1.55; color: #1e293b; text-align: justify; text-justify: inter-word; width: 100%; box-sizing: border-box; word-break: normal; overflow-wrap: break-word;">${cleanLine}</p>`;
+      formattedHtml += `<p style="margin: 0 0 6px 0; font-size: 11.5px; line-height: 1.6; color: #1e293b; text-align: left; width: 100%; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word; hyphens: manual;">${cleanLine}</p>`;
     }
   }
 
@@ -152,13 +151,14 @@ export function buildFormalReportDOM({
   container.style.opacity = "1";
   container.style.pointerEvents = "none";
   
-  // Standard A4 rendering canvas width (794px = 210mm @ 96DPI)
+  // Standard A4 rendering canvas width (794px = 210mm @ 96DPI, height = 1123px)
   container.style.width = "794px";
+  container.style.maxWidth = "794px";
   container.style.minHeight = "1123px";
   container.style.backgroundColor = "#ffffff";
   container.style.color = "#1e293b";
-  container.style.fontFamily = "'Inter', Arial, Helvetica, sans-serif";
-  container.style.padding = "36px 42px";
+  container.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+  container.style.padding = "48px 56px 44px 56px";
   container.style.boxSizing = "border-box";
 
   const studyDateStr = study?.studyDate
@@ -174,25 +174,25 @@ export function buildFormalReportDOM({
     : format(new Date(), "dd MMM yyyy, hh:mm a");
 
   const logoHtml = branding.logo
-    ? `<img src="${branding.logo}" style="max-height: 56px; max-width: 220px; object-fit: contain; display: block;" alt="Logo" />`
+    ? `<img src="${branding.logo}" style="max-height: 52px; max-width: 200px; object-fit: contain; display: block;" alt="Logo" />`
     : `<div>
         <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #0D2461; letter-spacing: -0.5px; text-transform: uppercase;">UNNATHI</h1>
         <div style="font-size: 9px; font-weight: 700; color: #00A8CC; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px;">Diagnostic Imaging & Teleradiology</div>
        </div>`;
 
   const headerFacilityInfo = `
-    <div style="text-align: right; font-size: 11px; line-height: 1.4; color: #475569; max-width: 320px;">
-      <div style="font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-bottom: 2px;">
+    <div style="text-align: right; font-size: 10.5px; line-height: 1.4; color: #475569; max-width: 300px;">
+      <div style="font-size: 13.5px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-bottom: 2px;">
         ${branding.hospitalName}
       </div>
-      ${branding.address ? `<div style="font-size: 10px;">${branding.address}</div>` : ""}
-      ${branding.phone ? `<div style="font-size: 10px;">Ph: ${branding.phone}</div>` : ""}
-      ${branding.email ? `<div style="font-size: 10px;">Email: ${branding.email}</div>` : ""}
+      ${branding.address ? `<div style="font-size: 9.5px;">${branding.address}</div>` : ""}
+      ${branding.phone ? `<div style="font-size: 9.5px;">Ph: ${branding.phone}</div>` : ""}
+      ${branding.email ? `<div style="font-size: 9.5px;">Email: ${branding.email}</div>` : ""}
     </div>
   `;
 
   container.innerHTML = `
-    <div style="display: flex; flex-direction: column; min-height: 1040px; justify-content: space-between; box-sizing: border-box; width: 100%;">
+    <div style="display: flex; flex-direction: column; min-height: 1030px; justify-content: space-between; box-sizing: border-box; width: 100%;">
       <div style="width: 100%; box-sizing: border-box;">
         <!-- Standard Header -->
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0D2461; padding-bottom: 12px; margin-bottom: 14px; width: 100%; box-sizing: border-box;">
@@ -201,44 +201,44 @@ export function buildFormalReportDOM({
         </div>
 
         <!-- Demographics Box with clear structured columns -->
-        <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; width: 100%; box-sizing: border-box;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed;">
+        <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px 14px; margin-bottom: 16px; width: 100%; box-sizing: border-box;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 10.5px; table-layout: fixed;">
             <tr>
-              <td style="width: 18%; font-weight: 700; color: #64748b; padding: 3px 4px 3px 0; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.5px;">Patient Name:</td>
-              <td style="width: 32%; font-weight: 800; color: #0f172a; padding: 3px 8px 3px 0; text-transform: uppercase; word-break: break-word;">${patient?.name || "N/A"}</td>
-              <td style="width: 18%; font-weight: 700; color: #64748b; padding: 3px 4px 3px 0; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.5px;">Study Date:</td>
-              <td style="width: 32%; font-weight: 700; color: #0f172a; padding: 3px 0;">${studyDateStr}</td>
+              <td style="width: 18%; font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Patient Name:</td>
+              <td style="width: 32%; font-weight: 800; color: #0f172a; padding: 2.5px 8px 2.5px 0; text-transform: uppercase; word-break: break-word;">${patient?.name || "N/A"}</td>
+              <td style="width: 18%; font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Study Date:</td>
+              <td style="width: 32%; font-weight: 700; color: #0f172a; padding: 2.5px 0;">${studyDateStr}</td>
             </tr>
             <tr>
-              <td style="font-weight: 700; color: #64748b; padding: 3px 4px 3px 0; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.5px;">Age / Gender:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 3px 8px 3px 0;">${patient?.age ? `${patient.age} Y` : "N/A"} / ${patient?.gender || "N/A"}</td>
-              <td style="font-weight: 700; color: #64748b; padding: 3px 4px 3px 0; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.5px;">Case Number:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 3px 0;">${study?.caseNumber || "N/A"}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Age / Gender:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 8px 2.5px 0;">${patient?.age ? `${patient.age} Y` : "N/A"} / ${patient?.gender || "N/A"}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Case Number:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 0;">${study?.caseNumber || "N/A"}</td>
             </tr>
             <tr>
-              <td style="font-weight: 700; color: #64748b; padding: 3px 4px 3px 0; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.5px;">Patient UHID:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 3px 8px 3px 0;">${patient?.uhid || "N/A"}</td>
-              <td style="font-weight: 700; color: #64748b; padding: 3px 4px 3px 0; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.5px;">Modality:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 3px 0;">${study?.modality || "N/A"}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Patient UHID:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 8px 2.5px 0;">${patient?.uhid || "N/A"}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Modality:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 0;">${study?.modality || "N/A"}</td>
             </tr>
             <tr>
-              <td style="font-weight: 700; color: #64748b; padding: 3px 4px 3px 0; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.5px;">Ref Doctor:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 3px 8px 3px 0;">${patient?.referringDoctor || "Self / Consultant"}</td>
-              <td style="font-weight: 700; color: #64748b; padding: 3px 4px 3px 0; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.5px;">Report Date:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 3px 0;">${reportDateStr}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Ref Doctor:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 8px 2.5px 0;">${patient?.referringDoctor || "Self / Consultant"}</td>
+              <td style="font-weight: 700; color: #64748b; padding: 2.5px 4px 2.5px 0; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">Report Date:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 0;">${reportDateStr}</td>
             </tr>
           </table>
         </div>
 
         <!-- Examination Title -->
         <div style="text-align: center; margin-bottom: 16px; padding-bottom: 4px;">
-          <h2 style="margin: 0; font-size: 13.5px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 2px solid #00A8CC; display: inline-block; padding-bottom: 3px;">
+          <h2 style="margin: 0; font-size: 13px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 2px solid #00A8CC; display: inline-block; padding-bottom: 3px;">
             ${study?.modality || ""} ${study?.studyDescription ? `- ${study.studyDescription}` : "REPORT"}
           </h2>
         </div>
 
-        <!-- Clinical Report Body with Standard Typography and Safe Inner Width -->
-        <div class="report-standard-body" style="font-size: 12px; line-height: 1.55; color: #1e293b; width: 100%; box-sizing: border-box; overflow-wrap: break-word; word-wrap: break-word; word-break: normal;">
+        <!-- Clinical Report Body with Standard Typography and Safe Padding -->
+        <div class="report-standard-body" style="font-size: 11.5px; line-height: 1.6; color: #1e293b; width: 100%; box-sizing: border-box; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; padding-right: 6px;">
           ${reportContentHtml}
         </div>
       </div>
@@ -320,8 +320,9 @@ export async function downloadStandardReportPDF({
     // Wait for images and webfonts to settle
     await new Promise((resolve) => setTimeout(resolve, 60));
 
-    const measuredWidth = container.offsetWidth || 794;
-    const measuredHeight = container.offsetHeight || 1123;
+    // Guarantee dimensions capture the full width without right-edge subpixel clipping
+    const measuredWidth = Math.max(container.offsetWidth, container.scrollWidth, 794);
+    const measuredHeight = Math.max(container.offsetHeight, container.scrollHeight, 1123);
 
     const canvas = await html2canvas(container, {
       scale: 2,
@@ -330,8 +331,8 @@ export async function downloadStandardReportPDF({
       backgroundColor: "#ffffff",
       width: measuredWidth,
       height: measuredHeight,
-      windowWidth: measuredWidth,
-      windowHeight: measuredHeight,
+      windowWidth: measuredWidth + 50,
+      windowHeight: measuredHeight + 50,
       x: 0,
       y: 0,
       scrollX: 0,
