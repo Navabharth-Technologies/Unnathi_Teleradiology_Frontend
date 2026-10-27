@@ -47,7 +47,11 @@ export function formatReportHtmlContent(rawContent) {
   // Check if it's already HTML (contains HTML tags)
   const isHtml = /<[a-z][\s\S]*>/i.test(trimmed);
   if (isHtml) {
-    return trimmed;
+    // Sanitize any existing justify styles that might cause edge clipping
+    return trimmed
+      .replace(/text-align\s*:\s*justify/gi, "text-align: left")
+      .replace(/<p(\s|>)/gi, '<p style="margin: 0 0 6px 0; font-size: 11.5px; line-height: 1.6; color: #1e293b; text-align: left; width: 100%; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word;"$1')
+      .replace(/<h3(\s|>)/gi, '<h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 14px; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1.5px solid #e2e8f0; width: 100%; box-sizing: border-box; text-align: left;"$1');
   }
 
   // Convert plain text with sections like FINDINGS: / IMPRESSION: into structured HTML
@@ -158,7 +162,7 @@ export function buildFormalReportDOM({
   container.style.backgroundColor = "#ffffff";
   container.style.color = "#1e293b";
   container.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-  container.style.padding = "48px 56px 44px 56px";
+  container.style.padding = "50px 62px 46px 62px";
   container.style.boxSizing = "border-box";
 
   const studyDateStr = study?.studyDate
@@ -192,7 +196,7 @@ export function buildFormalReportDOM({
   `;
 
   container.innerHTML = `
-    <div style="display: flex; flex-direction: column; min-height: 1030px; justify-content: space-between; box-sizing: border-box; width: 100%;">
+    <div style="display: flex; flex-direction: column; min-height: 1025px; justify-content: space-between; box-sizing: border-box; width: 100%;">
       <div style="width: 100%; box-sizing: border-box;">
         <!-- Standard Header -->
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0D2461; padding-bottom: 12px; margin-bottom: 14px; width: 100%; box-sizing: border-box;">
@@ -238,7 +242,7 @@ export function buildFormalReportDOM({
         </div>
 
         <!-- Clinical Report Body with Standard Typography and Safe Padding -->
-        <div class="report-standard-body" style="font-size: 11.5px; line-height: 1.6; color: #1e293b; width: 100%; box-sizing: border-box; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; padding-right: 6px;">
+        <div class="report-standard-body" style="font-size: 11.5px; line-height: 1.6; color: #1e293b; width: 100%; box-sizing: border-box; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; padding-right: 12px; padding-left: 2px;">
           ${reportContentHtml}
         </div>
       </div>
@@ -318,7 +322,7 @@ export async function downloadStandardReportPDF({
 
   try {
     // Wait for images and webfonts to settle
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    await new Promise((resolve) => setTimeout(resolve, 80));
 
     // Guarantee dimensions capture the full width without right-edge subpixel clipping
     const measuredWidth = Math.max(container.offsetWidth, container.scrollWidth, 794);
