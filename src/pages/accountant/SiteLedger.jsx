@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { useMockDb } from "../../store/useMockDb";
 import {
   Table,
@@ -23,12 +24,16 @@ import {
   Loader2,
   Download,
   Wallet,
+  ArrowLeft,
+  Building2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useAuthStore } from "../../store/useAuthStore";
 
 export default function SiteLedger() {
   const { user } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const targetHospitalId = searchParams.get("hospitalId");
   const {
     hospitals,
     studies,
@@ -59,11 +64,16 @@ export default function SiteLedger() {
   const [downloadState, setDownloadState] = useState({});
 
   const scopedHospitals = hospitals.filter((h) => {
+    if (targetHospitalId) {
+      return h.id === targetHospitalId;
+    }
     if (user?.role === "SUPER_ADMIN") return true;
     if (user?.hospitalId) return h.id === user.hospitalId;
     if (user?.siteId) return h.parentSiteId === user.siteId;
     return false;
   });
+
+  const specificHospital = targetHospitalId ? hospitals.find((h) => h.id === targetHospitalId) : null;
 
   const filteredCentres = scopedHospitals
     .filter(
@@ -207,16 +217,27 @@ export default function SiteLedger() {
       <div className="space-y-6 animate-unnathi-fade-in relative max-w-[1600px] mx-auto">
         {/* Modern Top Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-5 rounded-2xl shadow-sm border border-border">
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-4 md:space-x-6">
+            {targetHospitalId && (
+              <Link
+                to="/unnathi/billing"
+                className="p-2.5 rounded-xl border border-border bg-background hover:bg-accent/10 text-slate-600 hover:text-primary transition-all shadow-sm"
+                title="Back to Organizational Ledger"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+            )}
             <div className="p-3 bg-blue-500/10 rounded-xl text-blue-500 border border-blue-500/20 shadow-inner">
-              <FileText className="w-6 h-6" />
+              {targetHospitalId ? <Building2 className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
             </div>
             <div>
               <h1 className="text-2xl font-black text-primary tracking-tight">
-                Site Ledger
+                {specificHospital ? `${specificHospital.name} Commission Ledger` : "Site Ledger"}
               </h1>
               <p className="text-[11px] font-black text-slate-400 mt-1 uppercase tracking-widest">
-                Finance / Site ledger
+                {specificHospital
+                  ? `Finance / Commission Ledger / ${specificHospital.code || specificHospital.name}`
+                  : "Finance / Site ledger"}
               </p>
             </div>
           </div>

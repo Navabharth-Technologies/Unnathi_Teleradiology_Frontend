@@ -324,7 +324,7 @@ export default function GlobalBilling() {
               {node.type === "hospital" && (
                 node.data?.parentSiteId ? (
                   <Link
-                    to="/finance/ledger"
+                    to={`/finance/ledger?hospitalId=${node.data?.id || node.id}`}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-primary hover:text-primary-hover hover:bg-primary/10 transition-all ml-auto"
                   >
                     <Building2 className="w-3.5 h-3.5" />
