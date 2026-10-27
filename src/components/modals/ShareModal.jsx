@@ -10,10 +10,28 @@ export function ShareModal({ isOpen, onClose, study, patient, hospital, onShared
 
   if (!isOpen) return null;
 
-  const demoLink = `${window.location.origin}/viewer/${study?.id}`;
+  const baseOrigin = window.location.origin;
+  const hashPrefix = window.location.hash ? window.location.pathname + "#" : "";
+  // Direct PDF Report Link (opens standalone report with print & download options)
+  const reportLink = `${baseOrigin}${hashPrefix}/report/${study?.id}`;
+  // Scanned Images DICOM Web Viewer Link
+  const viewerLink = `${baseOrigin}${hashPrefix}/viewer/${study?.id}`;
+
   const patientName = patient?.name || "Patient";
-  const hospitalName = hospital?.name || "our center";
-  const patientDetailsString = `Dear ${patientName},\nHere is the report for your scanning at ${hospitalName}.\nLink: ${demoLink}`;
+  const hospitalName = hospital?.name || "our diagnostic center";
+  const modality = study?.modality || "Scan";
+
+  const patientDetailsString = `Dear ${patientName},
+
+Your ${modality} diagnostic examination report from ${hospitalName} is ready.
+
+📄 View / Download Report PDF:
+${reportLink}
+
+🖼️ View Scanned Images (DICOM Viewer):
+${viewerLink}
+
+Thank you for choosing ${hospitalName}.`;
 
   const handleCopy = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -94,35 +112,50 @@ export function ShareModal({ isOpen, onClose, study, patient, hospital, onShared
 
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Copy Links
+              Quick Copy Links
             </h3>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2.5">
               <Button
                 variant="outline"
                 onClick={() => handleCopy(patientDetailsString, "details")}
-                className="border-slate-200 hover:bg-slate-50 text-[#0D2461] font-bold flex-1 h-11"
+                className="border-slate-200 hover:bg-slate-50 text-[#0D2461] font-bold flex-1 h-10 text-xs"
               >
                 {copied === "details" ? (
-                  <CheckIcon className="w-4 h-4 mr-2 text-emerald-500" />
+                  <CheckIcon className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
                 ) : (
-                  <Copy className="w-4 h-4 mr-2" />
+                  <Copy className="w-3.5 h-3.5 mr-1.5" />
                 )}
-                {copied === "details" ? "Copied!" : "Copy with Details"}
+                {copied === "details" ? "Copied Message!" : "Copy Full WhatsApp Message"}
               </Button>
             </div>
 
-            <div className="flex gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <Button
                 variant="outline"
-                onClick={() => handleCopy(demoLink, "link")}
-                className="border-slate-200 hover:bg-slate-50 text-slate-600 font-bold w-full h-11"
+                onClick={() => handleCopy(reportLink, "report")}
+                className="border-cyan-200 hover:bg-cyan-50 text-[#00A8CC] font-bold h-10 text-xs"
+                title="Copy Direct Report PDF Link"
               >
-                {copied === "link" ? (
-                  <CheckIcon className="w-4 h-4 mr-2 text-emerald-500" />
+                {copied === "report" ? (
+                  <CheckIcon className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
                 ) : (
-                  <LinkIcon className="w-4 h-4 mr-2" />
+                  <LinkIcon className="w-3.5 h-3.5 mr-1.5" />
                 )}
-                {copied === "link" ? "Link Copied!" : "Copy Link Only"}
+                {copied === "report" ? "Report Link Copied!" : "Copy Report PDF Link"}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => handleCopy(viewerLink, "viewer")}
+                className="border-indigo-200 hover:bg-indigo-50 text-indigo-700 font-bold h-10 text-xs"
+                title="Copy DICOM Images Viewer Link"
+              >
+                {copied === "viewer" ? (
+                  <CheckIcon className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
+                ) : (
+                  <LinkIcon className="w-3.5 h-3.5 mr-1.5" />
+                )}
+                {copied === "viewer" ? "Images Link Copied!" : "Copy Scanned Images Link"}
               </Button>
             </div>
           </div>

@@ -9,6 +9,7 @@ import {
   Loader2,
   Send,
   FileText,
+  Eye,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -140,14 +141,34 @@ export default function ReportPreview() {
     <div className="max-w-5xl mx-auto space-y-6 animate-unnathi-fade-in pb-12 print:p-0 print:m-0 print:max-w-none">
       {/* Action Header - Hidden during printing */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 print:hidden">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/verification")}
-          className="text-[#0D2461] hover:bg-slate-50 font-bold"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Worklist
-        </Button>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
+          {window.history.length > 1 ? (
+            <Button
+              variant="ghost"
+              onClick={() => navigate(-1)}
+              className="text-[#0D2461] hover:bg-slate-50 font-bold"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              onClick={() => navigate(`/viewer/${study.id}`)}
+              className="text-[#0D2461] hover:bg-slate-50 font-bold"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> View Images
+            </Button>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/viewer/${study.id}`)}
+            className="border-indigo-200 text-indigo-700 font-bold hover:bg-indigo-50"
+            title="View Scanned DICOM Images"
+          >
+            <Eye className="mr-2 h-4 w-4" /> View Scanned Images
+          </Button>
           <Button
             variant="outline"
             onClick={handlePrint}

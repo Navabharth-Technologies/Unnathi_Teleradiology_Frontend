@@ -65,6 +65,10 @@ export const router = createHashRouter([
     element: <ViewerShell />, // Standalone full-screen layout
   },
   {
+    path: "/report/:id",
+    element: <ReportPreview />, // Standalone public report PDF preview & download
+  },
+  {
     path: "/",
     element: <AppLayout />,
     children: [
