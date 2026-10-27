@@ -131,6 +131,14 @@ export default function ViewerShell() {
   const [isWindowPresetMenuOpen, setIsWindowPresetMenuOpen] = useState(false);
   const [activeWindowPreset, setActiveWindowPreset] = useState("Default Window");
 
+  // Pan Offset State for Move / Pan Tool
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+
+  // Text Annotations on active slice
+  const [textAnnotations, setTextAnnotations] = useState([]);
+  const [activeTextAnnotationPrompt, setActiveTextAnnotationPrompt] = useState(false);
+
   // Transform / Orientation Menu (Image 2)
   const [isTransformMenuOpen, setIsTransformMenuOpen] = useState(false);
   const [imageRotation, setImageRotation] = useState(0);
@@ -729,6 +737,11 @@ export default function ViewerShell() {
     setActiveTool(tool);
     if (tool === "zoom-in") setZoom((z) => Math.min(z + 25, 400));
     if (tool === "zoom-out") setZoom((z) => Math.max(z - 25, 25));
+    if (tool === "text") {
+      setActiveMeasurementTool(null);
+      setCurrentDrawing(null);
+      setAnglePoints([]);
+    }
   };
 
   // Helper to get normalized coordinates relative to image viewport
@@ -821,6 +834,32 @@ export default function ViewerShell() {
       return;
     }
 
+    // Text Annotation Tool: Click anywhere on viewport to add text label
+    if (activeTool === "text" && e.button === 0) {
+      const pt = getRelativePoint(e);
+      const text = window.prompt("Enter text annotation for this slice:");
+      if (text && text.trim()) {
+        setTextAnnotations((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            sliceIndex: activeSlice,
+            x: pt.x,
+            y: pt.y,
+            text: text.trim(),
+          },
+        ]);
+      }
+      return;
+    }
+
+    // Move / Pan Tool: Drag image across viewport
+    if (activeTool === "move" && e.button === 0) {
+      setIsPanning(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+      return;
+    }
+
     // Left-click (button 0) when not in measurement mode or right-click (button 2) or when contrast tool is active
     if (e.button === 0 || e.button === 2 || activeTool === "contrast") {
       setIsAdjustingWindow(true);
@@ -852,6 +891,17 @@ export default function ViewerShell() {
       return;
     }
 
+    if (isPanning && activeTool === "move") {
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+      setPanOffset((prev) => ({
+        x: prev.x + dx,
+        y: prev.y + dy,
+      }));
+      setDragStart({ x: e.clientX, y: e.clientY });
+      return;
+    }
+
     if (isAdjustingWindow) {
       const dx = e.clientX - dragStart.x;
       const dy = dragStart.y - e.clientY;
@@ -879,6 +929,9 @@ export default function ViewerShell() {
   };
 
   const handleViewportMouseUp = () => {
+    if (isPanning) {
+      setIsPanning(false);
+    }
     if (activeMeasurementTool && currentDrawing) {
       if (activeMeasurementTool === "angle") {
         return; // Handled in click steps
@@ -1127,6 +1180,11 @@ export default function ViewerShell() {
               onClick={() => {
                 setLayoutMode("1x1");
                 setZoom(100);
+                setPanOffset({ x: 0, y: 0 });
+                setImageRotation(0);
+                setImageFlipH(false);
+                setImageFlipV(false);
+                setImageInvert(false);
                 setBrightness(100);
                 setContrast(100);
                 setWindowLevel({ w: 1500, l: -500 });
@@ -1587,10 +1645,23 @@ export default function ViewerShell() {
           </div>
 
           <button
-            title="Text Annotation"
-            className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:bg-slate-800 hover:text-white"
+            title="Text Annotation (Click to place label)"
+            onClick={() => handleToolClick("text")}
+            className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${
+              activeTool === "text"
+                ? "bg-[#45a29e] text-[#0b0c10]"
+                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+            }`}
           >
             <TypeIcon className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            title="Rotate 90° Clockwise"
+            onClick={() => setImageRotation((r) => (r + 90) % 360)}
+            className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+          >
+            <RotateCw className="h-3.5 w-3.5" />
           </button>
         </div>
 
@@ -1881,7 +1952,7 @@ export default function ViewerShell() {
                         src={sliceUrl}
                         alt="DICOM Scan"
                         style={{
-                          transform: `scale(${zoom / 100}) rotate(${imageRotation}deg) scaleX(${imageFlipH ? -1 : 1}) scaleY(${imageFlipV ? -1 : 1})`,
+                          transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom / 100}) rotate(${imageRotation}deg) scaleX(${imageFlipH ? -1 : 1}) scaleY(${imageFlipV ? -1 : 1})`,
                           filter: (() => {
                             let f = `brightness(${brightness}%) contrast(${contrast}%)`;
                             if (imageInvert) f += " invert(100%)";
@@ -2224,6 +2295,35 @@ export default function ViewerShell() {
 
                           return null;
                         })()}
+
+                        {/* Text Annotations placed on current slice */}
+                        {textAnnotations
+                          .filter((t) => t.sliceIndex === activeSlice)
+                          .map((t) => (
+                            <g key={t.id}>
+                              <rect
+                                x={t.x - 4}
+                                y={t.y - 14}
+                                width={Math.max(50, t.text.length * 8 + 12)}
+                                height="20"
+                                fill="rgba(15, 23, 42, 0.85)"
+                                stroke="#45a29e"
+                                strokeWidth="1"
+                                rx="4"
+                              />
+                              <circle cx={t.x - 1} cy={t.y - 4} r="2.5" fill="#45a29e" />
+                              <text
+                                x={t.x + 5}
+                                y={t.y}
+                                fill="#ffffff"
+                                fontSize="11"
+                                fontWeight="bold"
+                                fontFamily="sans-serif"
+                              >
+                                {t.text}
+                              </text>
+                            </g>
+                          ))}
                       </svg>
 
                       {/* DICOM Meta Overlays (Corners) - Exact Kin's Cloud PACS HUD */}
@@ -2559,20 +2659,14 @@ export default function ViewerShell() {
                 </button>
               </div>
 
-              {/* Right Side: Add Report, Add Key Image */}
+              {/* Right Side: Close Panel */}
               <div className="flex items-center space-x-2">
-                <button className="text-xs bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-3 py-1.5 rounded font-semibold flex items-center transition-colors">
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />{" "}
-                  Add Report
-                </button>
-                <button className="text-xs bg-[#0D2461] hover:bg-[#081840] text-white px-3 py-1.5 rounded font-semibold flex items-center shadow-sm transition-colors">
-                  <ImageIcon className="w-3.5 h-3.5 mr-1.5" /> Add Key Image
-                </button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsReportingExpanded(false)}
-                  className="ml-2 text-slate-400 hover:text-slate-700 h-7 w-7 p-0"
+                  className="text-slate-400 hover:text-slate-700 h-7 w-7 p-0"
+                  title="Close report panel"
                 >
                   <ArrowRightLeft className="h-4 w-4" />
                 </Button>
@@ -2615,6 +2709,9 @@ export default function ViewerShell() {
               <RichTextEditor
                 value={reportText}
                 onChange={setReportText}
+                patient={patient}
+                study={study}
+                hospital={hospital}
                 className="flex-1 h-full shadow-sm border-slate-200"
                 placeholder="Type report here...&#10;&#10;Procedure:&#10;&#10;Findings:&#10;&#10;Impression:"
               />

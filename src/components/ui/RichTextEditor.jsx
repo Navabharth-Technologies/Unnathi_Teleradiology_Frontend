@@ -20,6 +20,10 @@ export function RichTextEditor({
   onChange,
   placeholder = "Type here...",
   className = "",
+  patient,
+  study,
+  hospital,
+  onPrint,
 }) {
   const editorRef = useRef(null);
   // Sync content whenever value changes externally (e.g. template loaded)
@@ -35,7 +39,197 @@ export function RichTextEditor({
     }
   };
 
+  const handlePrintReport = () => {
+    if (onPrint) {
+      onPrint();
+      return;
+    }
+
+    const reportHtml = editorRef.current ? editorRef.current.innerHTML : (value || "");
+    const patientName = patient?.name || study?.patientName || study?.patient || "Patient";
+    const uhid = patient?.uhid || study?.patientUHID || study?.accessionNumber || "-";
+    const ageGender = `${patient?.age || study?.age || "-"} Y / ${patient?.gender || study?.gender || "-"}`;
+    const studyDate = (study?.studyDate || study?.createdAt || new Date().toISOString()).split("T")[0];
+    const modality = study?.modality || "CT / MRI";
+    const studyDesc = study?.studyDescription || study?.bodyPart || "DIAGNOSTIC REPORT";
+    const refDoctor = patient?.referringDoctor || study?.referringDoctor || "Self";
+    const hospName = hospital?.name || study?.hospitalName || "UNNATHI TELERADIOLOGY";
+
+    const printFrame = document.createElement("iframe");
+    printFrame.style.position = "fixed";
+    printFrame.style.right = "0";
+    printFrame.style.bottom = "0";
+    printFrame.style.width = "0";
+    printFrame.style.height = "0";
+    printFrame.style.border = "0";
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow.document;
+    frameDoc.open();
+    frameDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Report - ${patientName}</title>
+          <style>
+            @page {
+              size: A4;
+              margin: 15mm 15mm 15mm 15mm;
+            }
+            body {
+              font-family: Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              color: #1e293b;
+              margin: 0;
+              padding: 0;
+              font-size: 13px;
+              line-height: 1.6;
+              background: #fff;
+            }
+            .header-bar {
+              border-bottom: 2px solid #0D2461;
+              padding-bottom: 12px;
+              margin-bottom: 16px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .brand-name {
+              font-size: 24px;
+              font-weight: 900;
+              color: #0D2461;
+              letter-spacing: -0.5px;
+              margin: 0;
+              text-transform: uppercase;
+            }
+            .brand-sub {
+              font-size: 9px;
+              font-weight: 700;
+              color: #00A8CC;
+              letter-spacing: 1px;
+              text-transform: uppercase;
+              margin-top: 2px;
+            }
+            .hosp-meta {
+              text-align: right;
+              font-size: 11px;
+              color: #475569;
+              font-weight: 600;
+            }
+            .patient-card {
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              background-color: #f8fafc;
+              padding: 10px 14px;
+              margin-bottom: 18px;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 8px 16px;
+              font-size: 12px;
+            }
+            .patient-row {
+              display: flex;
+            }
+            .patient-label {
+              width: 100px;
+              font-weight: 700;
+              color: #64748b;
+              text-transform: uppercase;
+              font-size: 10px;
+              letter-spacing: 0.5px;
+            }
+            .patient-val {
+              font-weight: 700;
+              color: #0f172a;
+            }
+            .study-title {
+              text-align: center;
+              font-size: 15px;
+              font-weight: 900;
+              color: #0D2461;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              margin: 14px 0 16px 0;
+              padding-bottom: 6px;
+              border-bottom: 1.5px solid #00A8CC;
+            }
+            .report-body {
+              color: #0f172a;
+              min-height: 400px;
+            }
+            .report-body h3, .report-body strong {
+              color: #0D2461;
+            }
+            .footer-sign {
+              margin-top: 40px;
+              padding-top: 10px;
+              display: flex;
+              justify-content: flex-end;
+              page-break-inside: avoid;
+            }
+            .sign-box {
+              text-align: center;
+              min-width: 180px;
+              border-top: 1.5px solid #0D2461;
+              padding-top: 6px;
+              font-size: 11px;
+              font-weight: 700;
+              color: #0D2461;
+              text-transform: uppercase;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header-bar">
+            <div>
+              <h1 class="brand-name">UNNATHI</h1>
+              <div class="brand-sub">Diagnostic Imaging &amp; Teleradiology</div>
+            </div>
+            <div class="hosp-meta">
+              <div>${hospName}</div>
+              <div>Report Date: ${studyDate}</div>
+            </div>
+          </div>
+
+          <div class="patient-card">
+            <div class="patient-row"><span class="patient-label">Patient Name:</span><span class="patient-val">${patientName}</span></div>
+            <div class="patient-row"><span class="patient-label">Study Date:</span><span class="patient-val">${studyDate}</span></div>
+            <div class="patient-row"><span class="patient-label">UHID:</span><span class="patient-val">${uhid}</span></div>
+            <div class="patient-row"><span class="patient-label">Modality:</span><span class="patient-val">${modality}</span></div>
+            <div class="patient-row"><span class="patient-label">Age / Gender:</span><span class="patient-val">${ageGender}</span></div>
+            <div class="patient-row"><span class="patient-label">Ref Doctor:</span><span class="patient-val">${refDoctor}</span></div>
+          </div>
+
+          <div class="study-title">${studyDesc}</div>
+
+          <div class="report-body">
+            ${reportHtml}
+          </div>
+
+          <div class="footer-sign">
+            <div class="sign-box">
+              <div>Consultant Radiologist</div>
+              <div style="font-size: 9px; color: #64748b; font-weight: normal; margin-top: 2px;">Electronically Verified &amp; Signed</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    frameDoc.close();
+
+    setTimeout(() => {
+      printFrame.contentWindow.focus();
+      printFrame.contentWindow.print();
+      setTimeout(() => {
+        document.body.removeChild(printFrame);
+      }, 1000);
+    }, 250);
+  };
+
   const executeCommand = (command, arg) => {
+    if (command === "print") {
+      handlePrintReport();
+      return;
+    }
     document.execCommand(command, false, arg);
     if (editorRef.current) {
       editorRef.current.focus();
@@ -43,12 +237,16 @@ export function RichTextEditor({
     }
   };
 
-  const ToolbarButton = ({ icon: Icon, command, arg, title }) => (
+  const ToolbarButton = ({ icon: Icon, command, arg, title, onClick }) => (
     <button
       type="button"
       onClick={(e) => {
         e.preventDefault();
-        executeCommand(command, arg);
+        if (onClick) {
+          onClick();
+        } else {
+          executeCommand(command, arg);
+        }
       }}
       className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors"
       title={title}
