@@ -4,6 +4,8 @@ import { Input } from "../ui/input";
 import { X, MessageCircle, Copy, Link as LinkIcon, Share2 } from "lucide-react";
 import { useState } from "react";
 
+import { encodeStudyPayload } from "../../utils/shareUtils";
+
 export function ShareModal({ isOpen, onClose, study, patient, hospital, onShared }) {
   const [copied, setCopied] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -12,10 +14,34 @@ export function ShareModal({ isOpen, onClose, study, patient, hospital, onShared
 
   const baseOrigin = window.location.origin;
   const hashPrefix = window.location.hash ? window.location.pathname + "#" : "";
+
+  // Pack essential metadata so external mobile users on WhatsApp can render report and viewer
+  const sharedPayload = {
+    id: study?.id,
+    patientName: patient?.name || study?.patientName || study?.patient || "Patient",
+    age: patient?.age || study?.age || "",
+    gender: patient?.gender || study?.gender || "",
+    uhid: patient?.uhid || study?.patientUHID || study?.caseNumber || "UHID-001",
+    referringDoctor: patient?.referringDoctor || study?.referringDoctor || "Self",
+    hospitalName: hospital?.name || study?.hospitalName || "Diagnostic Imaging & Teleradiology",
+    modality: study?.modality || "MRI",
+    studyDescription: study?.studyDescription || study?.bodyPart || "Diagnostic Examination",
+    bodyPart: study?.bodyPart || "",
+    caseNumber: study?.caseNumber || study?.id || "CASE-001",
+    studyDate: study?.studyDate || study?.createdAt || new Date().toISOString(),
+    reportingStatus: study?.reportingStatus || "Final",
+    priority: study?.priority || "Normal",
+    orthancStudyId: study?.orthancStudyId || study?.orthancId || null,
+    reportText: study?.reportText || null,
+  };
+
+  const encodedData = encodeStudyPayload(sharedPayload);
+  const queryParam = encodedData ? `?p=${encodedData}` : "";
+
   // Direct PDF Report Link (opens standalone report with print & download options)
-  const reportLink = `${baseOrigin}${hashPrefix}/report/${study?.id}`;
+  const reportLink = `${baseOrigin}${hashPrefix}/report/${study?.id}${queryParam}`;
   // Scanned Images DICOM Web Viewer Link
-  const viewerLink = `${baseOrigin}${hashPrefix}/viewer/${study?.id}`;
+  const viewerLink = `${baseOrigin}${hashPrefix}/viewer/${study?.id}${queryParam}`;
 
   const patientName = patient?.name || "Patient";
   const hospitalName = hospital?.name || "our diagnostic center";

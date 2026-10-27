@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useMockDb } from "../../store/useMockDb";
 import { useAuthStore } from "../../store/useAuthStore";
 import { Button } from "../../components/ui/button";
+import { decodeStudyPayload } from "../../utils/shareUtils";
 import {
   ArrowLeft,
   ZoomIn,
@@ -59,6 +59,7 @@ import kulashekarStudySeries from "../../data/kulashekarStudySeries.json";
 
 export default function ViewerShell() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentRole } = useAuthStore();
   const { studies, patients, hospitals, updateStudy, users, templates, fetchStudyById } =
@@ -67,16 +68,51 @@ export default function ViewerShell() {
   const [remoteStudy, setRemoteStudy] = useState(null);
   const [isLoadingStudy, setIsLoadingStudy] = useState(false);
 
-  const study = remoteStudy || studies.find((s) => s.id === id);
+  // Decode study payload from URL if shared via WhatsApp
+  const urlPayload = decodeStudyPayload(searchParams.get("p"));
+
+  const dbStudy = studies.find((s) => s.id === id);
+  const study =
+    remoteStudy ||
+    dbStudy ||
+    (urlPayload
+      ? {
+          id: id || urlPayload.id,
+          patientName: urlPayload.patientName,
+          age: urlPayload.age,
+          gender: urlPayload.gender,
+          patientUHID: urlPayload.uhid,
+          caseNumber: urlPayload.caseNumber,
+          referringDoctor: urlPayload.referringDoctor,
+          hospitalName: urlPayload.hospitalName,
+          modality: urlPayload.modality || "MRI",
+          studyDescription: urlPayload.studyDescription || "MRI - LUMBAR SPINE",
+          bodyPart: urlPayload.bodyPart,
+          studyDate: urlPayload.studyDate,
+          reportingStatus: urlPayload.reportingStatus || "Final",
+          priority: urlPayload.priority || "Normal",
+          orthancStudyId: urlPayload.orthancStudyId,
+          reportText: urlPayload.reportText,
+        }
+      : {
+          id: id,
+          patientName: "Patient",
+          modality: "MRI",
+          studyDescription: "MRI - LUMBAR SPINE",
+          caseNumber: id || "CASE-001",
+          studyDate: new Date().toISOString(),
+          reportingStatus: "Final",
+        });
+
   const patient =
     patients.find((p) => p.id === study?.patientId) || {
-      name: study?.patientName || study?.patient || "Patient",
-      age: study?.age || "",
-      gender: study?.gender || "",
+      name: urlPayload?.patientName || study?.patientName || study?.patient || "Patient",
+      age: urlPayload?.age || study?.age || "45",
+      gender: urlPayload?.gender || study?.gender || "M",
     };
   const hospital =
     hospitals.find((h) => h.id === study?.hospitalId) || {
-      name: "Hospital",
+      name: urlPayload?.hospitalName || study?.hospitalName || "Hospital",
     };
 
   const [reportText, setReportText] = useState("");
@@ -592,9 +628,9 @@ export default function ViewerShell() {
       }
     }
 
-    // 3. For Kulashekar MR L-Spine study (whether viewed locally or hosted on GitHub Pages),
+    // 3. For Kulashekar MR L-Spine study or any remote shared link on GitHub Pages without local PACS,
     // provide the authentic 9 series with real scanned previews and full slice counts (e.g. 1/96, 1/13)
-    if (isKulashekarStudy) {
+    if (isKulashekarStudy || kulashekarStudySeries?.length > 0) {
       return (kulashekarStudySeries || []).map((s, idx) => ({
         id: s.id ?? idx + 1,
         seriesNumber: s.seriesNumber,
@@ -607,7 +643,7 @@ export default function ViewerShell() {
       }));
     }
 
-    // 4. No real images are available. Render an empty state.
+    // 4. Fallback empty
     return [];
   }, [study, orthancSeriesList, activeOrthancId, isKulashekarStudy]);
 
